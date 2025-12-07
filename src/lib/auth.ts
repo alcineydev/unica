@@ -1,0 +1,121 @@
+import NextAuth from 'next-auth'
+import Credentials from 'next-auth/providers/credentials'
+import bcrypt from 'bcryptjs'
+import { z } from 'zod'
+import { authConfig } from './auth.config'
+import prisma from './prisma'
+
+// Schema de validação do login
+const loginSchema = z.object({
+  email: z.string().email('Email inválido'),
+  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
+})
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
+  providers: [
+    Credentials({
+      name: 'credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Senha', type: 'password' },
+      },
+      async authorize(credentials) {
+        // Valida os dados de entrada
+        const parsed = loginSchema.safeParse(credentials)
+        if (!parsed.success) {
+          return null
+        }
+
+        const { email, password } = parsed.data
+
+        try {
+          // Busca o usuário no banco
+          const user = await prisma.user.findUnique({
+            where: { email },
+            include: {
+              admin: true,
+              parceiro: true,
+              assinante: true,
+            },
+          })
+
+          if (!user) {
+            return null
+          }
+
+          // Verifica se o usuário está ativo
+          if (!user.isActive) {
+            return null
+          }
+
+          // Verifica a senha
+          const passwordMatch = await bcrypt.compare(password, user.password)
+          if (!passwordMatch) {
+            return null
+          }
+
+          // Obtém o nome do perfil correspondente
+          let name = 'Usuário'
+          if (user.admin) {
+            name = user.admin.name
+          } else if (user.parceiro) {
+            name = user.parceiro.companyName
+          } else if (user.assinante) {
+            name = user.assinante.name
+          }
+
+          // Retorna os dados do usuário para o token
+          return {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            name,
+          }
+        } catch (error) {
+          console.error('Erro na autenticação:', error)
+          return null
+        }
+      },
+    }),
+  ],
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 dias
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+})
+
+/**
+ * Função auxiliar para obter a sessão no servidor
+ */
+export async function getServerSession() {
+  return await auth()
+}
+
+/**
+ * Função auxiliar para verificar se o usuário tem uma role específica
+ */
+export async function hasRole(allowedRoles: string[]) {
+  const session = await auth()
+  if (!session?.user?.role) return false
+  return allowedRoles.includes(session.user.role)
+}
+
+/**
+ * Função auxiliar para hash de senha
+ */
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12)
+}
+
+/**
+ * Função auxiliar para verificar senha
+ */
+export async function verifyPassword(
+  password: string,
+  hashedPassword: string
+): Promise<boolean> {
+  return bcrypt.compare(password, hashedPassword)
+}
+
