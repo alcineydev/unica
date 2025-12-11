@@ -10,6 +10,7 @@ import {
   ArrowDownRight,
   CreditCard,
 } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -86,28 +87,22 @@ export default function CarteiraPage() {
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
   }
 
-  // Gera um QR Code visual simples (em producao usar biblioteca)
+  // Componente de QR Code real
   function QRCodeDisplay({ value }: { value: string }) {
     return (
-      <div className="flex flex-col items-center gap-4 p-6 bg-white rounded-xl">
-        <div className="w-48 h-48 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg flex items-center justify-center relative overflow-hidden">
-          {/* Padrao visual de QR Code */}
-          <div className="absolute inset-2 grid grid-cols-7 gap-1">
-            {Array.from({ length: 49 }).map((_, i) => (
-              <div
-                key={i}
-                className={`rounded-sm ${
-                  [0,1,2,6,7,8,14,20,21,27,28,34,35,36,40,41,42,43,44,45,46,47,48].includes(i)
-                    ? 'bg-white'
-                    : Math.random() > 0.5 ? 'bg-white' : 'bg-transparent'
-                }`}
-              />
-            ))}
-          </div>
-          <QrCode className="h-12 w-12 text-white/20 absolute" />
+      <div className="flex flex-col items-center gap-4 p-6 bg-white rounded-xl shadow-lg">
+        <div className="p-4 bg-white rounded-lg">
+          <QRCodeSVG
+            value={value}
+            size={180}
+            level="H"
+            includeMargin={false}
+            bgColor="#ffffff"
+            fgColor="#000000"
+          />
         </div>
         <div className="text-center">
-          <p className="text-xs text-gray-500 mb-1">Seu codigo</p>
+          <p className="text-xs text-gray-500 mb-1">Seu código</p>
           <p className="font-mono text-sm font-bold text-gray-800">{value}</p>
         </div>
       </div>

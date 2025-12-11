@@ -12,6 +12,8 @@ import {
   Loader2,
   Coins,
   Percent,
+  Keyboard,
+  Camera,
 } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -20,6 +22,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -28,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { QRCodeScanner } from '@/components/qrcode'
 
 interface AssinanteData {
   id: string
@@ -71,11 +75,14 @@ export default function ParceiroVendaPage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [inputMethod, setInputMethod] = useState<'scanner' | 'manual'>('scanner')
 
   // Buscar assinante por CPF
-  async function handleSearch() {
-    if (cpf.length !== 11) {
-      toast.error('CPF deve ter 11 digitos')
+  async function searchAssinante(cpfValue: string) {
+    const cleanCpf = cpfValue.replace(/\D/g, '')
+    
+    if (cleanCpf.length !== 11) {
+      toast.error('CPF deve ter 11 dígitos')
       return
     }
 
@@ -83,19 +90,31 @@ export default function ParceiroVendaPage() {
     setAssinante(null)
 
     try {
-      const response = await fetch(`/api/parceiro/assinante/${cpf}`)
+      const response = await fetch(`/api/parceiro/assinante/${cleanCpf}`)
       const result = await response.json()
 
       if (response.ok) {
         setAssinante(result.data)
+        setCpf(cleanCpf)
         toast.success('Assinante encontrado!')
       } else {
-        toast.error(result.error || 'Assinante nao encontrado')
+        toast.error(result.error || 'Assinante não encontrado')
       }
     } catch {
       toast.error('Erro ao buscar assinante')
     } finally {
       setIsSearching(false)
+    }
+  }
+
+  // Handler para QR Code escaneado
+  function handleQRCodeScan(result: string) {
+    // O QR Code contém o CPF do assinante
+    const cpfFromQR = result.replace(/\D/g, '')
+    if (cpfFromQR.length === 11) {
+      searchAssinante(cpfFromQR)
+    } else {
+      toast.error('QR Code inválido. O código deve conter um CPF válido.')
     }
   }
 
@@ -105,7 +124,7 @@ export default function ParceiroVendaPage() {
 
     const amountValue = parseFloat(amount)
     if (isNaN(amountValue) || amountValue < 1) {
-      toast.error('Valor minimo e R$ 1,00')
+      toast.error('Valor mínimo é R$ 1,00')
       return
     }
 
@@ -233,7 +252,7 @@ export default function ParceiroVendaPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Card de Busca */}
+        {/* Card de Identificação */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -241,31 +260,73 @@ export default function ParceiroVendaPage() {
               Identificar Cliente
             </CardTitle>
             <CardDescription>
-              Digite o CPF do assinante para iniciar
+              Use o scanner ou digite o CPF manualmente
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Input
-                  placeholder="00000000000"
-                  value={cpf}
-                  onChange={(e) => setCpf(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                  maxLength={11}
-                />
-              </div>
-              <Button onClick={handleSearch} disabled={isSearching || cpf.length !== 11}>
-                {isSearching ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+            <Tabs value={inputMethod} onValueChange={(v) => setInputMethod(v as 'scanner' | 'manual')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="scanner" className="gap-2">
+                  <Camera className="h-4 w-4" />
+                  Scanner
+                </TabsTrigger>
+                <TabsTrigger value="manual" className="gap-2">
+                  <Keyboard className="h-4 w-4" />
+                  Digitar CPF
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="scanner" className="mt-4">
+                {!assinante ? (
+                  <QRCodeScanner
+                    onScan={handleQRCodeScan}
+                    onError={(error) => console.error('Erro no scanner:', error)}
+                  />
                 ) : (
-                  <Search className="h-4 w-4" />
+                  <div className="text-center py-8">
+                    <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
+                    <p className="text-muted-foreground">Cliente identificado!</p>
+                    <Button
+                      variant="outline"
+                      className="mt-4"
+                      onClick={() => {
+                        setAssinante(null)
+                        setCpf('')
+                      }}
+                    >
+                      Escanear Outro
+                    </Button>
+                  </div>
                 )}
-              </Button>
-            </div>
+              </TabsContent>
+
+              <TabsContent value="manual" className="mt-4">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Digite o CPF (11 dígitos)"
+                      value={cpf}
+                      onChange={(e) => setCpf(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                      maxLength={11}
+                    />
+                  </div>
+                  <Button 
+                    onClick={() => searchAssinante(cpf)} 
+                    disabled={isSearching || cpf.length !== 11}
+                  >
+                    {isSearching ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
 
             {/* Info do assinante */}
             {assinante && (
-              <div className="rounded-lg border p-4 space-y-3">
+              <div className="rounded-lg border p-4 space-y-3 mt-4">
                 <div className="flex items-center gap-3">
                   <div className="rounded-full bg-primary/10 p-2">
                     <User className="h-5 w-5 text-primary" />
@@ -321,7 +382,7 @@ export default function ParceiroVendaPage() {
               Dados da Venda
             </CardTitle>
             <CardDescription>
-              Informe o valor e opcoes de pagamento
+              Informe o valor e opções de pagamento
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -358,13 +419,13 @@ export default function ParceiroVendaPage() {
                       }
                     }}
                   >
-                    {usePoints ? 'Sim' : 'Nao'}
+                    {usePoints ? 'Sim' : 'Não'}
                   </Button>
                 </div>
 
                 {usePoints && (
                   <div className="space-y-2">
-                    <Label>Pontos a utilizar (max: {assinante.points.toFixed(0)})</Label>
+                    <Label>Pontos a utilizar (máx: {assinante.points.toFixed(0)})</Label>
                     <Input
                       type="number"
                       min="0"
@@ -402,14 +463,14 @@ export default function ParceiroVendaPage() {
             {assinante && assinante.subscriptionStatus !== 'ACTIVE' && (
               <div className="flex items-center gap-2 text-sm text-destructive">
                 <AlertCircle className="h-4 w-4" />
-                Assinatura inativa. Nao e possivel registrar venda.
+                Assinatura inativa. Não é possível registrar venda.
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Dialog de Confirmacao */}
+      {/* Dialog de Confirmação */}
       <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <DialogContent>
           {!isSuccess ? (
@@ -482,7 +543,7 @@ export default function ParceiroVendaPage() {
               </div>
               <h3 className="text-xl font-bold mb-2">Venda Registrada!</h3>
               <p className="text-muted-foreground mb-6">
-                A transacao foi processada com sucesso.
+                A transação foi processada com sucesso.
               </p>
               <Button onClick={handleNewSale} className="w-full">
                 Nova Venda
@@ -494,4 +555,3 @@ export default function ParceiroVendaPage() {
     </div>
   )
 }
-
