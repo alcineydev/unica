@@ -5,6 +5,7 @@ import type { NextAuthConfig } from 'next-auth'
  * Separada para uso no middleware (Edge Runtime)
  */
 export const authConfig: NextAuthConfig = {
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: '/login',
     error: '/login',
