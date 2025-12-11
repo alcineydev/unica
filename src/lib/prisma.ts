@@ -4,18 +4,16 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-const databaseUrl = process.env.DATABASE_URL
+function createPrismaClient() {
+  const databaseUrl = process.env.DATABASE_URL
+  
+  if (!databaseUrl) {
+    // Durante o build, retorna um client dummy que será substituído em runtime
+    console.warn('DATABASE_URL não disponível - isso é esperado durante o build')
+    return new PrismaClient()
+  }
 
-if (!databaseUrl) {
-  console.error('DATABASE_URL não encontrada:', {
-    env: process.env.NODE_ENV,
-    hasUrl: !!process.env.DATABASE_URL
-  })
-}
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+  return new PrismaClient({
     datasources: {
       db: {
         url: databaseUrl
@@ -26,6 +24,9 @@ export const prisma =
         ? ['query', 'error', 'warn']
         : ['error'],
   })
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient()
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma
