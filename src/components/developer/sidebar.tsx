@@ -10,15 +10,27 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
+  MessageSquare,
+  LayoutDashboard,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 
 const menuItems = [
   {
+    title: 'Dashboard',
+    href: '/developer',
+    icon: LayoutDashboard,
+  },
+  {
     title: 'Administradores',
     href: '/developer/admins',
     icon: Users,
+  },
+  {
+    title: 'WhatsApp',
+    href: '/developer/whatsapp',
+    icon: MessageSquare,
   },
   {
     title: 'Logs do Sistema',

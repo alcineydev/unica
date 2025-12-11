@@ -65,6 +65,23 @@ enum IntegrationType {
   PAYMENT
 }
 
+enum TargetType {
+  ALL_ASSINANTES
+  PLANO_ESPECIFICO
+  ALL_PARCEIROS
+  PARCEIROS_CIDADE
+  TODOS
+}
+
+enum NotificationStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  PARTIAL
+  FAILED
+}
+
 // ==========================================
 // MODELS
 // ==========================================
@@ -78,8 +95,9 @@ model City {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  parceiros  Parceiro[]
-  assinantes Assinante[]
+  parceiros     Parceiro[]
+  assinantes    Assinante[]
+  notifications Notification[]
 
   @@map("cities")
 }
@@ -143,8 +161,9 @@ model Plan {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  planBenefits PlanBenefit[]
-  assinantes   Assinante[]
+  planBenefits  PlanBenefit[]
+  assinantes    Assinante[]
+  notifications Notification[]
 
   @@map("plans")
 }
@@ -313,4 +332,59 @@ model SystemLog {
   @@index([userId])
   @@index([createdAt])
   @@map("system_logs")
+}
+
+// ==========================================
+// WHATSAPP E NOTIFICAÇÕES
+// ==========================================
+
+/// Instância do WhatsApp conectada via Evolution API
+model WhatsAppInstance {
+  id          String   @id @default(cuid())
+  name        String   // Nome da instância (ex: "Principal", "Suporte")
+  instanceId  String   @unique // ID/nome na Evolution API
+  status      String   @default("disconnected") // connected, disconnected, connecting
+  phoneNumber String?  // Número conectado
+  profileName String?  // Nome do perfil WhatsApp
+  profilePic  String?  // URL da foto de perfil
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  notifications Notification[]
+
+  @@map("whatsapp_instances")
+}
+
+/// Notificação/Mensagem em massa via WhatsApp
+model Notification {
+  id       String  @id @default(cuid())
+  title    String  // Título interno para identificação
+  message  String  @db.Text // Mensagem a enviar
+  imageUrl String? // URL da imagem (opcional)
+  linkUrl  String? // URL do link (opcional)
+  linkText String? // Texto do botão/link (opcional)
+
+  // Destinatários
+  targetType   TargetType
+  targetPlanId String? // ID do plano se targetType for PLANO_ESPECIFICO
+  targetCityId String? // ID da cidade se targetType for PARCEIROS_CIDADE
+
+  // Relacionamentos opcionais
+  targetPlan Plan? @relation(fields: [targetPlanId], references: [id], onDelete: SetNull)
+  targetCity City? @relation(fields: [targetCityId], references: [id], onDelete: SetNull)
+
+  // Envio
+  instanceId String
+  instance   WhatsAppInstance @relation(fields: [instanceId], references: [id])
+
+  sentAt      DateTime?
+  sentCount   Int                @default(0)
+  failedCount Int                @default(0)
+  status      NotificationStatus @default(DRAFT)
+  errorLog    String?            @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notifications")
 }
