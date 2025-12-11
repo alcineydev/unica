@@ -181,47 +181,53 @@ function ParceiroCard({
   onWhatsApp: () => void 
 }) {
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="rounded-full bg-primary/10 p-3 shrink-0">
-            <Store className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-semibold truncate">
-                  {parceiro.tradeName || parceiro.companyName}
-                </p>
-                <p className="text-sm text-muted-foreground truncate">
-                  {parceiro.description || parceiro.category}
-                </p>
-              </div>
-              <Badge variant="outline" className="shrink-0 bg-green-500/10 text-green-600 border-green-500/20">
-                <Percent className="h-3 w-3 mr-1" />
-                Desconto
-              </Badge>
+    <Link href={`/app/parceiros/${parceiro.id}`}>
+      <Card className="overflow-hidden hover:bg-accent/50 transition-colors cursor-pointer">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="rounded-full bg-primary/10 p-3 shrink-0">
+              <Store className="h-5 w-5 text-primary" />
             </div>
-            
-            <div className="flex items-center gap-3 mt-3">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                {parceiro.city.name}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold truncate">
+                    {parceiro.tradeName || parceiro.companyName}
+                  </p>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {parceiro.description || parceiro.category}
+                  </p>
+                </div>
+                <Badge variant="outline" className="shrink-0 bg-green-500/10 text-green-600 border-green-500/20">
+                  <Percent className="h-3 w-3 mr-1" />
+                  Desconto
+                </Badge>
               </div>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="h-7 text-xs gap-1"
-                onClick={onWhatsApp}
-              >
-                <Phone className="h-3 w-3" />
-                WhatsApp
-              </Button>
+              
+              <div className="flex items-center gap-3 mt-3">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  {parceiro.city.name}
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-7 text-xs gap-1"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    onWhatsApp()
+                  }}
+                >
+                  <Phone className="h-3 w-3" />
+                  WhatsApp
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   )
 }
 
