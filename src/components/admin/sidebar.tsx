@@ -16,6 +16,7 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  MessageSquare,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
@@ -50,6 +51,11 @@ const menuItems = [
     title: 'Assinantes',
     href: '/admin/assinantes',
     icon: Users,
+  },
+  {
+    title: 'WhatsApp',
+    href: '/admin/whatsapp',
+    icon: MessageSquare,
   },
   {
     title: 'Integrações',
