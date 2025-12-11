@@ -10,7 +10,6 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
-  MessageSquare,
   LayoutDashboard,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -26,11 +25,6 @@ const menuItems = [
     title: 'Administradores',
     href: '/developer/admins',
     icon: Users,
-  },
-  {
-    title: 'WhatsApp',
-    href: '/developer/whatsapp',
-    icon: MessageSquare,
   },
   {
     title: 'Logs do Sistema',
@@ -115,4 +109,3 @@ export function DeveloperSidebar() {
     </aside>
   )
 }
-

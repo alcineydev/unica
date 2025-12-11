@@ -23,17 +23,37 @@ export async function DELETE(
   }
 
   const { id } = await params
-  const { instanceId } = await request.json()
 
   try {
+    // Buscar a instância para obter o instanceId
+    const instance = await prisma.whatsAppInstance.findUnique({
+      where: { id }
+    })
+
+    if (!instance) {
+      return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 })
+    }
+
     const { url, apiKey } = await getEvolutionConfig()
     
-    // Deletar na Evolution API
+    // Deletar na Evolution API (ignorar erro se falhar)
     if (url && apiKey) {
-      await fetch(`${url}/instance/delete/${instanceId}`, {
+      await fetch(`${url}/instance/delete/${instance.instanceId}`, {
         method: 'DELETE',
         headers: { 'apikey': apiKey },
-      }).catch(console.error)
+      }).catch(err => console.log('Erro ao deletar na Evolution API:', err))
+    }
+
+    // Verificar se há notificações usando esta instância
+    const notificationsCount = await prisma.notification.count({
+      where: { instanceId: id }
+    })
+
+    if (notificationsCount > 0) {
+      // Deletar notificações relacionadas primeiro
+      await prisma.notification.deleteMany({
+        where: { instanceId: id }
+      })
     }
 
     // Deletar do banco
@@ -79,4 +99,3 @@ export async function PATCH(
     return NextResponse.json({ error: 'Erro ao atualizar instância' }, { status: 500 })
   }
 }
-

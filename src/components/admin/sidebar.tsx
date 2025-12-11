@@ -16,7 +16,7 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
-  MessageSquare,
+  Bell,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
@@ -53,9 +53,9 @@ const menuItems = [
     icon: Users,
   },
   {
-    title: 'WhatsApp',
-    href: '/admin/whatsapp',
-    icon: MessageSquare,
+    title: 'Notificações',
+    href: '/admin/notificacoes',
+    icon: Bell,
   },
   {
     title: 'Integrações',
@@ -81,7 +81,7 @@ export function AdminSidebar() {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 h-screen border-r bg-card transition-all duration-300',
+        'fixed left-0 top-0 z-50 h-screen border-r bg-card transition-all duration-300',
         collapsed ? 'w-[70px]' : 'w-[250px]'
       )}
     >
@@ -144,4 +144,3 @@ export function AdminSidebar() {
     </aside>
   )
 }
-

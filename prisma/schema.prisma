@@ -66,6 +66,7 @@ enum IntegrationType {
 }
 
 enum TargetType {
+  INDIVIDUAL
   ALL_ASSINANTES
   PLANO_ESPECIFICO
   ALL_PARCEIROS
@@ -365,9 +366,10 @@ model Notification {
   linkText String? // Texto do botão/link (opcional)
 
   // Destinatários
-  targetType   TargetType
-  targetPlanId String? // ID do plano se targetType for PLANO_ESPECIFICO
-  targetCityId String? // ID da cidade se targetType for PARCEIROS_CIDADE
+  targetType       TargetType
+  targetPlanId     String? // ID do plano se targetType for PLANO_ESPECIFICO
+  targetCityId     String? // ID da cidade se targetType for PARCEIROS_CIDADE
+  individualNumber String? // Número individual para envio direto (opcional)
 
   // Relacionamentos opcionais
   targetPlan Plan? @relation(fields: [targetPlanId], references: [id], onDelete: SetNull)
