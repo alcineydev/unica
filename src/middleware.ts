@@ -15,7 +15,7 @@ export const config = {
      * - public folder
      * - api routes que não precisam de auth (webhooks, etc)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api/auth|api/test-env|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
 
