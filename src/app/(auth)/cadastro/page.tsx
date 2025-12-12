@@ -76,17 +76,23 @@ function CadastroForm() {
     setIsLoading(true)
     
     try {
-      const response = await fetch('/api/auth/register/assinante', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          cpf: data.cpf,
+          password: data.password,
+        }),
       })
 
       const result = await response.json()
 
       if (response.ok) {
         toast.success('Cadastro realizado com sucesso!')
-        router.push('/login')
+        router.push('/login?registered=true')
       } else {
         toast.error(result.error || 'Erro ao realizar cadastro')
       }
@@ -291,160 +297,25 @@ function CadastroForm() {
         </form>
       </TabsContent>
 
-      {/* Formulário de Parceiro */}
+      {/* Formulário de Parceiro - Em breve */}
       <TabsContent value="parceiro">
-        <form onSubmit={parceiroForm.handleSubmit(onSubmitParceiro)} className="space-y-4">
-          {/* Razão Social */}
-          <div className="space-y-2">
-            <Label htmlFor="companyName">Razão Social</Label>
-            <div className="relative">
-              <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="companyName"
-                placeholder="Nome da empresa"
-                className="pl-10"
-                disabled={isLoading}
-                {...parceiroForm.register('companyName')}
-              />
-            </div>
-            {parceiroForm.formState.errors.companyName && (
-              <p className="text-sm text-destructive">{parceiroForm.formState.errors.companyName.message}</p>
-            )}
+        <div className="text-center py-8 space-y-4">
+          <Building2 className="h-12 w-12 mx-auto text-muted-foreground" />
+          <div>
+            <h3 className="font-semibold text-lg">Cadastro de Parceiros</h3>
+            <p className="text-muted-foreground">
+              Em breve você poderá se cadastrar como parceiro do Unica Clube de Benefícios.
+            </p>
           </div>
-
-          {/* Nome Fantasia */}
-          <div className="space-y-2">
-            <Label htmlFor="tradeName">Nome Fantasia (opcional)</Label>
-            <Input
-              id="tradeName"
-              placeholder="Nome fantasia"
-              disabled={isLoading}
-              {...parceiroForm.register('tradeName')}
-            />
-          </div>
-
-          {/* Email */}
-          <div className="space-y-2">
-            <Label htmlFor="email-parceiro">Email</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="email-parceiro"
-                type="email"
-                placeholder="contato@empresa.com"
-                className="pl-10"
-                disabled={isLoading}
-                {...parceiroForm.register('email')}
-              />
-            </div>
-            {parceiroForm.formState.errors.email && (
-              <p className="text-sm text-destructive">{parceiroForm.formState.errors.email.message}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Telefone */}
-            <div className="space-y-2">
-              <Label htmlFor="phone-parceiro">Telefone</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="phone-parceiro"
-                  placeholder="11999999999"
-                  className="pl-10"
-                  disabled={isLoading}
-                  {...parceiroForm.register('phone', {
-                    onChange: (e) => {
-                      e.target.value = formatPhone(e.target.value)
-                    }
-                  })}
-                />
-              </div>
-              {parceiroForm.formState.errors.phone && (
-                <p className="text-sm text-destructive">{parceiroForm.formState.errors.phone.message}</p>
-              )}
-            </div>
-
-            {/* CNPJ */}
-            <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ</Label>
-              <Input
-                id="cnpj"
-                placeholder="00000000000000"
-                disabled={isLoading}
-                {...parceiroForm.register('cnpj', {
-                  onChange: (e) => {
-                    e.target.value = formatCNPJ(e.target.value)
-                  }
-                })}
-              />
-              {parceiroForm.formState.errors.cnpj && (
-                <p className="text-sm text-destructive">{parceiroForm.formState.errors.cnpj.message}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Senha */}
-          <div className="space-y-2">
-            <Label htmlFor="password-parceiro">Senha</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="password-parceiro"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                className="pl-10 pr-10"
-                disabled={isLoading}
-                {...parceiroForm.register('password')}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            {parceiroForm.formState.errors.password && (
-              <p className="text-sm text-destructive">{parceiroForm.formState.errors.password.message}</p>
-            )}
-          </div>
-
-          {/* Confirmar Senha */}
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword-parceiro">Confirmar senha</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="confirmPassword-parceiro"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                className="pl-10"
-                disabled={isLoading}
-                {...parceiroForm.register('confirmPassword')}
-              />
-            </div>
-            {parceiroForm.formState.errors.confirmPassword && (
-              <p className="text-sm text-destructive">{parceiroForm.formState.errors.confirmPassword.message}</p>
-            )}
-          </div>
-
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Cadastrando...
-              </>
-            ) : (
-              'Solicitar cadastro'
-            )}
-          </Button>
-
-          <p className="text-xs text-center text-muted-foreground">
-            O cadastro de parceiro será analisado pela equipe Unica.
+          <p className="text-sm text-muted-foreground">
+            Para se tornar um parceiro agora, entre em contato com nossa equipe.
           </p>
-        </form>
+          <Button variant="outline" asChild>
+            <a href="mailto:contato@unica.club">
+              Entrar em contato
+            </a>
+          </Button>
+        </div>
       </TabsContent>
     </Tabs>
   )
