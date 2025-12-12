@@ -170,8 +170,9 @@ export default function AssinantesPage() {
   })
 
   // Observa mudanças no status para mostrar aviso e limpar plano
-  const currentStatus = watch('subscriptionStatus')
-  const currentPlanId = watch('planId')
+  const watchedStatus = watch('subscriptionStatus')
+  const currentStatus = watchedStatus || 'PENDING' // Fallback para evitar undefined
+  const currentPlanId = watch('planId') || ''
 
   // Função para lidar com mudança de status
   function handleStatusChange(newStatus: string) {
@@ -723,12 +724,12 @@ export default function AssinantesPage() {
               <div className="space-y-2">
                 <Label>Plano</Label>
                 <Select
-                  value={currentPlanId || ''}
+                  value={currentPlanId}
                   onValueChange={(value) => setValue('planId', value)}
-                  disabled={currentStatus !== 'ACTIVE'}
+                  disabled={(currentStatus || 'PENDING') !== 'ACTIVE'}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={currentStatus !== 'ACTIVE' ? 'Indisponível' : 'Selecione'} />
+                    <SelectValue placeholder={(currentStatus || 'PENDING') !== 'ACTIVE' ? 'Indisponível' : 'Selecione'} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">Sem plano</SelectItem>
@@ -739,7 +740,7 @@ export default function AssinantesPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {currentStatus !== 'ACTIVE' && (
+                {(currentStatus || 'PENDING') !== 'ACTIVE' && (
                   <p className="text-xs text-muted-foreground">
                     Plano só pode ser atribuído quando status for &quot;Ativo&quot;
                   </p>
@@ -753,7 +754,7 @@ export default function AssinantesPage() {
             <div className="space-y-2">
               <Label>Status</Label>
               <Select
-                value={currentStatus}
+                value={currentStatus || 'PENDING'}
                 onValueChange={handleStatusChange}
               >
                 <SelectTrigger>
