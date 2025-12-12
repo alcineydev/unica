@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Component, ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -18,6 +18,7 @@ import {
   CreditCard,
   Coins,
   AlertTriangle,
+  AlertCircle,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -66,6 +67,62 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SUBSCRIPTION_STATUS } from '@/constants'
+
+// Error Boundary para capturar erros
+interface ErrorBoundaryProps {
+  children: ReactNode
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean
+  error: Error | null
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[ErrorBoundary] Erro capturado:', error)
+    console.error('[ErrorBoundary] Info:', errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-2 text-red-600">
+            <AlertCircle className="h-6 w-6" />
+            <h2 className="text-xl font-bold">Erro na página de Assinantes</h2>
+          </div>
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="font-medium text-red-800 mb-2">Mensagem do erro:</p>
+            <pre className="text-sm text-red-700 whitespace-pre-wrap break-words">
+              {this.state.error?.message || 'Erro desconhecido'}
+            </pre>
+          </div>
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <p className="font-medium text-gray-800 mb-2">Stack trace:</p>
+            <pre className="text-xs text-gray-600 whitespace-pre-wrap break-words overflow-auto max-h-64">
+              {this.state.error?.stack || 'Stack não disponível'}
+            </pre>
+          </div>
+          <Button onClick={() => window.location.reload()}>
+            Recarregar página
+          </Button>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
 
 // Schema de validação
 const subscriberSchema = z.object({
@@ -143,7 +200,16 @@ function getStatusColor(status: string | undefined | null): string {
   return colorMap[status] || 'bg-gray-500/10 text-gray-600 border-gray-500/20'
 }
 
+// Componente principal da página (envolvido no ErrorBoundary)
 export default function AssinantesPage() {
+  return (
+    <ErrorBoundary>
+      <AssinantesContent />
+    </ErrorBoundary>
+  )
+}
+
+function AssinantesContent() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([])
   const [cities, setCities] = useState<City[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
