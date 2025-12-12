@@ -15,7 +15,7 @@ export async function GET() {
 
     // Busca o parceiro do usuario logado
     const parceiro = await prisma.parceiro.findUnique({
-      where: { userId: session.user.id },
+      where: { userId: session.user.id! },
     })
 
     if (!parceiro) {

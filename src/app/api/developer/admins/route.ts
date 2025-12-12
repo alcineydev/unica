@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
         entity: 'Admin',
         entityId: result.admin?.id || '',
         details: { email: validatedData.email, name: validatedData.name },
-        userId: session.user.id,
+        userId: session.user.id!,
       },
     })
 

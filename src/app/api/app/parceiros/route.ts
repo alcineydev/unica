@@ -15,7 +15,7 @@ export async function GET() {
 
     // Busca o assinante para pegar a cidade
     const assinante = await prisma.assinante.findUnique({
-      where: { userId: session.user.id },
+      where: { userId: session.user.id! },
     })
 
     if (!assinante) {

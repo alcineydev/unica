@@ -15,7 +15,7 @@ export async function GET() {
 
     // Busca o assinante
     const assinante = await prisma.assinante.findUnique({
-      where: { userId: session.user.id },
+      where: { userId: session.user.id! },
       include: {
         plan: true,
       },

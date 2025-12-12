@@ -20,7 +20,7 @@ export async function GET(
 
     // Buscar assinante para verificar cidade e plano
     const assinante = await prisma.assinante.findFirst({
-      where: { user: { email: session.user.email } },
+      where: { user: { email: session.user.email! } },
       include: {
         plan: {
           include: {

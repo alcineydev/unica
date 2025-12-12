@@ -62,7 +62,7 @@ export async function PUT(request: NextRequest) {
       data: {
         level: 'info',
         action: 'UPDATE_CONFIGS',
-        userId: session.user.id,
+        userId: session.user.id!,
         details: { keys: Object.keys(body) },
       },
     })

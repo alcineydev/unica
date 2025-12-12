@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     // Busca o parceiro
     const parceiro = await prisma.parceiro.findUnique({
-      where: { userId: session.user.id },
+      where: { userId: session.user.id! },
     })
 
     if (!parceiro) {

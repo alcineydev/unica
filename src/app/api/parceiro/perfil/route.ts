@@ -14,7 +14,7 @@ export async function GET() {
     }
 
     const parceiro = await prisma.parceiro.findUnique({
-      where: { userId: session.user.id },
+      where: { userId: session.user.id! },
       include: {
         city: {
           select: {
@@ -72,7 +72,7 @@ export async function PATCH(request: Request) {
     }
 
     const parceiro = await prisma.parceiro.findUnique({
-      where: { userId: session.user.id },
+      where: { userId: session.user.id! },
     })
 
     if (!parceiro) {

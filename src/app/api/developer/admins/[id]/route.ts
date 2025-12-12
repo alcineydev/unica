@@ -84,7 +84,7 @@ export async function PATCH(
           entity: 'Admin',
           entityId: id,
           details: { adminEmail: admin.user.email },
-          userId: session.user.id,
+          userId: session.user.id!,
         },
       })
     }
@@ -155,7 +155,7 @@ export async function DELETE(
         entity: 'Admin',
         entityId: id,
         details: { adminEmail: admin.user.email, adminName: admin.name },
-        userId: session.user.id,
+        userId: session.user.id!,
       },
     })
 
