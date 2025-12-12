@@ -2,11 +2,15 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createPlanSchema } from '@/lib/validations/plan'
+import { generateSlug } from '@/lib/utils/slug'
 
 // GET - Listar todos os planos
 export async function GET(request: Request) {
+  console.log('=== GET /api/admin/plans ===')
+  
   try {
     const session = await auth()
+    console.log('Session:', session?.user?.email)
     
     if (!session || !['ADMIN', 'DEVELOPER'].includes(session.user.role)) {
       return NextResponse.json(
@@ -17,7 +21,9 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const includeInactive = searchParams.get('includeInactive') === 'true'
+    console.log('includeInactive:', includeInactive)
 
+    console.log('Executando query...')
     const plans = await prisma.plan.findMany({
       where: includeInactive ? {} : { isActive: true },
       orderBy: { price: 'asc' },
@@ -41,12 +47,16 @@ export async function GET(request: Request) {
         },
       },
     })
+    
+    console.log('Planos encontrados:', plans.length)
 
     return NextResponse.json({ data: plans })
   } catch (error) {
-    console.error('Erro ao listar planos:', error)
+    console.error('=== ERRO AO LISTAR PLANOS ===')
+    console.error('Erro:', error)
+    console.error('Stack:', error instanceof Error ? error.stack : 'N/A')
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: error instanceof Error ? error.message : 'Erro interno do servidor' },
       { status: 500 }
     )
   }
@@ -65,16 +75,28 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
+    console.log('Dados recebidos:', JSON.stringify(body, null, 2))
 
     const validationResult = createPlanSchema.safeParse(body)
     if (!validationResult.success) {
+      console.log('Erro de validação:', validationResult.error.flatten())
       return NextResponse.json(
         { error: 'Dados inválidos', details: validationResult.error.flatten().fieldErrors },
         { status: 400 }
       )
     }
 
-    const { name, description, price, isActive, benefitIds } = validationResult.data
+    const { 
+      name, 
+      description, 
+      price, 
+      slug,
+      priceMonthly,
+      priceYearly,
+      priceSingle,
+      isActive, 
+      benefitIds 
+    } = validationResult.data
 
     // Verifica se os benefícios existem
     const benefits = await prisma.benefit.findMany({
@@ -88,19 +110,47 @@ export async function POST(request: Request) {
       )
     }
 
+    // Gerar slug automaticamente se não foi fornecido ou está vazio
+    let finalSlug: string | null = null
+    if (slug && slug.trim() !== '') {
+      finalSlug = slug.trim()
+    } else if (name) {
+      finalSlug = generateSlug(name)
+    }
+    
+    // Verificar se slug já existe e adicionar sufixo se necessário
+    if (finalSlug) {
+      const existingSlug = await prisma.plan.findFirst({
+        where: { slug: finalSlug },
+      })
+      
+      if (existingSlug) {
+        finalSlug = `${finalSlug}-${Date.now()}`
+      }
+    }
+
+    // Preparar dados para salvar - tratar valores null/undefined corretamente
+    const dataToSave = {
+      name,
+      description,
+      price,
+      slug: finalSlug,
+      priceMonthly: priceMonthly != null ? priceMonthly : null,
+      priceYearly: priceYearly != null ? priceYearly : null,
+      priceSingle: priceSingle != null ? priceSingle : null,
+      isActive: isActive ?? true,
+      planBenefits: {
+        create: benefitIds.map((benefitId) => ({
+          benefitId,
+        })),
+      },
+    }
+
+    console.log('Dados para salvar:', JSON.stringify(dataToSave, null, 2))
+
     // Cria o plano e associa os benefícios
     const plan = await prisma.plan.create({
-      data: {
-        name,
-        description,
-        price,
-        isActive,
-        planBenefits: {
-          create: benefitIds.map((benefitId) => ({
-            benefitId,
-          })),
-        },
-      },
+      data: dataToSave,
       include: {
         planBenefits: {
           include: {
@@ -116,8 +166,10 @@ export async function POST(request: Request) {
     )
   } catch (error) {
     console.error('Erro ao criar plano:', error)
+    // Retornar mensagem de erro mais detalhada em desenvolvimento
+    const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: errorMessage },
       { status: 500 }
     )
   }

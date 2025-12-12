@@ -21,17 +21,29 @@ async function getEvolutionConfig() {
 
 // GET - Listar instâncias
 export async function GET() {
-  const session = await auth()
+  console.log('[WHATSAPP API] GET /instances - Iniciando')
   
-  if (!session || !['ADMIN', 'DEVELOPER'].includes(session.user.role)) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  try {
+    const session = await auth()
+    
+    if (!session || !['ADMIN', 'DEVELOPER'].includes(session.user.role)) {
+      console.log('[WHATSAPP API] Não autorizado - session:', session?.user?.role)
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    console.log('[WHATSAPP API] Usuário autenticado:', session.user.email)
+
+    const instances = await prisma.whatsAppInstance.findMany({
+      orderBy: { createdAt: 'desc' }
+    })
+
+    console.log('[WHATSAPP API] Instâncias encontradas:', instances.length)
+
+    return NextResponse.json(instances)
+  } catch (error) {
+    console.error('[WHATSAPP API] Erro ao buscar instâncias:', error)
+    return NextResponse.json({ error: 'Erro ao buscar instâncias' }, { status: 500 })
   }
-
-  const instances = await prisma.whatsAppInstance.findMany({
-    orderBy: { createdAt: 'desc' }
-  })
-
-  return NextResponse.json(instances)
 }
 
 // POST - Criar nova instância

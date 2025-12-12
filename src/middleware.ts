@@ -5,17 +5,22 @@ export default NextAuth(authConfig).auth
 
 export const config = {
   // Rotas que o middleware deve verificar
-  // Exclui arquivos estáticos, imagens, favicon, etc.
+  // Exclui arquivos estáticos, imagens, favicon, rotas públicas, etc.
   matcher: [
     /*
      * Match all request paths except:
+     * - api/auth (NextAuth routes)
+     * - api/public (public API routes)
+     * - api/checkout (checkout API)
+     * - api/webhooks (webhook routes)
+     * - planos (public plans page)
+     * - checkout (checkout pages)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder
-     * - api routes que não precisam de auth (webhooks, etc)
+     * - public folder assets
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api/auth|api/public|api/checkout|api/webhooks|planos|checkout|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
 

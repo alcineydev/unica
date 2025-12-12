@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { updatePlanSchema } from '@/lib/validations/plan'
+import { generateSlug } from '@/lib/utils/slug'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -89,7 +90,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       )
     }
 
-    const { benefitIds, ...rest } = validationResult.data
+    const { benefitIds, slug, name, ...rest } = validationResult.data
 
     // Se está atualizando benefícios
     if (benefitIds) {
@@ -119,10 +120,39 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       ])
     }
 
+    // Preparar dados para atualização
+    const updateData: Record<string, unknown> = { ...rest }
+    
+    if (name !== undefined) {
+      updateData.name = name
+    }
+    
+    // Processar slug
+    if (slug !== undefined) {
+      // Se slug foi fornecido, verificar se não conflita
+      if (slug) {
+        const existingSlug = await prisma.plan.findFirst({
+          where: { slug, id: { not: id } },
+        })
+        if (existingSlug) {
+          return NextResponse.json(
+            { error: 'Este slug já está em uso por outro plano' },
+            { status: 400 }
+          )
+        }
+        updateData.slug = slug
+      } else {
+        // Se slug foi limpo e há nome, gerar novo slug
+        if (name) {
+          updateData.slug = generateSlug(name)
+        }
+      }
+    }
+
     // Atualiza o plano
     const plan = await prisma.plan.update({
       where: { id },
-      data: rest,
+      data: updateData,
       include: {
         planBenefits: {
           include: {

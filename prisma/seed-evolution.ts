@@ -31,7 +31,64 @@ async function main() {
   })
   console.log('   ✅ Config evolution_api_key criada')
 
-  console.log('\n🎉 Configs da Evolution API criadas com sucesso!')
+  // ========================================
+  // MERCADO PAGO
+  // ========================================
+  console.log('\n🌱 Criando configs do Mercado Pago...\n')
+
+  // Config: Modo do Mercado Pago
+  await prisma.config.upsert({
+    where: { key: 'mercadopago_mode' },
+    update: {},
+    create: {
+      key: 'mercadopago_mode',
+      value: 'sandbox',
+      description: 'Modo do Mercado Pago (sandbox ou production)',
+      category: 'INTEGRATION',
+    },
+  })
+  console.log('   ✅ Config mercadopago_mode criada')
+
+  // Config: Public Key do Mercado Pago
+  await prisma.config.upsert({
+    where: { key: 'mercadopago_public_key' },
+    update: {},
+    create: {
+      key: 'mercadopago_public_key',
+      value: '',
+      description: 'Public Key do Mercado Pago',
+      category: 'INTEGRATION',
+    },
+  })
+  console.log('   ✅ Config mercadopago_public_key criada')
+
+  // Config: Access Token do Mercado Pago
+  await prisma.config.upsert({
+    where: { key: 'mercadopago_access_token' },
+    update: {},
+    create: {
+      key: 'mercadopago_access_token',
+      value: '',
+      description: 'Access Token do Mercado Pago',
+      category: 'INTEGRATION',
+    },
+  })
+  console.log('   ✅ Config mercadopago_access_token criada')
+
+  // Config: Webhook URL do Mercado Pago
+  await prisma.config.upsert({
+    where: { key: 'mercadopago_webhook_url' },
+    update: {},
+    create: {
+      key: 'mercadopago_webhook_url',
+      value: '',
+      description: 'Webhook URL do Mercado Pago',
+      category: 'INTEGRATION',
+    },
+  })
+  console.log('   ✅ Config mercadopago_webhook_url criada')
+
+  console.log('\n🎉 Todas as configs criadas com sucesso!')
 }
 
 main()

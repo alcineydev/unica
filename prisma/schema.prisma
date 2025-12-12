@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,9 +8,278 @@ datasource db {
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
-// ==========================================
-// ENUMS
-// ==========================================
+/// Cidades cadastradas pelo admin (dinâmicas)
+model City {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  state         String         @db.VarChar(2)
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  assinantes    Assinante[]
+  notifications Notification[]
+  parceiros     Parceiro[]
+
+  @@map("cities")
+}
+
+/// Usuário base do sistema
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  role      Role       @default(ASSINANTE)
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  admin     Admin?
+  assinante Assinante?
+  parceiro  Parceiro?
+
+  @@map("users")
+}
+
+/// Administrador do sistema (criado pelo Developer)
+model Admin {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  name        String
+  phone       String
+  permissions Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admins")
+}
+
+/// Benefício modular (peça/componente)
+model Benefit {
+  id            String          @id @default(cuid())
+  name          String
+  description   String
+  type          BenefitType
+  value         Json
+  category      String?
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  benefitAccess BenefitAccess[]
+  planBenefits  PlanBenefit[]
+
+  @@map("benefits")
+}
+
+/// Plano de assinatura (composição de benefícios + preço)
+model Plan {
+  id            String         @id @default(cuid())
+  name          String
+  description   String
+  price         Decimal        @db.Decimal(10, 2)
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  priceMonthly  Decimal?       @db.Decimal(10, 2)
+  priceSingle   Decimal?       @db.Decimal(10, 2)
+  priceYearly   Decimal?       @db.Decimal(10, 2)
+  slug          String?        @unique
+  assinantes    Assinante[]
+  notifications Notification[]
+  planBenefits  PlanBenefit[]
+
+  @@map("plans")
+}
+
+/// Pivot: Plano <-> Benefício (com config específica por plano)
+model PlanBenefit {
+  id        String   @id @default(cuid())
+  planId    String
+  benefitId String
+  config    Json?
+  createdAt DateTime @default(now())
+  benefit   Benefit  @relation(fields: [benefitId], references: [id], onDelete: Cascade)
+  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, benefitId])
+  @@map("plan_benefits")
+}
+
+/// Parceiro / Empresa local
+model Parceiro {
+  id            String          @id @default(cuid())
+  userId        String          @unique
+  cnpj          String          @unique @db.VarChar(14)
+  companyName   String
+  tradeName     String?
+  logo          String?
+  category      String
+  description   String?
+  cityId        String
+  address       Json
+  contact       Json
+  hours         Json
+  balance       Decimal         @default(0) @db.Decimal(10, 2)
+  metrics       Json            @default("{\"pageViews\": 0, \"totalSales\": 0, \"salesAmount\": 0, \"whatsappClicks\": 0}")
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  benefitAccess BenefitAccess[]
+  city          City            @relation(fields: [cityId], references: [id])
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+
+  @@map("parceiros")
+}
+
+/// Assinante / Cliente do clube
+model Assinante {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  cpf                String             @unique @db.VarChar(11)
+  name               String
+  phone              String
+  cityId             String
+  address            Json
+  planId             String
+  subscriptionStatus SubscriptionStatus @default(PENDING)
+  points             Decimal            @default(0) @db.Decimal(10, 2)
+  cashback           Decimal            @default(0) @db.Decimal(10, 2)
+  qrCode             String             @unique
+  nextBillingDate    DateTime?
+  lastPaymentDate    DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  city               City               @relation(fields: [cityId], references: [id])
+  plan               Plan               @relation(fields: [planId], references: [id])
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions       Transaction[]
+
+  @@map("assinantes")
+}
+
+/// Pivot: Benefício <-> Parceiro (quais benefícios o parceiro aceita)
+model BenefitAccess {
+  id         String   @id @default(cuid())
+  benefitId  String
+  parceiroId String
+  config     Json?
+  createdAt  DateTime @default(now())
+  benefit    Benefit  @relation(fields: [benefitId], references: [id], onDelete: Cascade)
+  parceiro   Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  @@unique([benefitId, parceiroId])
+  @@map("benefit_access")
+}
+
+/// Transação (compra, cashback, bônus, etc)
+model Transaction {
+  id                String            @id @default(cuid())
+  type              TransactionType
+  assinanteId       String
+  parceiroId        String?
+  amount            Decimal           @db.Decimal(10, 2)
+  pointsUsed        Decimal           @default(0) @db.Decimal(10, 2)
+  cashbackGenerated Decimal           @default(0) @db.Decimal(10, 2)
+  discountApplied   Decimal           @default(0) @db.Decimal(10, 2)
+  description       String
+  status            TransactionStatus
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+  assinante         Assinante         @relation(fields: [assinanteId], references: [id], onDelete: Cascade)
+  parceiro          Parceiro?         @relation(fields: [parceiroId], references: [id])
+
+  @@index([assinanteId])
+  @@index([parceiroId])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+/// Configurações do sistema
+model Config {
+  id          String         @id @default(cuid())
+  key         String         @unique
+  value       String
+  description String
+  category    ConfigCategory
+  updatedAt   DateTime       @updatedAt
+
+  @@map("configs")
+}
+
+/// Integrações externas (Evolution API, Mercado Pago, etc)
+model Integration {
+  id        String          @id @default(cuid())
+  type      IntegrationType @unique
+  name      String
+  config    Json
+  isActive  Boolean         @default(true)
+  lastSync  DateTime?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@map("integrations")
+}
+
+/// Logs do sistema (para developer)
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     String
+  action    String
+  userId    String?
+  details   Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([level])
+  @@index([action])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("system_logs")
+}
+
+/// Instância do WhatsApp conectada via Evolution API
+model WhatsAppInstance {
+  id            String         @id @default(cuid())
+  name          String
+  instanceId    String         @unique
+  status        String         @default("disconnected")
+  phoneNumber   String?
+  profileName   String?
+  profilePic    String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  notifications Notification[]
+
+  @@map("whatsapp_instances")
+}
+
+/// Notificação/Mensagem em massa via WhatsApp
+model Notification {
+  id               String             @id @default(cuid())
+  title            String
+  message          String
+  imageUrl         String?
+  linkUrl          String?
+  linkText         String?
+  targetType       TargetType
+  targetPlanId     String?
+  targetCityId     String?
+  instanceId       String
+  sentAt           DateTime?
+  sentCount        Int                @default(0)
+  failedCount      Int                @default(0)
+  status           NotificationStatus @default(DRAFT)
+  errorLog         String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  individualNumber String?
+  instance         WhatsAppInstance   @relation(fields: [instanceId], references: [id])
+  targetCity       City?              @relation(fields: [targetCityId], references: [id])
+  targetPlan       Plan?              @relation(fields: [targetPlanId], references: [id])
+
+  @@map("notifications")
+}
 
 enum Role {
   DEVELOPER
@@ -66,12 +332,12 @@ enum IntegrationType {
 }
 
 enum TargetType {
-  INDIVIDUAL
   ALL_ASSINANTES
   PLANO_ESPECIFICO
   ALL_PARCEIROS
   PARCEIROS_CIDADE
   TODOS
+  INDIVIDUAL
 }
 
 enum NotificationStatus {
@@ -81,312 +347,4 @@ enum NotificationStatus {
   SENT
   PARTIAL
   FAILED
-}
-
-// ==========================================
-// MODELS
-// ==========================================
-
-/// Cidades cadastradas pelo admin (dinâmicas)
-model City {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  state     String   @db.VarChar(2) // UF (ex: "MT")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  parceiros     Parceiro[]
-  assinantes    Assinante[]
-  notifications Notification[]
-
-  @@map("cities")
-}
-
-/// Usuário base do sistema
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(ASSINANTE)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  admin     Admin?
-  parceiro  Parceiro?
-  assinante Assinante?
-
-  @@map("users")
-}
-
-/// Administrador do sistema (criado pelo Developer)
-model Admin {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  phone       String
-  permissions Json     @default("{}") // Permissões específicas
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("admins")
-}
-
-/// Benefício modular (peça/componente)
-model Benefit {
-  id          String      @id @default(cuid())
-  name        String
-  description String
-  type        BenefitType
-  value       Json        // Config específica por tipo (percentage, fixedValue, etc)
-  category    String?     // Categoria opcional (alimentacao, saude, etc)
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  planBenefits  PlanBenefit[]
-  benefitAccess BenefitAccess[]
-
-  @@map("benefits")
-}
-
-/// Plano de assinatura (composição de benefícios + preço)
-model Plan {
-  id          String   @id @default(cuid())
-  name        String
-  description String
-  price       Decimal  @db.Decimal(10, 2)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  planBenefits  PlanBenefit[]
-  assinantes    Assinante[]
-  notifications Notification[]
-
-  @@map("plans")
-}
-
-/// Pivot: Plano <-> Benefício (com config específica por plano)
-model PlanBenefit {
-  id        String   @id @default(cuid())
-  planId    String
-  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
-  benefitId String
-  benefit   Benefit  @relation(fields: [benefitId], references: [id], onDelete: Cascade)
-  config    Json?    // Config específica para este plano (override do valor padrão)
-  createdAt DateTime @default(now())
-
-  @@unique([planId, benefitId])
-  @@map("plan_benefits")
-}
-
-/// Parceiro / Empresa local
-model Parceiro {
-  id          String  @id @default(cuid())
-  userId      String  @unique
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cnpj        String  @unique @db.VarChar(14)
-  companyName String
-  tradeName   String? // Nome fantasia
-  logo        String?
-  category    String
-  description String? @db.Text
-
-  cityId String
-  city   City   @relation(fields: [cityId], references: [id])
-
-  address Json // {street, number, complement, neighborhood, zipCode, coordinates}
-  contact Json // {whatsapp, phone, email}
-  hours   Json // [{day, dayName, open, close, isClosed}]
-
-  balance Decimal @default(0) @db.Decimal(10, 2)
-  metrics Json    @default("{\"pageViews\":0,\"whatsappClicks\":0,\"totalSales\":0,\"salesAmount\":0}")
-
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  transactions  Transaction[]
-  benefitAccess BenefitAccess[]
-
-  @@map("parceiros")
-}
-
-/// Assinante / Cliente do clube
-model Assinante {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cpf    String @unique @db.VarChar(11)
-  name   String
-  phone  String
-
-  cityId String
-  city   City   @relation(fields: [cityId], references: [id])
-
-  address Json // {street, number, complement, neighborhood, zipCode}
-
-  planId             String
-  plan               Plan               @relation(fields: [planId], references: [id])
-  subscriptionStatus SubscriptionStatus @default(PENDING)
-
-  points   Decimal @default(0) @db.Decimal(10, 2)
-  cashback Decimal @default(0) @db.Decimal(10, 2)
-  qrCode   String  @unique // Gerado do CPF
-
-  nextBillingDate DateTime?
-  lastPaymentDate DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  transactions Transaction[]
-
-  @@map("assinantes")
-}
-
-/// Pivot: Benefício <-> Parceiro (quais benefícios o parceiro aceita)
-model BenefitAccess {
-  id         String   @id @default(cuid())
-  benefitId  String
-  benefit    Benefit  @relation(fields: [benefitId], references: [id], onDelete: Cascade)
-  parceiroId String
-  parceiro   Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
-  config     Json?    // Config específica para este parceiro
-  createdAt  DateTime @default(now())
-
-  @@unique([benefitId, parceiroId])
-  @@map("benefit_access")
-}
-
-/// Transação (compra, cashback, bônus, etc)
-model Transaction {
-  id   String          @id @default(cuid())
-  type TransactionType
-
-  assinanteId String
-  assinante   Assinante @relation(fields: [assinanteId], references: [id], onDelete: Cascade)
-
-  parceiroId String?
-  parceiro   Parceiro? @relation(fields: [parceiroId], references: [id], onDelete: SetNull)
-
-  amount            Decimal           @db.Decimal(10, 2)
-  pointsUsed        Decimal           @default(0) @db.Decimal(10, 2)
-  cashbackGenerated Decimal           @default(0) @db.Decimal(10, 2)
-  discountApplied   Decimal           @default(0) @db.Decimal(10, 2)
-
-  description String
-  status      TransactionStatus
-  metadata    Json? // Dados adicionais (benefícios aplicados, etc)
-
-  createdAt DateTime @default(now())
-
-  @@index([assinanteId])
-  @@index([parceiroId])
-  @@index([createdAt])
-  @@map("transactions")
-}
-
-/// Configurações do sistema
-model Config {
-  id          String         @id @default(cuid())
-  key         String         @unique
-  value       String         @db.Text
-  description String
-  category    ConfigCategory
-  updatedAt   DateTime       @updatedAt
-
-  @@map("configs")
-}
-
-/// Integrações externas (Evolution API, Mercado Pago, etc)
-model Integration {
-  id        String          @id @default(cuid())
-  type      IntegrationType
-  name      String
-  config    Json            // Credenciais e configurações (criptografado na aplicação)
-  isActive  Boolean         @default(true)
-  lastSync  DateTime?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-
-  @@unique([type])
-  @@map("integrations")
-}
-
-/// Logs do sistema (para developer)
-model SystemLog {
-  id        String   @id @default(cuid())
-  level     String   // info, warn, error
-  action    String   // ação realizada
-  userId    String?  // usuário que realizou (se aplicável)
-  details   Json?    // detalhes adicionais
-  ip        String?
-  userAgent String?
-  createdAt DateTime @default(now())
-
-  @@index([level])
-  @@index([action])
-  @@index([userId])
-  @@index([createdAt])
-  @@map("system_logs")
-}
-
-// ==========================================
-// WHATSAPP E NOTIFICAÇÕES
-// ==========================================
-
-/// Instância do WhatsApp conectada via Evolution API
-model WhatsAppInstance {
-  id          String   @id @default(cuid())
-  name        String   // Nome da instância (ex: "Principal", "Suporte")
-  instanceId  String   @unique // ID/nome na Evolution API
-  status      String   @default("disconnected") // connected, disconnected, connecting
-  phoneNumber String?  // Número conectado
-  profileName String?  // Nome do perfil WhatsApp
-  profilePic  String?  // URL da foto de perfil
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  notifications Notification[]
-
-  @@map("whatsapp_instances")
-}
-
-/// Notificação/Mensagem em massa via WhatsApp
-model Notification {
-  id       String  @id @default(cuid())
-  title    String  // Título interno para identificação
-  message  String  @db.Text // Mensagem a enviar
-  imageUrl String? // URL da imagem (opcional)
-  linkUrl  String? // URL do link (opcional)
-  linkText String? // Texto do botão/link (opcional)
-
-  // Destinatários
-  targetType       TargetType
-  targetPlanId     String? // ID do plano se targetType for PLANO_ESPECIFICO
-  targetCityId     String? // ID da cidade se targetType for PARCEIROS_CIDADE
-  individualNumber String? // Número individual para envio direto (opcional)
-
-  // Relacionamentos opcionais
-  targetPlan Plan? @relation(fields: [targetPlanId], references: [id], onDelete: SetNull)
-  targetCity City? @relation(fields: [targetCityId], references: [id], onDelete: SetNull)
-
-  // Envio
-  instanceId String
-  instance   WhatsAppInstance @relation(fields: [instanceId], references: [id])
-
-  sentAt      DateTime?
-  sentCount   Int                @default(0)
-  failedCount Int                @default(0)
-  status      NotificationStatus @default(DRAFT)
-  errorLog    String?            @db.Text
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("notifications")
 }

@@ -67,10 +67,26 @@ const planSchema = z.object({
   name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
   description: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres'),
   price: z.number().min(0, 'Preço não pode ser negativo'),
+  slug: z.string().optional().nullable(),
+  priceMonthly: z.number().min(0).optional().nullable(),
+  priceYearly: z.number().min(0).optional().nullable(),
+  priceSingle: z.number().min(0).optional().nullable(),
   benefitIds: z.array(z.string()).min(1, 'Selecione pelo menos um benefício'),
 })
 
 type PlanFormData = z.infer<typeof planSchema>
+
+// Função para gerar slug
+function generateSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
 
 interface Benefit {
   id: string
@@ -88,6 +104,10 @@ interface Plan {
   name: string
   description: string
   price: string | number
+  slug: string | null
+  priceMonthly: string | number | null
+  priceYearly: string | number | null
+  priceSingle: string | number | null
   isActive: boolean
   createdAt: string
   planBenefits: PlanBenefit[]
@@ -162,6 +182,10 @@ export default function PlanosPage() {
       name: '',
       description: '',
       price: 0,
+      slug: '',
+      priceMonthly: null,
+      priceYearly: null,
+      priceSingle: null,
       benefitIds: [],
     })
     setIsDialogOpen(true)
@@ -176,6 +200,10 @@ export default function PlanosPage() {
       name: plan.name,
       description: plan.description,
       price: Number(plan.price),
+      slug: plan.slug || '',
+      priceMonthly: plan.priceMonthly ? Number(plan.priceMonthly) : null,
+      priceYearly: plan.priceYearly ? Number(plan.priceYearly) : null,
+      priceSingle: plan.priceSingle ? Number(plan.priceSingle) : null,
       benefitIds,
     })
     setIsDialogOpen(true)
@@ -376,8 +404,18 @@ export default function PlanosPage() {
                       </p>
                     </div>
                   </TableCell>
-                  <TableCell className="font-semibold text-primary">
-                    {formatPrice(plan.price)}
+                  <TableCell>
+                    <div className="space-y-0.5">
+                      <p className="font-semibold text-primary">
+                        {formatPrice(plan.price)}<span className="text-xs font-normal text-muted-foreground">/mês</span>
+                      </p>
+                      {(plan.priceMonthly || plan.priceYearly || plan.priceSingle) && (
+                        <div className="text-xs text-muted-foreground">
+                          {plan.priceYearly && <span>Anual: {formatPrice(plan.priceYearly)}</span>}
+                          {plan.priceSingle && <span className="ml-2">Único: {formatPrice(plan.priceSingle)}</span>}
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-1">
@@ -460,7 +498,15 @@ export default function PlanosPage() {
                 <Input
                   id="name"
                   placeholder="Ex: Premium"
-                  {...register('name')}
+                  {...register('name', {
+                    onChange: (e) => {
+                      // Gerar slug automaticamente ao digitar o nome
+                      if (!selectedPlan) {
+                        const slugValue = generateSlug(e.target.value)
+                        setValue('slug', slugValue)
+                      }
+                    }
+                  })}
                 />
                 {errors.name && (
                   <p className="text-sm text-destructive">{errors.name.message}</p>
@@ -468,18 +514,15 @@ export default function PlanosPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="price">Preço Mensal (R$)</Label>
+                <Label htmlFor="slug">Slug (URL)</Label>
                 <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="49.90"
-                  {...register('price', { valueAsNumber: true })}
+                  id="slug"
+                  placeholder="plano-premium"
+                  {...register('slug')}
                 />
-                {errors.price && (
-                  <p className="text-sm text-destructive">{errors.price.message}</p>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  URL amigável para o plano (gerado automaticamente)
+                </p>
               </div>
             </div>
 
@@ -494,6 +537,75 @@ export default function PlanosPage() {
               {errors.description && (
                 <p className="text-sm text-destructive">{errors.description.message}</p>
               )}
+            </div>
+
+            {/* Preços */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">💰 Preços</Label>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2">
+                  <Label htmlFor="price">Preço Base (R$)</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="49.90"
+                    {...register('price', { valueAsNumber: true })}
+                  />
+                  {errors.price && (
+                    <p className="text-sm text-destructive">{errors.price.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="priceMonthly">Mensal (R$)</Label>
+                  <Input
+                    id="priceMonthly"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="29.90"
+                    {...register('priceMonthly', { 
+                      setValueAs: (v) => v === '' ? null : parseFloat(v) 
+                    })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="priceYearly">Anual (R$)</Label>
+                  <Input
+                    id="priceYearly"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="299.90"
+                    {...register('priceYearly', { 
+                      setValueAs: (v) => v === '' ? null : parseFloat(v) 
+                    })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Desconto para pagamento anual
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="priceSingle">Único (R$)</Label>
+                  <Input
+                    id="priceSingle"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="499.90"
+                    {...register('priceSingle', { 
+                      setValueAs: (v) => v === '' ? null : parseFloat(v) 
+                    })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Pagamento único (vitalício)
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Seleção de Benefícios */}
