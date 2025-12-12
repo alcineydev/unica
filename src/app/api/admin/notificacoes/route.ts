@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get('limit') || '20')
 
   try {
-    const where = status ? { status } : {}
+    const where = status ? { status: status as any } : {}
 
     const [notifications, total] = await Promise.all([
       prisma.notification.findMany({
