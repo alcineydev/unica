@@ -186,12 +186,17 @@ async function main() {
   // Plano Básico
   const planoBasico = await prisma.plan.upsert({
     where: { id: 'plano-basico' },
-    update: {},
+    update: {
+      slug: 'basico',
+      priceMonthly: 19.90,
+    },
     create: {
       id: 'plano-basico',
       name: 'Básico',
+      slug: 'basico',
       description: 'Plano básico com descontos em alimentação e 50 pontos mensais',
       price: 19.90,
+      priceMonthly: 19.90,
       isActive: true,
     },
   })
@@ -216,12 +221,17 @@ async function main() {
   // Plano Plus
   const planoPlus = await prisma.plan.upsert({
     where: { id: 'plano-plus' },
-    update: {},
+    update: {
+      slug: 'plus',
+      priceMonthly: 39.90,
+    },
     create: {
       id: 'plano-plus',
       name: 'Plus',
+      slug: 'plus',
       description: 'Plano intermediário com descontos, cashback 3% e 100 pontos mensais',
       price: 39.90,
+      priceMonthly: 39.90,
       isActive: true,
     },
   })
@@ -248,12 +258,17 @@ async function main() {
   // Plano Premium
   const planoPremium = await prisma.plan.upsert({
     where: { id: 'plano-premium' },
-    update: {},
+    update: {
+      slug: 'premium',
+      priceMonthly: 69.90,
+    },
     create: {
       id: 'plano-premium',
       name: 'Premium',
+      slug: 'premium',
       description: 'Plano completo com todos os descontos, cashback 5%, 200 pontos e acesso premium',
       price: 69.90,
+      priceMonthly: 69.90,
       isActive: true,
     },
   })
