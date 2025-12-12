@@ -138,19 +138,21 @@ model Assinante {
   cpf                String             @unique @db.VarChar(11)
   name               String
   phone              String
-  cityId             String
-  address            Json
-  planId             String
+  cityId             String?
+  address            Json?
+  planId             String?
   subscriptionStatus SubscriptionStatus @default(PENDING)
   points             Decimal            @default(0) @db.Decimal(10, 2)
   cashback           Decimal            @default(0) @db.Decimal(10, 2)
   qrCode             String             @unique
+  planStartDate      DateTime?
+  planEndDate        DateTime?
   nextBillingDate    DateTime?
   lastPaymentDate    DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
-  city               City               @relation(fields: [cityId], references: [id])
-  plan               Plan               @relation(fields: [planId], references: [id])
+  city               City?              @relation(fields: [cityId], references: [id])
+  plan               Plan?              @relation(fields: [planId], references: [id])
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions       Transaction[]
 

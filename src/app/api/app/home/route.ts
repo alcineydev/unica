@@ -19,7 +19,17 @@ export async function GET() {
       include: {
         plan: {
           include: {
-            planBenefits: true,
+            planBenefits: {
+              include: {
+                benefit: {
+                  select: {
+                    id: true,
+                    name: true,
+                    type: true,
+                  },
+                },
+              },
+            },
           },
         },
         city: true,
@@ -33,10 +43,10 @@ export async function GET() {
       )
     }
 
-    // Busca parceiros da mesma cidade
+    // Busca parceiros (se tiver cidade, filtra por cidade)
     const parceiros = await prisma.parceiro.findMany({
       where: {
-        cityId: assinante.cityId,
+        ...(assinante.cityId ? { cityId: assinante.cityId } : {}),
         isActive: true,
         user: {
           isActive: true,
@@ -57,18 +67,55 @@ export async function GET() {
       take: 10,
     })
 
+    // Se não tem plano, busca planos disponíveis
+    let planosDisponiveis = null
+    if (!assinante.planId) {
+      const planos = await prisma.plan.findMany({
+        where: { isActive: true },
+        orderBy: { price: 'asc' },
+        include: {
+          planBenefits: {
+            include: {
+              benefit: {
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                },
+              },
+            },
+          },
+        },
+      })
+      
+      planosDisponiveis = planos.map(plan => ({
+        id: plan.id,
+        name: plan.name,
+        slug: plan.slug,
+        description: plan.description,
+        price: Number(plan.price),
+        priceMonthly: plan.priceMonthly ? Number(plan.priceMonthly) : null,
+        planBenefits: plan.planBenefits,
+      }))
+    }
+
     return NextResponse.json({
       data: {
         assinante: {
           name: assinante.name,
           points: Number(assinante.points),
           cashback: Number(assinante.cashback),
-          plan: {
+          planId: assinante.planId,
+          planStartDate: assinante.planStartDate?.toISOString() || null,
+          planEndDate: assinante.planEndDate?.toISOString() || null,
+          plan: assinante.plan ? {
             name: assinante.plan.name,
-          },
+            planBenefits: assinante.plan.planBenefits,
+          } : null,
         },
         parceiros,
-        totalBeneficios: assinante.plan.planBenefits.length,
+        totalBeneficios: assinante.plan?.planBenefits.length || 0,
+        planosDisponiveis,
       },
     })
   } catch (error) {
@@ -79,4 +126,3 @@ export async function GET() {
     )
   }
 }
-
