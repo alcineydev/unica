@@ -274,7 +274,7 @@ export async function POST(
     await prisma.notification.update({
       where: { id },
       data: {
-        status: finalStatus,
+        status: finalStatus as any,
         sentCount,
         failedCount,
         sentAt: new Date(),
