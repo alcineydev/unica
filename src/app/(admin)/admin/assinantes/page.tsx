@@ -238,7 +238,8 @@ function AssinantesContent() {
   // Observa mudanças no status para mostrar aviso e limpar plano
   const watchedStatus = watch('subscriptionStatus')
   const currentStatus = watchedStatus || 'PENDING' // Fallback para evitar undefined
-  const currentPlanId = watch('planId') || ''
+  const currentPlanId = watch('planId') || 'none'
+  const currentCityId = watch('cityId') || 'none'
 
   // Função para lidar com mudança de status
   function handleStatusChange(newStatus: string) {
@@ -246,9 +247,9 @@ function AssinantesContent() {
     
     // Se status não é ACTIVE, remove o plano
     if (newStatus !== 'ACTIVE') {
-      setValue('planId', '')
+      setValue('planId', 'none')
       // Mostra aviso apenas se assinante tinha um plano
-      if (selectedSubscriber?.plan || currentPlanId) {
+      if (selectedSubscriber?.plan || (currentPlanId && currentPlanId !== 'none')) {
         setShowPlanWarning(true)
       }
     } else {
@@ -312,8 +313,8 @@ function AssinantesContent() {
       name: '',
       cpf: '',
       phone: '',
-      cityId: '',
-      planId: '',
+      cityId: 'none',
+      planId: 'none',
       subscriptionStatus: 'ACTIVE',
     })
     setIsDialogOpen(true)
@@ -329,8 +330,8 @@ function AssinantesContent() {
       name: subscriber.name || '',
       cpf: subscriber.cpf || '',
       phone: subscriber.phone || '',
-      cityId: subscriber.city?.id || '',
-      planId: subscriber.plan?.id || '',
+      cityId: subscriber.city?.id || 'none',
+      planId: subscriber.plan?.id || 'none',
       subscriptionStatus: (subscriber.subscriptionStatus as SubscriberFormData['subscriptionStatus']) || 'PENDING',
     })
     setIsDialogOpen(true)
@@ -346,11 +347,18 @@ function AssinantesContent() {
   async function onSubmitCreate(data: SubscriberFormData) {
     setIsSubmitting(true)
 
+    // Converte 'none' de volta para valores que a API entende
+    const payload = {
+      ...data,
+      cityId: data.cityId === 'none' ? '' : data.cityId,
+      planId: data.planId === 'none' ? '' : data.planId,
+    }
+
     try {
       const response = await fetch('/api/admin/subscribers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -374,7 +382,14 @@ function AssinantesContent() {
     if (!selectedSubscriber) return
     setIsSubmitting(true)
 
-    const { email, password, cpf, ...editData } = data
+    const { email, password, cpf, ...rest } = data
+    
+    // Converte 'none' de volta para valores que a API entende
+    const editData = {
+      ...rest,
+      cityId: rest.cityId === 'none' ? null : rest.cityId,
+      planId: rest.planId === 'none' ? null : rest.planId,
+    }
 
     try {
       const response = await fetch(`/api/admin/subscribers/${selectedSubscriber.id}`, {
@@ -769,13 +784,14 @@ function AssinantesContent() {
               <div className="space-y-2">
                 <Label>Cidade</Label>
                 <Select
-                  value={watch('cityId')}
+                  value={currentCityId}
                   onValueChange={(value) => setValue('cityId', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">Selecione uma cidade</SelectItem>
                     {cities.map((city) => (
                       <SelectItem key={city.id} value={city.id}>
                         {city.name} - {city.state}
@@ -798,7 +814,7 @@ function AssinantesContent() {
                     <SelectValue placeholder={(currentStatus || 'PENDING') !== 'ACTIVE' ? 'Indisponível' : 'Selecione'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sem plano</SelectItem>
+                    <SelectItem value="none">Sem plano</SelectItem>
                     {plans.map((plan) => (
                       <SelectItem key={plan.id} value={plan.id}>
                         {plan.name} - {formatCurrency(plan.price)}
