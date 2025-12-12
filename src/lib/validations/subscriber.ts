@@ -1,5 +1,15 @@
 import { z } from 'zod'
 
+// Todos os status de assinatura possíveis
+const subscriptionStatusEnum = z.enum([
+  'PENDING', 
+  'ACTIVE', 
+  'SUSPENDED', 
+  'CANCELED',
+  'INACTIVE',
+  'EXPIRED'
+])
+
 // Schema de criação de assinante (pelo admin)
 export const createSubscriberSchema = z.object({
   // Dados do usuário
@@ -16,16 +26,16 @@ export const createSubscriberSchema = z.object({
   planId: z.string().min(1, 'Selecione um plano'),
   
   // Status
-  subscriptionStatus: z.enum(['PENDING', 'ACTIVE', 'SUSPENDED', 'CANCELED']).default('ACTIVE'),
+  subscriptionStatus: subscriptionStatusEnum.default('ACTIVE'),
 })
 
 // Schema de atualização (sem email/senha/cpf)
 export const updateSubscriberSchema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').optional(),
   phone: z.string().min(10, 'Telefone inválido').optional(),
-  cityId: z.string().optional(),
-  planId: z.string().optional(),
-  subscriptionStatus: z.enum(['PENDING', 'ACTIVE', 'SUSPENDED', 'CANCELED']).optional(),
+  cityId: z.string().nullable().optional(),
+  planId: z.string().nullable().optional(),
+  subscriptionStatus: subscriptionStatusEnum.optional(),
   points: z.number().min(0).optional(),
   cashback: z.number().min(0).optional(),
 })

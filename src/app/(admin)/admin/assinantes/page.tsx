@@ -392,6 +392,8 @@ function AssinantesContent() {
     }
 
     try {
+      console.log('[EDIT] Payload enviado:', editData)
+      
       const response = await fetch(`/api/admin/subscribers/${selectedSubscriber.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -399,15 +401,18 @@ function AssinantesContent() {
       })
 
       const result = await response.json()
+      console.log('[EDIT] Resposta:', result)
 
       if (response.ok) {
         toast.success('Assinante atualizado!')
         setIsDialogOpen(false)
         fetchSubscribers()
       } else {
+        console.error('[EDIT] Erro:', result)
         toast.error(result.error || 'Erro ao atualizar assinante')
       }
-    } catch {
+    } catch (error) {
+      console.error('[EDIT] Exceção:', error)
       toast.error('Erro ao atualizar assinante')
     } finally {
       setIsSubmitting(false)
