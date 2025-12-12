@@ -17,6 +17,7 @@ import {
   MapPin,
   CreditCard,
   Coins,
+  AlertTriangle,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -136,6 +137,7 @@ export default function AssinantesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedSubscriber, setSelectedSubscriber] = useState<Subscriber | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showPlanWarning, setShowPlanWarning] = useState(false)
 
   const {
     register,
@@ -147,6 +149,26 @@ export default function AssinantesPage() {
   } = useForm<SubscriberFormData>({
     resolver: zodResolver(subscriberSchema),
   })
+
+  // Observa mudanças no status para mostrar aviso e limpar plano
+  const currentStatus = watch('subscriptionStatus')
+  const currentPlanId = watch('planId')
+
+  // Função para lidar com mudança de status
+  function handleStatusChange(newStatus: string) {
+    setValue('subscriptionStatus', newStatus as SubscriberFormData['subscriptionStatus'])
+    
+    // Se status não é ACTIVE, remove o plano
+    if (newStatus !== 'ACTIVE') {
+      setValue('planId', '')
+      // Mostra aviso apenas se assinante tinha um plano
+      if (selectedSubscriber?.plan || currentPlanId) {
+        setShowPlanWarning(true)
+      }
+    } else {
+      setShowPlanWarning(false)
+    }
+  }
 
   // Buscar assinantes
   const fetchSubscribers = useCallback(async () => {
@@ -197,6 +219,7 @@ export default function AssinantesPage() {
   // Abrir modal para criar
   function handleCreate() {
     setSelectedSubscriber(null)
+    setShowPlanWarning(false)
     reset({
       email: '',
       password: '',
@@ -213,6 +236,7 @@ export default function AssinantesPage() {
   // Abrir modal para editar
   function handleEdit(subscriber: Subscriber) {
     setSelectedSubscriber(subscriber)
+    setShowPlanWarning(false)
     reset({
       email: '',
       password: '',
@@ -680,13 +704,15 @@ export default function AssinantesPage() {
               <div className="space-y-2">
                 <Label>Plano</Label>
                 <Select
-                  value={watch('planId')}
+                  value={currentPlanId || ''}
                   onValueChange={(value) => setValue('planId', value)}
+                  disabled={currentStatus !== 'ACTIVE'}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
+                    <SelectValue placeholder={currentStatus !== 'ACTIVE' ? 'Indisponível' : 'Selecione'} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="">Sem plano</SelectItem>
                     {plans.map((plan) => (
                       <SelectItem key={plan.id} value={plan.id}>
                         {plan.name} - {formatCurrency(plan.price)}
@@ -694,6 +720,11 @@ export default function AssinantesPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {currentStatus !== 'ACTIVE' && (
+                  <p className="text-xs text-muted-foreground">
+                    Plano só pode ser atribuído quando status for &quot;Ativo&quot;
+                  </p>
+                )}
                 {errors.planId && (
                   <p className="text-sm text-destructive">{errors.planId.message}</p>
                 )}
@@ -703,8 +734,8 @@ export default function AssinantesPage() {
             <div className="space-y-2">
               <Label>Status</Label>
               <Select
-                value={watch('subscriptionStatus')}
-                onValueChange={(value) => setValue('subscriptionStatus', value as SubscriberFormData['subscriptionStatus'])}
+                value={currentStatus}
+                onValueChange={handleStatusChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
@@ -718,6 +749,19 @@ export default function AssinantesPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Aviso de remoção de plano */}
+            {showPlanWarning && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-800">Plano será removido</p>
+                  <p className="text-amber-700">
+                    Ao mudar o status para diferente de &quot;Ativo&quot;, o plano atual será desvinculado do assinante.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <DialogFooter>
               <Button

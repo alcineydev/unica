@@ -135,6 +135,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (subscriptionStatus) {
       updateData.subscriptionStatus = subscriptionStatus
       
+      // Se status não for ACTIVE, remove o plano e datas
+      if (subscriptionStatus !== 'ACTIVE') {
+        updateData.planId = null
+        updateData.planStartDate = null
+        updateData.planEndDate = null
+      }
+      
       // Atualiza também o status do usuário
       await prisma.user.update({
         where: { id: existingSubscriber.userId },
