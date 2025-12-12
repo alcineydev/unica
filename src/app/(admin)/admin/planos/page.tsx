@@ -18,6 +18,8 @@ import {
   Users,
   Gift,
   Check,
+  Copy,
+  ExternalLink,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -322,6 +324,18 @@ export default function PlanosPage() {
     }).format(Number(price))
   }
 
+  // Copiar link do checkout
+  function copyCheckoutLink(slug: string) {
+    const url = `https://unica-theta.vercel.app/checkout/${slug}`
+    navigator.clipboard.writeText(url)
+    toast.success('Link copiado!')
+  }
+
+  // Abrir checkout em nova aba
+  function openCheckout(slug: string) {
+    window.open(`/checkout/${slug}`, '_blank')
+  }
+
   // Filtrar planos
   const filteredPlans = plans.filter(plan =>
     plan.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -446,6 +460,19 @@ export default function PlanosPage() {
                           <Pencil className="mr-2 h-4 w-4" />
                           Editar
                         </DropdownMenuItem>
+                        {plan.slug && (
+                          <>
+                            <DropdownMenuItem onClick={() => copyCheckoutLink(plan.slug!)}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Copiar link do checkout
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openCheckout(plan.slug!)}>
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                              Abrir checkout
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleToggleStatus(plan)}>
                           {plan.isActive ? (
                             <>
