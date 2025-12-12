@@ -101,27 +101,46 @@ interface Subscriber {
   points: string | number
   cashback: string | number
   qrCode: string
-  subscriptionStatus: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'CANCELED'
-  city: City | null
-  plan: Plan | null
+  subscriptionStatus?: string | null
+  city?: City | null
+  plan?: Plan | null
   planStartDate?: string | null
   planEndDate?: string | null
-  user: {
+  user?: {
     email: string
     isActive: boolean
-  }
-  _count: {
+  } | null
+  _count?: {
     transactions: number
   }
 }
 
-const statusColors: Record<string, string> = {
-  PENDING: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
-  ACTIVE: 'bg-green-500/10 text-green-600 border-green-500/20',
-  SUSPENDED: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-  CANCELED: 'bg-red-500/10 text-red-600 border-red-500/20',
-  INACTIVE: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
-  EXPIRED: 'bg-red-500/10 text-red-600 border-red-500/20',
+// Função para obter label do status com fallback seguro
+function getStatusLabel(status: string | undefined | null): string {
+  if (!status) return 'Pendente'
+  const statusMap: Record<string, string> = {
+    'ACTIVE': 'Ativo',
+    'PENDING': 'Pendente',
+    'INACTIVE': 'Inativo',
+    'EXPIRED': 'Expirado',
+    'SUSPENDED': 'Suspenso',
+    'CANCELED': 'Cancelado',
+  }
+  return statusMap[status] || status
+}
+
+// Função para obter cor do status com fallback seguro
+function getStatusColor(status: string | undefined | null): string {
+  if (!status) return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
+  const colorMap: Record<string, string> = {
+    'ACTIVE': 'bg-green-500/10 text-green-600 border-green-500/20',
+    'PENDING': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
+    'INACTIVE': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+    'EXPIRED': 'bg-red-500/10 text-red-600 border-red-500/20',
+    'SUSPENDED': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+    'CANCELED': 'bg-red-500/10 text-red-600 border-red-500/20',
+  }
+  return colorMap[status] || 'bg-gray-500/10 text-gray-600 border-gray-500/20'
 }
 
 export default function AssinantesPage() {
@@ -240,12 +259,12 @@ export default function AssinantesPage() {
     reset({
       email: '',
       password: '',
-      name: subscriber.name,
-      cpf: subscriber.cpf,
-      phone: subscriber.phone,
+      name: subscriber.name || '',
+      cpf: subscriber.cpf || '',
+      phone: subscriber.phone || '',
       cityId: subscriber.city?.id || '',
       planId: subscriber.plan?.id || '',
-      subscriptionStatus: subscriber.subscriptionStatus,
+      subscriptionStatus: (subscriber.subscriptionStatus as SubscriberFormData['subscriptionStatus']) || 'PENDING',
     })
     setIsDialogOpen(true)
   }
@@ -377,10 +396,10 @@ export default function AssinantesPage() {
   // Filtrar assinantes
   const filteredSubscribers = subscribers.filter(subscriber => {
     const matchesSearch = 
-      subscriber.name.toLowerCase().includes(search.toLowerCase()) ||
-      subscriber.cpf.includes(search) ||
-      subscriber.user?.email?.toLowerCase().includes(search.toLowerCase())
-    const matchesStatus = filterStatus === 'all' || subscriber.subscriptionStatus === filterStatus
+      (subscriber.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (subscriber.cpf || '').includes(search) ||
+      (subscriber.user?.email || '').toLowerCase().includes(search.toLowerCase())
+    const matchesStatus = filterStatus === 'all' || (subscriber.subscriptionStatus || 'PENDING') === filterStatus
     const matchesCity = filterCity === 'all' || subscriber.city?.id === filterCity
     const matchesPlan = filterPlan === 'all' || subscriber.plan?.id === filterPlan
     return matchesSearch && matchesStatus && matchesCity && matchesPlan
@@ -497,9 +516,9 @@ export default function AssinantesPage() {
                 <TableRow key={subscriber.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{subscriber.name}</p>
+                      <p className="font-medium">{subscriber.name || 'Sem nome'}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatCPF(subscriber.cpf)} • {subscriber.user?.email || '-'}
+                        {subscriber.cpf ? formatCPF(subscriber.cpf) : '-'} • {subscriber.user?.email || '-'}
                       </p>
                     </div>
                   </TableCell>
@@ -526,15 +545,15 @@ export default function AssinantesPage() {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Coins className="h-3 w-3 text-yellow-500" />
-                      <span className="font-medium">{Number(subscriber.points).toFixed(0)}</span>
+                      <span className="font-medium">{Number(subscriber.points || 0).toFixed(0)}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge 
                       variant="outline" 
-                      className={statusColors[subscriber.subscriptionStatus] || 'bg-gray-500/10 text-gray-600 border-gray-500/20'}
+                      className={getStatusColor(subscriber.subscriptionStatus)}
                     >
-                      {SUBSCRIPTION_STATUS[subscriber.subscriptionStatus as keyof typeof SUBSCRIPTION_STATUS]?.label || subscriber.subscriptionStatus}
+                      {getStatusLabel(subscriber.subscriptionStatus)}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -556,19 +575,19 @@ export default function AssinantesPage() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           onClick={() => handleChangeStatus(subscriber, 'ACTIVE')}
-                          disabled={subscriber.subscriptionStatus === 'ACTIVE'}
+                          disabled={(subscriber.subscriptionStatus || 'PENDING') === 'ACTIVE'}
                         >
                           Ativar
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => handleChangeStatus(subscriber, 'SUSPENDED')}
-                          disabled={subscriber.subscriptionStatus === 'SUSPENDED'}
+                          disabled={(subscriber.subscriptionStatus || 'PENDING') === 'SUSPENDED'}
                         >
                           Suspender
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => handleChangeStatus(subscriber, 'CANCELED')}
-                          disabled={subscriber.subscriptionStatus === 'CANCELED'}
+                          disabled={(subscriber.subscriptionStatus || 'PENDING') === 'CANCELED'}
                         >
                           Cancelar
                         </DropdownMenuItem>
@@ -818,3 +837,4 @@ export default function AssinantesPage() {
     </div>
   )
 }
+
