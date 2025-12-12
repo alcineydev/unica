@@ -91,14 +91,17 @@ function CadastroForm() {
       const result = await response.json()
 
       if (response.ok) {
-        toast.success('Cadastro realizado com sucesso!')
+        toast.success('Cadastro realizado com sucesso! Faça login para continuar.')
+        // Aguarda um momento para o toast ser exibido antes do redirecionamento
+        await new Promise(resolve => setTimeout(resolve, 1000))
         router.push('/login?registered=true')
       } else {
         toast.error(result.error || 'Erro ao realizar cadastro')
+        setIsLoading(false)
       }
-    } catch {
-      toast.error('Ocorreu um erro ao realizar cadastro')
-    } finally {
+    } catch (error) {
+      console.error('Erro no cadastro:', error)
+      toast.error('Ocorreu um erro ao realizar cadastro. Tente novamente.')
       setIsLoading(false)
     }
   }

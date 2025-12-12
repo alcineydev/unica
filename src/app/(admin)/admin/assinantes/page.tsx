@@ -73,9 +73,9 @@ const subscriberSchema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
   cpf: z.string().length(11, 'CPF deve ter 11 dígitos').or(z.literal('')),
   phone: z.string().min(10, 'Telefone inválido'),
-  cityId: z.string().min(1, 'Selecione uma cidade'),
-  planId: z.string().min(1, 'Selecione um plano'),
-  subscriptionStatus: z.enum(['PENDING', 'ACTIVE', 'SUSPENDED', 'CANCELED']),
+  cityId: z.string().optional().or(z.literal('')),
+  planId: z.string().optional().or(z.literal('')),
+  subscriptionStatus: z.enum(['PENDING', 'ACTIVE', 'SUSPENDED', 'CANCELED', 'INACTIVE', 'EXPIRED']),
 })
 
 type SubscriberFormData = z.infer<typeof subscriberSchema>
@@ -101,8 +101,10 @@ interface Subscriber {
   cashback: string | number
   qrCode: string
   subscriptionStatus: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'CANCELED'
-  city: City
-  plan: Plan
+  city: City | null
+  plan: Plan | null
+  planStartDate?: string | null
+  planEndDate?: string | null
   user: {
     email: string
     isActive: boolean
@@ -112,11 +114,13 @@ interface Subscriber {
   }
 }
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   PENDING: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
   ACTIVE: 'bg-green-500/10 text-green-600 border-green-500/20',
   SUSPENDED: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
   CANCELED: 'bg-red-500/10 text-red-600 border-red-500/20',
+  INACTIVE: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+  EXPIRED: 'bg-red-500/10 text-red-600 border-red-500/20',
 }
 
 export default function AssinantesPage() {
@@ -215,8 +219,8 @@ export default function AssinantesPage() {
       name: subscriber.name,
       cpf: subscriber.cpf,
       phone: subscriber.phone,
-      cityId: subscriber.city.id,
-      planId: subscriber.plan.id,
+      cityId: subscriber.city?.id || '',
+      planId: subscriber.plan?.id || '',
       subscriptionStatus: subscriber.subscriptionStatus,
     })
     setIsDialogOpen(true)
@@ -351,10 +355,10 @@ export default function AssinantesPage() {
     const matchesSearch = 
       subscriber.name.toLowerCase().includes(search.toLowerCase()) ||
       subscriber.cpf.includes(search) ||
-      subscriber.user.email.toLowerCase().includes(search.toLowerCase())
+      subscriber.user?.email?.toLowerCase().includes(search.toLowerCase())
     const matchesStatus = filterStatus === 'all' || subscriber.subscriptionStatus === filterStatus
-    const matchesCity = filterCity === 'all' || subscriber.city.id === filterCity
-    const matchesPlan = filterPlan === 'all' || subscriber.plan.id === filterPlan
+    const matchesCity = filterCity === 'all' || subscriber.city?.id === filterCity
+    const matchesPlan = filterPlan === 'all' || subscriber.plan?.id === filterPlan
     return matchesSearch && matchesStatus && matchesCity && matchesPlan
   })
 
@@ -471,21 +475,29 @@ export default function AssinantesPage() {
                     <div>
                       <p className="font-medium">{subscriber.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatCPF(subscriber.cpf)} • {subscriber.user.email}
+                        {formatCPF(subscriber.cpf)} • {subscriber.user?.email || '-'}
                       </p>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <CreditCard className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-sm">{subscriber.plan.name}</span>
-                    </div>
+                    {subscriber.plan ? (
+                      <div className="flex items-center gap-1">
+                        <CreditCard className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">{subscriber.plan.name}</span>
+                      </div>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">Sem plano</Badge>
+                    )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1 text-sm">
-                      <MapPin className="h-3 w-3 text-muted-foreground" />
-                      {subscriber.city.name}
-                    </div>
+                    {subscriber.city ? (
+                      <div className="flex items-center gap-1 text-sm">
+                        <MapPin className="h-3 w-3 text-muted-foreground" />
+                        {subscriber.city.name}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">

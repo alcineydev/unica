@@ -85,6 +85,16 @@ export const SUBSCRIPTION_STATUS = {
     label: 'Cancelado',
     color: 'red',
   },
+  INACTIVE: {
+    value: 'INACTIVE',
+    label: 'Inativo',
+    color: 'gray',
+  },
+  EXPIRED: {
+    value: 'EXPIRED',
+    label: 'Expirado',
+    color: 'red',
+  },
 } as const
 
 // Status de transação com labels

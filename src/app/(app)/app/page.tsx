@@ -141,44 +141,46 @@ export default function AppHomePage() {
           </Card>
         )}
 
-        {/* Cards de Saldo */}
-        <div className="grid grid-cols-2 gap-3">
-          <Link href="/app/carteira">
-            <Card className="bg-gradient-to-br from-gray-700 to-gray-900 text-white border-0">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Coins className="h-5 w-5" />
-                  <span className="text-sm font-medium opacity-90">Pontos</span>
-                </div>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-20 bg-white/20" />
-                ) : (
-                  <p className="text-2xl font-bold">
-                    {data?.assinante.points.toFixed(0) || 0}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </Link>
+        {/* Cards de Saldo - Apenas se tem plano ativo */}
+        {isPlanActive && (
+          <div className="grid grid-cols-2 gap-3">
+            <Link href="/app/carteira">
+              <Card className="bg-gradient-to-br from-gray-700 to-gray-900 text-white border-0">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Coins className="h-5 w-5" />
+                    <span className="text-sm font-medium opacity-90">Pontos</span>
+                  </div>
+                  {isLoading ? (
+                    <Skeleton className="h-8 w-20 bg-white/20" />
+                  ) : (
+                    <p className="text-2xl font-bold">
+                      {data?.assinante.points.toFixed(0) || 0}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </Link>
 
-          <Link href="/app/carteira">
-            <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Gift className="h-5 w-5" />
-                  <span className="text-sm font-medium opacity-90">Cashback</span>
-                </div>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-24 bg-white/20" />
-                ) : (
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(data?.assinante.cashback || 0)}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
+            <Link href="/app/carteira">
+              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gift className="h-5 w-5" />
+                    <span className="text-sm font-medium opacity-90">Cashback</span>
+                  </div>
+                  {isLoading ? (
+                    <Skeleton className="h-8 w-24 bg-white/20" />
+                  ) : (
+                    <p className="text-2xl font-bold">
+                      {formatCurrency(data?.assinante.cashback || 0)}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        )}
 
         {/* Plano Atual (se tiver) */}
         {isPlanActive && data?.assinante.plan && (
@@ -285,69 +287,71 @@ export default function AppHomePage() {
           </div>
         )}
 
-        {/* Parceiros em Destaque */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold">Parceiros</h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/app/parceiros" className="text-gray-700">
-                Ver todos
-                <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-
-          {isLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-24 w-full" />
-              ))}
-            </div>
-          ) : data?.parceiros && data.parceiros.length > 0 ? (
-            <div className="space-y-3">
-              {data.parceiros.slice(0, 5).map((parceiro) => (
-                <Link key={parceiro.id} href={`/app/parceiros/${parceiro.id}`}>
-                  <Card className="hover:bg-muted/50 transition-colors">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="rounded-full bg-gray-100 p-3">
-                          <Store className="h-5 w-5 text-gray-700" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold truncate">
-                              {parceiro.tradeName || parceiro.companyName}
-                            </p>
-                            <Badge variant="outline" className="shrink-0 text-xs">
-                              <Percent className="h-3 w-3 mr-1" />
-                              Desconto
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {parceiro.category}
-                          </p>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                            <MapPin className="h-3 w-3" />
-                            {parceiro.city.name}
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+        {/* Parceiros em Destaque - Apenas se tem plano ativo */}
+        {isPlanActive && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold">Parceiros</h2>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/app/parceiros" className="text-gray-700">
+                  Ver todos
+                  <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
-              ))}
+              </Button>
             </div>
-          ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Store className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">
-                  Nenhum parceiro disponível na sua cidade
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+
+            {isLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-24 w-full" />
+                ))}
+              </div>
+            ) : data?.parceiros && data.parceiros.length > 0 ? (
+              <div className="space-y-3">
+                {data.parceiros.slice(0, 5).map((parceiro) => (
+                  <Link key={parceiro.id} href={`/app/parceiros/${parceiro.id}`}>
+                    <Card className="hover:bg-muted/50 transition-colors">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="rounded-full bg-gray-100 p-3">
+                            <Store className="h-5 w-5 text-gray-700" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold truncate">
+                                {parceiro.tradeName || parceiro.companyName}
+                              </p>
+                              <Badge variant="outline" className="shrink-0 text-xs">
+                                <Percent className="h-3 w-3 mr-1" />
+                                Desconto
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {parceiro.category}
+                            </p>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                              <MapPin className="h-3 w-3" />
+                              {parceiro.city.name}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Store className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">
+                    Nenhum parceiro disponível na sua cidade
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
       </main>
     </div>
   )
