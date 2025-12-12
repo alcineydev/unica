@@ -104,11 +104,10 @@ export async function POST(request: NextRequest) {
     // Registrar log
     await prisma.systemLog.create({
       data: {
+        level: 'info',
         action: 'CREATE_ADMIN',
-        entity: 'Admin',
-        entityId: result.admin?.id || '',
-        details: { email: validatedData.email, name: validatedData.name },
         userId: session.user.id!,
+        details: { entity: 'Admin', entityId: result.admin?.id || '', email: validatedData.email, name: validatedData.name },
       },
     })
 

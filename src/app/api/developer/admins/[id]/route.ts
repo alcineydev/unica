@@ -80,11 +80,10 @@ export async function PATCH(
       // Registrar log
       await prisma.systemLog.create({
         data: {
+          level: 'info',
           action: body.isActive ? 'ACTIVATE_ADMIN' : 'DEACTIVATE_ADMIN',
-          entity: 'Admin',
-          entityId: id,
-          details: { adminEmail: admin.user.email },
           userId: session.user.id!,
+          details: { entity: 'Admin', entityId: id, adminEmail: admin.user.email },
         },
       })
     }
@@ -151,11 +150,10 @@ export async function DELETE(
     // Registrar log
     await prisma.systemLog.create({
       data: {
+        level: 'info',
         action: 'DELETE_ADMIN',
-        entity: 'Admin',
-        entityId: id,
-        details: { adminEmail: admin.user.email, adminName: admin.name },
         userId: session.user.id!,
+        details: { entity: 'Admin', entityId: id, adminEmail: admin.user.email, adminName: admin.name },
       },
     })
 
