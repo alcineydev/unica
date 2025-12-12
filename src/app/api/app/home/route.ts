@@ -67,9 +67,12 @@ export async function GET() {
       take: 10,
     })
 
-    // Se não tem plano, busca planos disponíveis
+    // Verifica se o assinante tem plano ATIVO (planId + status ACTIVE)
+    const temPlanoAtivo = assinante.planId && assinante.subscriptionStatus === 'ACTIVE'
+
+    // Se não tem plano ativo, busca planos disponíveis
     let planosDisponiveis = null
-    if (!assinante.planId) {
+    if (!temPlanoAtivo) {
       const planos = await prisma.plan.findMany({
         where: { isActive: true },
         orderBy: { price: 'asc' },
@@ -106,6 +109,7 @@ export async function GET() {
           points: Number(assinante.points),
           cashback: Number(assinante.cashback),
           planId: assinante.planId,
+          subscriptionStatus: assinante.subscriptionStatus,
           planStartDate: assinante.planStartDate?.toISOString() || null,
           planEndDate: assinante.planEndDate?.toISOString() || null,
           plan: assinante.plan ? {
@@ -114,7 +118,7 @@ export async function GET() {
           } : null,
         },
         parceiros,
-        totalBeneficios: assinante.plan?.planBenefits.length || 0,
+        totalBeneficios: temPlanoAtivo ? (assinante.plan?.planBenefits.length || 0) : 0,
         planosDisponiveis,
       },
     })

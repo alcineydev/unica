@@ -55,6 +55,7 @@ interface HomeData {
     points: number
     cashback: number
     planId: string | null
+    subscriptionStatus: string
     planStartDate: string | null
     planEndDate: string | null
     plan: {
@@ -108,10 +109,13 @@ export default function AppHomePage() {
   }
 
   // Verifica se o plano está ativo
+  // Regra: tem planId + status ACTIVE + (data não expirada ou sem data de expiração)
   const hasPlan = data?.assinante?.planId !== null && data?.assinante?.planId !== undefined
-  const isPlanActive = hasPlan && data?.assinante?.planEndDate 
-    ? new Date(data.assinante.planEndDate) > new Date() 
-    : hasPlan
+  const isStatusActive = data?.assinante?.subscriptionStatus === 'ACTIVE'
+  const isNotExpired = !data?.assinante?.planEndDate || new Date(data.assinante.planEndDate) > new Date()
+  
+  // Plano só é ativo se: tem planId E status é ACTIVE E não está expirado
+  const isPlanActive = hasPlan && isStatusActive && isNotExpired
 
   return (
     <div className="flex flex-col">

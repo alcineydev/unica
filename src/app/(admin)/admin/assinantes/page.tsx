@@ -532,9 +532,9 @@ export default function AssinantesPage() {
                   <TableCell className="text-center">
                     <Badge 
                       variant="outline" 
-                      className={statusColors[subscriber.subscriptionStatus]}
+                      className={statusColors[subscriber.subscriptionStatus] || 'bg-gray-500/10 text-gray-600 border-gray-500/20'}
                     >
-                      {SUBSCRIPTION_STATUS[subscriber.subscriptionStatus].label}
+                      {SUBSCRIPTION_STATUS[subscriber.subscriptionStatus as keyof typeof SUBSCRIPTION_STATUS]?.label || subscriber.subscriptionStatus}
                     </Badge>
                   </TableCell>
                   <TableCell>
