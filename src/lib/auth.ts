@@ -24,10 +24,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Valida os dados de entrada
         const parsed = loginSchema.safeParse(credentials)
         if (!parsed.success) {
+          console.log('[AUTH] Validação falhou:', parsed.error.issues)
           return null
         }
 
         const { email, password } = parsed.data
+        console.log('[AUTH] Tentativa de login:', email)
 
         try {
           // Busca o usuário no banco
@@ -40,18 +42,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
           })
 
-          if (!user) {
-            return null
-          }
+          console.log('[AUTH] Usuário encontrado:', !!user)
 
-          // Verifica se o usuário está ativo
-          if (!user.isActive) {
+          if (!user) {
+            console.log('[AUTH] Usuário não existe')
             return null
           }
 
           // Verifica a senha
           const passwordMatch = await bcrypt.compare(password, user.password)
+          console.log('[AUTH] Senha válida:', passwordMatch)
+          
           if (!passwordMatch) {
+            console.log('[AUTH] Senha incorreta')
+            return null
+          }
+
+          // Para ASSINANTE: permite login independente do isActive
+          // O status (Pendente/Inativo/Expirado) só afeta o que vê no painel, não bloqueia login
+          // Para outros roles (ADMIN, PARCEIRO): verifica isActive para bloqueio administrativo
+          if (user.role !== 'ASSINANTE' && !user.isActive) {
+            console.log('[AUTH] Usuário bloqueado (isActive=false)')
             return null
           }
 
@@ -65,6 +76,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name = user.assinante.name
           }
 
+          console.log('[AUTH] Login bem sucedido:', { email, role: user.role, name })
+
           // Retorna os dados do usuário para o token
           return {
             id: user.id,
@@ -73,7 +86,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name,
           }
         } catch (error) {
-          console.error('Erro na autenticação:', error)
+          console.error('[AUTH] Erro na autenticação:', error)
           return null
         }
       },

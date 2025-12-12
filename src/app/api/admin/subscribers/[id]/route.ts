@@ -142,11 +142,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         updateData.planEndDate = null
       }
       
-      // Atualiza também o status do usuário
-      await prisma.user.update({
-        where: { id: existingSubscriber.userId },
-        data: { isActive: subscriptionStatus === 'ACTIVE' },
-      })
+      // NOTA: NÃO alteramos user.isActive aqui
+      // O status do assinante (Pendente/Inativo/Expirado) só afeta o que vê no painel
+      // O campo user.isActive é apenas para bloqueio administrativo manual
     }
 
     // Atualiza o assinante
