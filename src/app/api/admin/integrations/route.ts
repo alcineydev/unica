@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
@@ -88,7 +87,7 @@ export async function POST(request: NextRequest) {
         where: { id: existing.id },
         data: {
           name: validatedData.name,
-          config: validatedData.config as Prisma.JsonValue,
+          config: validatedData.config as any,
           isActive: validatedData.isActive ?? existing.isActive,
         },
       })
@@ -98,7 +97,7 @@ export async function POST(request: NextRequest) {
         data: {
           type: validatedData.type,
           name: validatedData.name,
-          config: validatedData.config as Prisma.JsonValue,
+          config: validatedData.config as any,
           isActive: validatedData.isActive ?? true,
         },
       })
