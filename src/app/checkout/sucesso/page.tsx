@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, ArrowRight, Mail, Phone, Download, Sparkles } from 'lucide-react'
+import { CheckCircle, ArrowRight, Mail, Phone, Sparkles, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -17,7 +17,7 @@ interface PaymentInfo {
   status?: string
 }
 
-export default function CheckoutSucessoPage() {
+function SucessoContent() {
   const searchParams = useSearchParams()
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>({})
 
@@ -133,5 +133,21 @@ export default function CheckoutSucessoPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center p-4">
+      <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+    </div>
+  )
+}
+
+export default function CheckoutSucessoPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <SucessoContent />
+    </Suspense>
   )
 }

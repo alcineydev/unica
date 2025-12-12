@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Clock, ArrowRight, Mail, Phone, Copy, Check, FileText, AlertCircle } from 'lucide-react'
+import { Clock, ArrowRight, Mail, Phone, Copy, Check, FileText, AlertCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -16,7 +16,7 @@ interface PaymentInfo {
   paymentType: string
 }
 
-export default function CheckoutPendentePage() {
+function PendenteContent() {
   const searchParams = useSearchParams()
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>({
     paymentId: '',
@@ -179,5 +179,21 @@ export default function CheckoutPendentePage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
+      <Loader2 className="h-8 w-8 animate-spin text-gray-600" />
+    </div>
+  )
+}
+
+export default function CheckoutPendentePage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <PendenteContent />
+    </Suspense>
   )
 }
