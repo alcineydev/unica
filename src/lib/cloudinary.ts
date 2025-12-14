@@ -13,8 +13,14 @@ export async function uploadToCloudinary(
   folder: string = 'unica'
 ): Promise<string | null> {
   try {
+    console.log('[CLOUDINARY] Config:', {
+      cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+      api_key_exists: !!process.env.CLOUDINARY_API_KEY,
+      api_secret_exists: !!process.env.CLOUDINARY_API_SECRET
+    })
+
     return new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
+      const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder,
           resource_type: 'image',
@@ -25,16 +31,19 @@ export async function uploadToCloudinary(
         },
         (error, result) => {
           if (error) {
-            console.error('Erro Cloudinary:', error)
-            reject(null)
+            console.error('[CLOUDINARY] ❌ Erro:', error)
+            resolve(null)
           } else {
+            console.log('[CLOUDINARY] ✅ Upload OK:', result?.secure_url)
             resolve(result?.secure_url || null)
           }
         }
-      ).end(buffer)
+      )
+      
+      uploadStream.end(buffer)
     })
   } catch (error) {
-    console.error('Erro:', error)
+    console.error('[CLOUDINARY] ❌ Exception:', error)
     return null
   }
 }
