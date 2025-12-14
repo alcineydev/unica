@@ -92,7 +92,7 @@ export default function DashboardPage() {
     const diffDays = Math.floor(diffMs / 86400000)
 
     if (diffMins < 1) return 'agora'
-    if (diffMins < 60) return `há ${diffMins} min`
+    if (diffMins < 60) return `há ${diffMins}min`
     if (diffHours < 24) return `há ${diffHours}h`
     if (diffDays < 7) return `há ${diffDays}d`
     return date.toLocaleDateString('pt-BR')
@@ -101,16 +101,16 @@ export default function DashboardPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return <Badge className="bg-green-100 text-green-700 border-0">Ativo</Badge>
+        return <Badge className="bg-green-100 text-green-700 border-0 text-[10px]">Ativo</Badge>
       case 'PENDING':
-        return <Badge className="bg-yellow-100 text-yellow-700 border-0">Pendente</Badge>
+        return <Badge className="bg-yellow-100 text-yellow-700 border-0 text-[10px]">Pendente</Badge>
       case 'CANCELLED':
       case 'CANCELED':
-        return <Badge className="bg-red-100 text-red-700 border-0">Cancelado</Badge>
+        return <Badge className="bg-red-100 text-red-700 border-0 text-[10px]">Cancelado</Badge>
       case 'SUSPENDED':
-        return <Badge className="bg-orange-100 text-orange-700 border-0">Suspenso</Badge>
+        return <Badge className="bg-orange-100 text-orange-700 border-0 text-[10px]">Suspenso</Badge>
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary" className="text-[10px]">{status}</Badge>
     }
   }
 
@@ -129,114 +129,122 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral do sistema</p>
+        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">Visão geral do sistema</p>
       </div>
 
       {/* Cards de Estatísticas */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {/* Total Assinantes */}
-        <Card>
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs md:text-sm text-muted-foreground">Total Assinantes</p>
-                <p className="text-xl md:text-3xl font-bold mt-1">
+        <Card className="overflow-hidden">
+          <CardContent className="p-3 md:p-4 lg:p-6">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground truncate">
+                  Total Assinantes
+                </p>
+                <p className="text-lg md:text-2xl lg:text-3xl font-bold mt-0.5">
                   {stats?.totalAssinantes || 0}
                 </p>
                 <div className={cn(
-                  "flex items-center gap-1 mt-1 text-xs",
+                  "flex items-center gap-1 mt-0.5 text-[10px] md:text-xs",
                   (stats?.assinantesGrowth || 0) >= 0 ? "text-green-600" : "text-red-600"
                 )}>
                   {(stats?.assinantesGrowth || 0) >= 0 ? (
-                    <TrendingUp className="h-3 w-3" />
+                    <TrendingUp className="h-2.5 w-2.5 md:h-3 md:w-3" />
                   ) : (
-                    <TrendingDown className="h-3 w-3" />
+                    <TrendingDown className="h-2.5 w-2.5 md:h-3 md:w-3" />
                   )}
-                  <span>{stats?.assinantesGrowth || 0}% vs mês anterior</span>
+                  <span className="truncate">{stats?.assinantesGrowth || 0}%</span>
                 </div>
               </div>
-              <div className="p-2 md:p-3 rounded-full bg-blue-100">
-                <Users className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
+              <div className="p-1.5 md:p-2 lg:p-3 rounded-lg bg-blue-100 flex-shrink-0">
+                <Users className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Parceiros Ativos */}
-        <Card>
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs md:text-sm text-muted-foreground">Parceiros Ativos</p>
-                <p className="text-xl md:text-3xl font-bold mt-1">
+        <Card className="overflow-hidden">
+          <CardContent className="p-3 md:p-4 lg:p-6">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground truncate">
+                  Parceiros Ativos
+                </p>
+                <p className="text-lg md:text-2xl lg:text-3xl font-bold mt-0.5">
                   {stats?.parceirosAtivos || 0}
                 </p>
                 <div className={cn(
-                  "flex items-center gap-1 mt-1 text-xs",
+                  "flex items-center gap-1 mt-0.5 text-[10px] md:text-xs",
                   (stats?.parceirosGrowth || 0) >= 0 ? "text-green-600" : "text-red-600"
                 )}>
                   {(stats?.parceirosGrowth || 0) >= 0 ? (
-                    <TrendingUp className="h-3 w-3" />
+                    <TrendingUp className="h-2.5 w-2.5 md:h-3 md:w-3" />
                   ) : (
-                    <TrendingDown className="h-3 w-3" />
+                    <TrendingDown className="h-2.5 w-2.5 md:h-3 md:w-3" />
                   )}
-                  <span>{stats?.parceirosGrowth || 0}% vs mês anterior</span>
+                  <span className="truncate">{stats?.parceirosGrowth || 0}%</span>
                 </div>
               </div>
-              <div className="p-2 md:p-3 rounded-full bg-purple-100">
-                <Building2 className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
+              <div className="p-1.5 md:p-2 lg:p-3 rounded-lg bg-purple-100 flex-shrink-0">
+                <Building2 className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-purple-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Receita Mensal */}
-        <Card>
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs md:text-sm text-muted-foreground">Receita Mensal</p>
-                <p className="text-lg md:text-2xl font-bold mt-1">
+        <Card className="overflow-hidden">
+          <CardContent className="p-3 md:p-4 lg:p-6">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground truncate">
+                  Receita Mensal
+                </p>
+                <p className="text-sm md:text-xl lg:text-2xl font-bold mt-0.5 truncate">
                   {formatCurrency(stats?.receitaMensal || 0)}
                 </p>
                 <div className={cn(
-                  "flex items-center gap-1 mt-1 text-xs",
+                  "flex items-center gap-1 mt-0.5 text-[10px] md:text-xs",
                   (stats?.receitaGrowth || 0) >= 0 ? "text-green-600" : "text-red-600"
                 )}>
                   {(stats?.receitaGrowth || 0) >= 0 ? (
-                    <TrendingUp className="h-3 w-3" />
+                    <TrendingUp className="h-2.5 w-2.5 md:h-3 md:w-3" />
                   ) : (
-                    <TrendingDown className="h-3 w-3" />
+                    <TrendingDown className="h-2.5 w-2.5 md:h-3 md:w-3" />
                   )}
-                  <span>{stats?.receitaGrowth || 0}% vs mês anterior</span>
+                  <span className="truncate">{stats?.receitaGrowth || 0}%</span>
                 </div>
               </div>
-              <div className="p-2 md:p-3 rounded-full bg-green-100">
-                <DollarSign className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
+              <div className="p-1.5 md:p-2 lg:p-3 rounded-lg bg-green-100 flex-shrink-0">
+                <DollarSign className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Taxa de Conversão */}
-        <Card>
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs md:text-sm text-muted-foreground">Taxa Conversão</p>
-                <p className="text-xl md:text-3xl font-bold mt-1">
+        <Card className="overflow-hidden">
+          <CardContent className="p-3 md:p-4 lg:p-6">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground truncate">
+                  Taxa Conversão
+                </p>
+                <p className="text-lg md:text-2xl lg:text-3xl font-bold mt-0.5">
                   {stats?.taxaConversao || 0}%
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stats?.assinantesAtivos || 0} ativos de {stats?.totalAssinantes || 0}
+                <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 truncate">
+                  {stats?.assinantesAtivos || 0}/{stats?.totalAssinantes || 0}
                 </p>
               </div>
-              <div className="p-2 md:p-3 rounded-full bg-orange-100">
-                <Activity className="h-5 w-5 md:h-6 md:w-6 text-orange-600" />
+              <div className="p-1.5 md:p-2 lg:p-3 rounded-lg bg-orange-100 flex-shrink-0">
+                <Activity className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-orange-600" />
               </div>
             </div>
           </CardContent>
@@ -244,23 +252,23 @@ export default function DashboardPage() {
       </div>
 
       {/* Gráfico e Atividades */}
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid gap-4 lg:grid-cols-5">
         {/* Gráfico de Assinaturas */}
         <Card className="lg:col-span-3">
-          <CardHeader>
+          <CardHeader className="p-3 md:p-4 lg:p-6 pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">Novas Assinaturas</CardTitle>
-                <CardDescription>Últimos 30 dias</CardDescription>
+                <CardTitle className="text-sm md:text-base lg:text-lg">Novas Assinaturas</CardTitle>
+                <CardDescription className="text-xs md:text-sm">Últimos 30 dias</CardDescription>
               </div>
-              <BarChart3 className="h-5 w-5 text-muted-foreground" />
+              <BarChart3 className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 md:p-4 lg:p-6 pt-0">
             {chartData.length > 0 ? (
-              <div className="h-64">
+              <div className="h-40 md:h-56 lg:h-64">
                 {/* Gráfico de barras simples */}
-                <div className="flex items-end justify-between h-48 gap-0.5">
+                <div className="flex items-end justify-between h-32 md:h-44 lg:h-52 gap-0.5">
                   {chartData.map((data, index) => (
                     <div
                       key={index}
@@ -271,22 +279,22 @@ export default function DashboardPage() {
                       }}
                     >
                       {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-foreground text-background text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-foreground text-background text-[10px] md:text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
                         {new Date(data.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                         <br />
-                        {data.assinaturas} assinatura(s)
+                        {data.assinaturas}
                       </div>
                     </div>
                   ))}
                 </div>
                 {/* Labels */}
-                <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+                <div className="flex justify-between mt-2 text-[10px] md:text-xs text-muted-foreground">
                   <span>{chartData[0] && new Date(chartData[0].date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
                   <span>{chartData[chartData.length - 1] && new Date(chartData[chartData.length - 1].date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
                 </div>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
+              <div className="h-40 md:h-56 lg:h-64 flex items-center justify-center text-muted-foreground text-sm">
                 Nenhum dado disponível
               </div>
             )}
@@ -295,36 +303,37 @@ export default function DashboardPage() {
 
         {/* Atividades Recentes */}
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="p-3 md:p-4 lg:p-6 pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">Últimos Assinantes</CardTitle>
-                <CardDescription>Cadastros recentes</CardDescription>
+                <CardTitle className="text-sm md:text-base lg:text-lg">Últimos Assinantes</CardTitle>
+                <CardDescription className="text-xs md:text-sm">Cadastros recentes</CardDescription>
               </div>
               <Link href="/admin/assinantes">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-xs md:text-sm">
                   Ver todos
-                  <ArrowRight className="ml-1 h-4 w-4" />
+                  <ArrowRight className="ml-1 h-3 w-3 md:h-4 md:w-4" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 md:p-4 lg:p-6 pt-0">
             {activities.length > 0 ? (
-              <div className="space-y-4 max-h-64 overflow-y-auto">
+              <div className="space-y-3 max-h-48 md:max-h-64 overflow-y-auto">
                 {activities.slice(0, 5).map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-3">
+                  <div key={activity.id} className="flex items-start gap-2 md:gap-3">
                     <UserAvatar 
                       src={activity.avatar}
                       name={activity.name}
                       size="sm"
+                      className="h-7 w-7 md:h-8 md:w-8"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{activity.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{activity.email}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <p className="font-medium text-xs md:text-sm truncate">{activity.name}</p>
+                      <p className="text-[10px] md:text-xs text-muted-foreground truncate">{activity.email}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
                         {getStatusBadge(activity.status)}
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-[10px] md:text-xs text-muted-foreground">
                           {formatDate(activity.createdAt)}
                         </span>
                       </div>
@@ -333,9 +342,9 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Nenhum assinante ainda</p>
+              <div className="text-center py-6 md:py-8 text-muted-foreground">
+                <Users className="h-6 w-6 md:h-8 md:w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-xs md:text-sm">Nenhum assinante ainda</p>
               </div>
             )}
           </CardContent>
@@ -344,49 +353,37 @@ export default function DashboardPage() {
 
       {/* Ações Rápidas */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Ações Rápidas</CardTitle>
-          <CardDescription>Acesse as funcionalidades mais usadas</CardDescription>
+        <CardHeader className="p-3 md:p-4 lg:p-6 pb-2">
+          <CardTitle className="text-sm md:text-base lg:text-lg">Ações Rápidas</CardTitle>
+          <CardDescription className="text-xs md:text-sm">Acesse as funcionalidades mais usadas</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+        <CardContent className="p-3 md:p-4 lg:p-6 pt-0">
+          <div className="grid gap-2 md:gap-3 grid-cols-2 md:grid-cols-4">
             <Link href="/admin/assinantes">
-              <Button variant="outline" className="w-full h-auto py-4 flex flex-col gap-2">
-                <UserPlus className="h-5 w-5" />
-                <div className="text-center">
-                  <p className="font-medium text-sm">Novo Assinante</p>
-                  <p className="text-xs text-muted-foreground hidden sm:block">Cadastrar manualmente</p>
-                </div>
+              <Button variant="outline" className="w-full h-auto py-2.5 md:py-3 lg:py-4 flex flex-col gap-1 md:gap-2">
+                <UserPlus className="h-4 w-4 md:h-5 md:w-5" />
+                <span className="text-[10px] md:text-xs lg:text-sm font-medium">Novo Assinante</span>
               </Button>
             </Link>
             
             <Link href="/admin/parceiros/novo">
-              <Button variant="outline" className="w-full h-auto py-4 flex flex-col gap-2">
-                <Building2 className="h-5 w-5" />
-                <div className="text-center">
-                  <p className="font-medium text-sm">Novo Parceiro</p>
-                  <p className="text-xs text-muted-foreground hidden sm:block">Adicionar empresa</p>
-                </div>
+              <Button variant="outline" className="w-full h-auto py-2.5 md:py-3 lg:py-4 flex flex-col gap-1 md:gap-2">
+                <Building2 className="h-4 w-4 md:h-5 md:w-5" />
+                <span className="text-[10px] md:text-xs lg:text-sm font-medium">Novo Parceiro</span>
               </Button>
             </Link>
             
             <Link href="/admin/beneficios">
-              <Button variant="outline" className="w-full h-auto py-4 flex flex-col gap-2">
-                <Gift className="h-5 w-5" />
-                <div className="text-center">
-                  <p className="font-medium text-sm">Benefícios</p>
-                  <p className="text-xs text-muted-foreground hidden sm:block">Gerenciar benefícios</p>
-                </div>
+              <Button variant="outline" className="w-full h-auto py-2.5 md:py-3 lg:py-4 flex flex-col gap-1 md:gap-2">
+                <Gift className="h-4 w-4 md:h-5 md:w-5" />
+                <span className="text-[10px] md:text-xs lg:text-sm font-medium">Benefícios</span>
               </Button>
             </Link>
             
             <Link href="/admin/planos">
-              <Button variant="outline" className="w-full h-auto py-4 flex flex-col gap-2">
-                <CreditCard className="h-5 w-5" />
-                <div className="text-center">
-                  <p className="font-medium text-sm">Planos</p>
-                  <p className="text-xs text-muted-foreground hidden sm:block">Gerenciar planos</p>
-                </div>
+              <Button variant="outline" className="w-full h-auto py-2.5 md:py-3 lg:py-4 flex flex-col gap-1 md:gap-2">
+                <CreditCard className="h-4 w-4 md:h-5 md:w-5" />
+                <span className="text-[10px] md:text-xs lg:text-sm font-medium">Planos</span>
               </Button>
             </Link>
           </div>

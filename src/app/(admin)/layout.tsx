@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { AdminSidebar, AdminHeader } from '@/components/admin'
+import { AdminSidebar } from '@/components/admin'
 
 export const metadata: Metadata = {
   title: {
@@ -17,13 +17,13 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-muted/30">
       <AdminSidebar />
-      <div className="pl-[250px] transition-all duration-300">
-        <AdminHeader />
-        <main className="p-6">
+      
+      {/* Main Content */}
+      <main className="min-h-screen pt-14 lg:pt-0">
+        <div className="p-4 md:p-6">
           {children}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   )
 }
-

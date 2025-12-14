@@ -1,3 +1,3 @@
 export { AdminSidebar } from './sidebar'
-export { AdminHeader } from './header'
+// AdminHeader agora está integrado na AdminSidebar para mobile
 
