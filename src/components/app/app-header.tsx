@@ -4,21 +4,13 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Sparkles, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { UserAvatar } from '@/components/ui/user-avatar'
 
 export function AppHeader() {
   const { data: session } = useSession()
 
   const user = session?.user
-  const firstName = user?.name?.split(' ')[0] || 'Usuario'
-  const initials = user?.name
-    ? user.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : 'US'
+  const firstName = user?.name?.split(' ')[0] || 'Usuário'
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -36,16 +28,16 @@ export function AppHeader() {
             </span>
           </Button>
           <Link href="/app/perfil">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar 
+              src={user?.avatar} 
+              name={user?.name} 
+              size="sm"
+            />
           </Link>
         </div>
       </div>
       <div className="px-4 pb-3">
-        <p className="text-sm text-muted-foreground">Ola,</p>
+        <p className="text-sm text-muted-foreground">Olá,</p>
         <p className="text-lg font-semibold">{firstName}!</p>
       </div>
     </header>

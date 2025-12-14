@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const session = await auth()
     console.log('[UPLOAD] Session:', session?.user?.email || 'não autenticado')
     
-    if (!session || !['DEVELOPER', 'ADMIN', 'PARCEIRO'].includes(session.user.role)) {
+    if (!session || !['DEVELOPER', 'ADMIN', 'PARCEIRO', 'ASSINANTE'].includes(session.user.role)) {
       console.log('[UPLOAD] Não autorizado - role:', session?.user?.role)
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }

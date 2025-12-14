@@ -21,6 +21,8 @@ import {
   AlertCircle,
 } from 'lucide-react'
 
+import { UserAvatar } from '@/components/ui/user-avatar'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -602,11 +604,18 @@ function AssinantesContent() {
               filteredSubscribers.map((subscriber) => (
                 <TableRow key={subscriber.id}>
                   <TableCell>
-                    <div>
-                      <p className="font-medium">{subscriber.name || 'Sem nome'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {subscriber.cpf ? formatCPF(subscriber.cpf) : '-'} • {subscriber.user?.email || '-'}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <UserAvatar 
+                        src={subscriber.user?.avatar} 
+                        name={subscriber.name} 
+                        size="sm"
+                      />
+                      <div>
+                        <p className="font-medium">{subscriber.name || 'Sem nome'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {subscriber.cpf ? formatCPF(subscriber.cpf) : '-'} • {subscriber.user?.email || '-'}
+                        </p>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>

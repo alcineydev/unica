@@ -30,8 +30,10 @@ export async function GET(request: Request) {
       include: {
         user: {
           select: {
+            id: true,
             email: true,
             isActive: true,
+            avatar: true,
           },
         },
         city: {

@@ -84,6 +84,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email: user.email,
             role: user.role,
             name,
+            avatar: user.avatar,
           }
         } catch (error) {
           console.error('[AUTH] Erro na autenticação:', error)

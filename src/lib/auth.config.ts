@@ -50,12 +50,20 @@ export const authConfig: NextAuthConfig = {
 
       return true
     },
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id
         token.role = user.role
         token.name = user.name
+        token.avatar = user.avatar
       }
+      
+      // Permitir atualização da sessão (para atualizar avatar/nome)
+      if (trigger === 'update' && session) {
+        if (session.user?.name) token.name = session.user.name
+        if (session.user?.avatar !== undefined) token.avatar = session.user.avatar
+      }
+      
       return token
     },
     session({ session, token }) {
@@ -63,6 +71,7 @@ export const authConfig: NextAuthConfig = {
         session.user.id = token.id as string
         session.user.role = token.role as string
         session.user.name = token.name as string
+        session.user.avatar = token.avatar as string | null
       }
       return session
     },
