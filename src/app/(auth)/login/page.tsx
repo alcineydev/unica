@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -30,8 +29,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
-  const router = useRouter()
-  const { login, getRedirectUrl } = useAuth()
+  const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -44,24 +42,26 @@ export default function LoginPage() {
   })
 
   async function onSubmit(data: LoginFormData) {
+    // Prevenir múltiplos cliques
+    if (isLoading) return
+    
     setIsLoading(true)
     
     try {
       const result = await login(data)
       
-      if (result.success) {
+      if (result.success && result.redirectUrl) {
         toast.success('Login realizado com sucesso!')
-        // Aguarda um momento e redireciona
-        setTimeout(() => {
-          router.push(getRedirectUrl())
-          router.refresh()
-        }, 500)
+        
+        // Usar window.location para forçar reload completo
+        // Isso garante que a sessão seja carregada corretamente
+        window.location.href = result.redirectUrl
       } else {
         toast.error(result.error || 'Email ou senha inválidos')
+        setIsLoading(false)
       }
-    } catch (error) {
+    } catch {
       toast.error('Ocorreu um erro ao fazer login')
-    } finally {
       setIsLoading(false)
     }
   }

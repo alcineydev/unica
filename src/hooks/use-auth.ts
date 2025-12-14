@@ -1,7 +1,6 @@
 'use client'
 
 import { useSession, signIn, signOut } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
 
 interface LoginCredentials {
@@ -9,15 +8,20 @@ interface LoginCredentials {
   password: string
 }
 
+interface LoginResult {
+  success: boolean
+  error?: string
+  redirectUrl?: string
+}
+
 export function useAuth() {
   const { data: session, status, update } = useSession()
-  const router = useRouter()
 
   const isAuthenticated = status === 'authenticated'
   const isLoading = status === 'loading'
   const user = session?.user
 
-  const login = useCallback(async (credentials: LoginCredentials) => {
+  const login = useCallback(async (credentials: LoginCredentials): Promise<LoginResult> => {
     try {
       const result = await signIn('credentials', {
         email: credentials.email,
@@ -29,15 +33,38 @@ export function useAuth() {
         return { success: false, error: 'Email ou senha inválidos' }
       }
 
-      // Redireciona baseado no role após login bem-sucedido
-      // O middleware vai cuidar de redirecionar para a área correta
-      router.refresh()
-      return { success: true }
+      if (result?.ok) {
+        // Buscar a sessão atualizada para pegar o role
+        const sessionResponse = await fetch('/api/auth/session')
+        const sessionData = await sessionResponse.json()
+        
+        const role = sessionData?.user?.role
+        let redirectUrl = '/login'
+        
+        switch (role) {
+          case 'DEVELOPER':
+            redirectUrl = '/developer'
+            break
+          case 'ADMIN':
+            redirectUrl = '/admin'
+            break
+          case 'PARCEIRO':
+            redirectUrl = '/parceiro'
+            break
+          case 'ASSINANTE':
+            redirectUrl = '/app'
+            break
+        }
+
+        return { success: true, redirectUrl }
+      }
+
+      return { success: false, error: 'Erro ao fazer login' }
     } catch (error) {
       console.error('Erro no login:', error)
       return { success: false, error: 'Ocorreu um erro ao fazer login' }
     }
-  }, [router])
+  }, [])
 
   const logout = useCallback(async () => {
     await signOut({ redirect: true, callbackUrl: '/login' })
@@ -71,4 +98,3 @@ export function useAuth() {
     getRedirectUrl,
   }
 }
-
