@@ -19,7 +19,7 @@ export default function AdminLayout({
       <AdminSidebar />
       
       {/* Main Content */}
-      <main className="min-h-screen pt-14 lg:pt-0">
+      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 transition-all duration-300">
         <div className="p-4 md:p-6">
           {children}
         </div>

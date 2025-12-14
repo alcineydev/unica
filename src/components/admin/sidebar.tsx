@@ -19,7 +19,6 @@ import {
   BarChart3,
   Plug,
   Sparkles,
-  ChevronLeft,
   Bell,
   Menu,
   LogOut,
@@ -43,7 +42,6 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [isOpen, setIsOpen] = useState(false)
-  const [isCollapsed, setIsCollapsed] = useState(false)
 
   // Fechar sidebar ao mudar de rota (mobile)
   useEffect(() => {
@@ -53,15 +51,10 @@ export function AdminSidebar() {
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className={cn(
-        "flex items-center gap-3 p-4 border-b",
-        isCollapsed && !isMobile && "justify-center"
-      )}>
+      <div className="flex items-center gap-3 p-4 border-b">
         <Link href="/admin" className="flex items-center gap-2">
           <Sparkles className="h-7 w-7 text-primary" />
-          {(!isCollapsed || isMobile) && (
-            <span className="text-xl font-bold">Unica</span>
-          )}
+          <span className="text-xl font-bold">Unica</span>
         </Link>
         {isMobile && (
           <Button
@@ -88,14 +81,11 @@ export function AdminSidebar() {
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
                   isActive
                     ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted text-muted-foreground hover:text-foreground",
-                  isCollapsed && !isMobile && "justify-center"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
                 )}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
-                {(!isCollapsed || isMobile) && (
-                  <span className="text-sm font-medium">{item.title}</span>
-                )}
+                <span className="text-sm font-medium">{item.title}</span>
               </div>
             </Link>
           )
@@ -103,40 +93,26 @@ export function AdminSidebar() {
       </nav>
 
       {/* User */}
-      <div className={cn(
-        "p-4 border-t",
-        isCollapsed && !isMobile && "flex justify-center"
-      )}>
-        {(!isCollapsed || isMobile) ? (
-          <div className="flex items-center gap-3">
-            <UserAvatar
-              src={session?.user?.avatar}
-              name={session?.user?.name}
-              size="sm"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{session?.user?.name || 'Admin'}</p>
-              <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => signOut({ callbackUrl: '/login' })}
-              title="Sair"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+      <div className="p-4 border-t">
+        <div className="flex items-center gap-3">
+          <UserAvatar
+            src={session?.user?.avatar}
+            name={session?.user?.name}
+            size="sm"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{session?.user?.name || 'Admin'}</p>
+            <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
           </div>
-        ) : (
           <Button
             variant="ghost"
             size="icon"
             onClick={() => signOut({ callbackUrl: '/login' })}
             title="Sair"
           >
-            <LogOut className="h-5 w-5" />
+            <LogOut className="h-4 w-4" />
           </Button>
-        )}
+        </div>
       </div>
     </div>
   )
@@ -144,8 +120,8 @@ export function AdminSidebar() {
   return (
     <>
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b">
-        <div className="flex items-center justify-between p-3">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b h-16">
+        <div className="flex items-center justify-between h-full px-4">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -170,32 +146,10 @@ export function AdminSidebar() {
         </div>
       </header>
 
-      {/* Desktop Sidebar */}
-      <aside className={cn(
-        "hidden lg:flex flex-col fixed left-0 top-0 bottom-0 bg-background border-r z-40 transition-all duration-300",
-        isCollapsed ? "w-[70px]" : "w-64"
-      )}>
+      {/* Desktop Sidebar - Fixed width 256px (w-64) */}
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-background border-r z-40">
         <SidebarContent />
-        
-        {/* Collapse Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute -right-3 top-6 h-6 w-6 rounded-full border bg-background shadow-md"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-        >
-          <ChevronLeft className={cn(
-            "h-4 w-4 transition-transform",
-            isCollapsed && "rotate-180"
-          )} />
-        </Button>
       </aside>
-
-      {/* Spacer for content - Desktop only */}
-      <div className={cn(
-        "hidden lg:block flex-shrink-0 transition-all duration-300",
-        isCollapsed ? "w-[70px]" : "w-64"
-      )} />
     </>
   )
 }

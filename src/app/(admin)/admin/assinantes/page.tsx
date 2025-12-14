@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 
 import { UserAvatar } from '@/components/ui/user-avatar'
-
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -497,22 +497,22 @@ function AssinantesContent() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Assinantes</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight">Assinantes</h1>
+          <p className="text-sm text-muted-foreground">
             Gerencie os clientes do clube de benefícios
           </p>
         </div>
-        <Button onClick={handleCreate}>
+        <Button onClick={handleCreate} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Novo Assinante
         </Button>
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-3">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar assinante..."
@@ -521,141 +521,109 @@ function AssinantesContent() {
             className="pl-10"
           />
         </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {Object.entries(SUBSCRIPTION_STATUS).map(([key, value]) => (
-              <SelectItem key={key} value={key}>
-                {value.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterCity} onValueChange={setFilterCity}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Cidade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {cities.map((city) => (
-              <SelectItem key={city.id} value={city.id}>
-                {city.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterPlan} onValueChange={setFilterPlan}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Plano" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {plans.map((plan) => (
-              <SelectItem key={plan.id} value={plan.id}>
-                {plan.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-3 gap-2">
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {Object.entries(SUBSCRIPTION_STATUS).map(([key, value]) => (
+                <SelectItem key={key} value={key}>
+                  {value.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterCity} onValueChange={setFilterCity}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Cidade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {cities.map((city) => (
+                <SelectItem key={city.id} value={city.id}>
+                  {city.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterPlan} onValueChange={setFilterPlan}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Plano" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {plans.map((plan) => (
+                <SelectItem key={plan.id} value={plan.id}>
+                  {plan.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Tabela */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Assinante</TableHead>
-              <TableHead>Plano</TableHead>
-              <TableHead>Cidade</TableHead>
-              <TableHead className="text-right">Pontos</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-10 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                  <TableCell className="text-center"><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                </TableRow>
-              ))
-            ) : filteredSubscribers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <Users className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      {search || filterStatus !== 'all' || filterCity !== 'all' || filterPlan !== 'all'
-                        ? 'Nenhum assinante encontrado' 
-                        : 'Nenhum assinante cadastrado'}
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredSubscribers.map((subscriber) => (
-                <TableRow key={subscriber.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <UserAvatar 
-                        src={subscriber.user?.avatar} 
-                        name={subscriber.name} 
-                        size="sm"
-                      />
-                      <div>
-                        <p className="font-medium">{subscriber.name || 'Sem nome'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {subscriber.cpf ? formatCPF(subscriber.cpf) : '-'} • {subscriber.user?.email || '-'}
-                        </p>
+      {/* Lista de Assinantes */}
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredSubscribers.length === 0 ? (
+        <div className="text-center py-12">
+          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">
+            {search || filterStatus !== 'all' || filterCity !== 'all' || filterPlan !== 'all'
+              ? 'Nenhum assinante encontrado' 
+              : 'Nenhum assinante cadastrado'}
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Mobile: Cards */}
+          <div className="lg:hidden space-y-3">
+            {filteredSubscribers.map((subscriber) => (
+              <Card key={subscriber.id} className="overflow-hidden">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <UserAvatar
+                      src={subscriber.user?.avatar}
+                      name={subscriber.name}
+                      size="md"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium truncate">{subscriber.name || 'Sem nome'}</p>
+                        <Badge 
+                          variant="outline" 
+                          className={getStatusColor(subscriber.subscriptionStatus)}
+                        >
+                          {getStatusLabel(subscriber.subscriptionStatus)}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">{subscriber.user?.email}</p>
+                      <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
+                        {subscriber.plan && (
+                          <span className="flex items-center gap-1">
+                            <CreditCard className="h-3 w-3" />
+                            {subscriber.plan.name}
+                          </span>
+                        )}
+                        {subscriber.city && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {subscriber.city.name}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <Coins className="h-3 w-3 text-yellow-500" />
+                          {Number(subscriber.points || 0).toFixed(0)} pts
+                        </span>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {subscriber.plan ? (
-                      <div className="flex items-center gap-1">
-                        <CreditCard className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{subscriber.plan.name}</span>
-                      </div>
-                    ) : (
-                      <Badge variant="outline" className="text-xs">Sem plano</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {subscriber.city ? (
-                      <div className="flex items-center gap-1 text-sm">
-                        <MapPin className="h-3 w-3 text-muted-foreground" />
-                        {subscriber.city.name}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Coins className="h-3 w-3 text-yellow-500" />
-                      <span className="font-medium">{Number(subscriber.points || 0).toFixed(0)}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge 
-                      variant="outline" 
-                      className={getStatusColor(subscriber.subscriptionStatus)}
-                    >
-                      {getStatusLabel(subscriber.subscriptionStatus)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -669,25 +637,6 @@ function AssinantesContent() {
                           Ver QR Code
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => handleChangeStatus(subscriber, 'ACTIVE')}
-                          disabled={(subscriber.subscriptionStatus || 'PENDING') === 'ACTIVE'}
-                        >
-                          Ativar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleChangeStatus(subscriber, 'SUSPENDED')}
-                          disabled={(subscriber.subscriptionStatus || 'PENDING') === 'SUSPENDED'}
-                        >
-                          Suspender
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleChangeStatus(subscriber, 'CANCELED')}
-                          disabled={(subscriber.subscriptionStatus || 'PENDING') === 'CANCELED'}
-                        >
-                          Cancelar
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => handleDeleteClick(subscriber)}
@@ -697,13 +646,130 @@ function AssinantesContent() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </TableCell>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop: Table */}
+          <div className="hidden lg:block rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Assinante</TableHead>
+                  <TableHead>Plano</TableHead>
+                  <TableHead>Cidade</TableHead>
+                  <TableHead className="text-right">Pontos</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {filteredSubscribers.map((subscriber) => (
+                  <TableRow key={subscriber.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <UserAvatar 
+                          src={subscriber.user?.avatar} 
+                          name={subscriber.name} 
+                          size="sm"
+                        />
+                        <div>
+                          <p className="font-medium">{subscriber.name || 'Sem nome'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {subscriber.cpf ? formatCPF(subscriber.cpf) : '-'} • {subscriber.user?.email || '-'}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {subscriber.plan ? (
+                        <div className="flex items-center gap-1">
+                          <CreditCard className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm">{subscriber.plan.name}</span>
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">Sem plano</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {subscriber.city ? (
+                        <div className="flex items-center gap-1 text-sm">
+                          <MapPin className="h-3 w-3 text-muted-foreground" />
+                          {subscriber.city.name}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Coins className="h-3 w-3 text-yellow-500" />
+                        <span className="font-medium">{Number(subscriber.points || 0).toFixed(0)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge 
+                        variant="outline" 
+                        className={getStatusColor(subscriber.subscriptionStatus)}
+                      >
+                        {getStatusLabel(subscriber.subscriptionStatus)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(subscriber)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => toast.info(`QR Code: ${subscriber.qrCode}`)}>
+                            <QrCode className="mr-2 h-4 w-4" />
+                            Ver QR Code
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleChangeStatus(subscriber, 'ACTIVE')}
+                            disabled={(subscriber.subscriptionStatus || 'PENDING') === 'ACTIVE'}
+                          >
+                            Ativar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleChangeStatus(subscriber, 'SUSPENDED')}
+                            disabled={(subscriber.subscriptionStatus || 'PENDING') === 'SUSPENDED'}
+                          >
+                            Suspender
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleChangeStatus(subscriber, 'CANCELED')}
+                            disabled={(subscriber.subscriptionStatus || 'PENDING') === 'CANCELED'}
+                          >
+                            Cancelar
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeleteClick(subscriber)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
 
       {/* Dialog Criar/Editar */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
