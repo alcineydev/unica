@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
+import Link from 'next/link'
 import { 
   TrendingUp, 
   Eye, 
@@ -8,18 +10,20 @@ import {
   ShoppingCart,
   DollarSign,
   QrCode,
-  ArrowUpRight,
+  ArrowRight,
+  Loader2,
+  TrendingDown
 } from 'lucide-react'
-import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 interface DashboardData {
   totalSales: number
   salesAmount: number
   pageViews: number
   whatsappClicks: number
+  salesGrowth?: number
   recentTransactions: {
     id: string
     amount: number
@@ -31,6 +35,7 @@ interface DashboardData {
 }
 
 export default function ParceiroDashboardPage() {
+  const { data: session } = useSession()
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -59,192 +64,232 @@ export default function ParceiroDashboardPage() {
     }).format(value)
   }
 
-  const stats = [
-    {
-      title: 'Vendas do Mes',
-      value: data?.totalSales ?? 0,
-      icon: ShoppingCart,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10',
-    },
-    {
-      title: 'Faturamento',
-      value: formatCurrency(data?.salesAmount ?? 0),
-      icon: DollarSign,
-      color: 'text-green-500',
-      bgColor: 'bg-green-500/10',
-    },
-    {
-      title: 'Visualizacoes',
-      value: data?.pageViews ?? 0,
-      icon: Eye,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-500/10',
-    },
-    {
-      title: 'Cliques WhatsApp',
-      value: data?.whatsappClicks ?? 0,
-      icon: MessageCircle,
-      color: 'text-emerald-500',
-      bgColor: 'bg-emerald-500/10',
-    },
-  ]
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+
+    if (diffMins < 1) return 'agora'
+    if (diffMins < 60) return `há ${diffMins} min`
+    if (diffHours < 24) return `há ${diffHours}h`
+    return date.toLocaleDateString('pt-BR')
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando dashboard...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Acompanhe o desempenho da sua empresa
+          <h1 className="text-xl md:text-2xl font-bold">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Bem-vindo, {session?.user?.name}!
           </p>
         </div>
-        <Button size="lg" asChild>
-          <Link href="/parceiro/venda">
-            <QrCode className="mr-2 h-5 w-5" />
+        <Link href="/parceiro/venda">
+          <Button className="w-full sm:w-auto">
+            <QrCode className="mr-2 h-4 w-4" />
             Registrar Venda
-          </Link>
-        </Button>
+          </Button>
+        </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <div className={`rounded-full p-2 ${stat.bgColor}`}>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <p className="text-2xl font-bold">{stat.value}</p>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* Cards de Estatísticas */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        {/* Vendas do Mês */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Vendas Recentes</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Ultimas transacoes realizadas
-              </p>
-            </div>
-            <TrendingUp className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-5 w-20" />
+          <CardContent className="p-3 md:p-6">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-sm text-muted-foreground truncate">
+                  Vendas do Mês
+                </p>
+                <p className="text-lg md:text-3xl font-bold mt-0.5">
+                  {data?.totalSales ?? 0}
+                </p>
+                {data?.salesGrowth !== undefined && (
+                  <div className={cn(
+                    "flex items-center gap-1 mt-0.5 text-[10px] md:text-xs",
+                    data.salesGrowth >= 0 ? "text-green-600" : "text-red-600"
+                  )}>
+                    {data.salesGrowth >= 0 ? (
+                      <TrendingUp className="h-2.5 w-2.5 md:h-3 md:w-3" />
+                    ) : (
+                      <TrendingDown className="h-2.5 w-2.5 md:h-3 md:w-3" />
+                    )}
+                    <span>{data.salesGrowth}%</span>
                   </div>
-                ))}
+                )}
               </div>
-            ) : data?.recentTransactions && data.recentTransactions.length > 0 ? (
+              <div className="p-1.5 md:p-3 rounded-lg md:rounded-full bg-blue-100 flex-shrink-0">
+                <ShoppingCart className="h-4 w-4 md:h-6 md:w-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Faturamento */}
+        <Card>
+          <CardContent className="p-3 md:p-6">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-sm text-muted-foreground truncate">
+                  Faturamento
+                </p>
+                <p className="text-lg md:text-3xl font-bold mt-0.5">
+                  {formatCurrency(data?.salesAmount ?? 0)}
+                </p>
+                <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
+                  Este mês
+                </p>
+              </div>
+              <div className="p-1.5 md:p-3 rounded-lg md:rounded-full bg-green-100 flex-shrink-0">
+                <DollarSign className="h-4 w-4 md:h-6 md:w-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Visualizações */}
+        <Card>
+          <CardContent className="p-3 md:p-6">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-sm text-muted-foreground truncate">
+                  Visualizações
+                </p>
+                <p className="text-lg md:text-3xl font-bold mt-0.5">
+                  {data?.pageViews ?? 0}
+                </p>
+                <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
+                  Perfil da empresa
+                </p>
+              </div>
+              <div className="p-1.5 md:p-3 rounded-lg md:rounded-full bg-purple-100 flex-shrink-0">
+                <Eye className="h-4 w-4 md:h-6 md:w-6 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* WhatsApp */}
+        <Card>
+          <CardContent className="p-3 md:p-6">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-sm text-muted-foreground truncate">
+                  Cliques WhatsApp
+                </p>
+                <p className="text-lg md:text-3xl font-bold mt-0.5">
+                  {data?.whatsappClicks ?? 0}
+                </p>
+                <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
+                  Contatos iniciados
+                </p>
+              </div>
+              <div className="p-1.5 md:p-3 rounded-lg md:rounded-full bg-emerald-100 flex-shrink-0">
+                <MessageCircle className="h-4 w-4 md:h-6 md:w-6 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Vendas Recentes e Ações */}
+      <div className="grid gap-4 lg:gap-6 lg:grid-cols-5">
+        {/* Vendas Recentes */}
+        <Card className="lg:col-span-3">
+          <CardHeader className="p-4 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base md:text-lg">Vendas Recentes</CardTitle>
+                <CardDescription>Últimas transações realizadas</CardDescription>
+              </div>
+              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 md:p-6 pt-0">
+            {data?.recentTransactions && data.recentTransactions.length > 0 ? (
               <div className="space-y-3">
-                {data.recentTransactions.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
-                    <div>
-                      <p className="font-medium">{tx.assinante.name}</p>
+                {data.recentTransactions.slice(0, 5).map((tx) => (
+                  <div key={tx.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{tx.assinante.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(tx.createdAt).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {formatDate(tx.createdAt)}
                       </p>
                     </div>
-                    <span className="font-semibold text-green-600">
+                    <span className="font-semibold text-green-600 flex-shrink-0 ml-2">
                       {formatCurrency(tx.amount)}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <ShoppingCart className="h-10 w-10 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">Nenhuma venda ainda</p>
-                <Button variant="link" asChild className="mt-2">
-                  <Link href="/parceiro/venda">
+              <div className="text-center py-8 text-muted-foreground">
+                <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Nenhuma venda ainda</p>
+                <Link href="/parceiro/venda">
+                  <Button variant="link" className="mt-2">
                     Registrar primeira venda
-                    <ArrowUpRight className="ml-1 h-4 w-4" />
-                  </Link>
-                </Button>
+                    <ArrowRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </Link>
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Acoes Rapidas</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Acesse as principais funcionalidades
-            </p>
+        {/* Ações Rápidas */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="text-base md:text-lg">Ações Rápidas</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-3">
-            <Button variant="outline" className="justify-start h-auto py-4" asChild>
-              <Link href="/parceiro/venda">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-primary/10 p-2">
-                    <QrCode className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">Escanear QR Code</p>
-                    <p className="text-xs text-muted-foreground">
-                      Registrar venda com QR do cliente
-                    </p>
-                  </div>
+          <CardContent className="p-4 md:p-6 pt-0 space-y-3">
+            <Link href="/parceiro/venda" className="block">
+              <Button className="w-full justify-start h-auto py-3" variant="default">
+                <QrCode className="mr-3 h-5 w-5" />
+                <div className="text-left">
+                  <p className="font-medium">Escanear QR Code</p>
+                  <p className="text-xs opacity-80">Registrar venda com QR do cliente</p>
                 </div>
-              </Link>
-            </Button>
-
-            <Button variant="outline" className="justify-start h-auto py-4" asChild>
-              <Link href="/parceiro/saldo">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-green-500/10 p-2">
-                    <DollarSign className="h-5 w-5 text-green-500" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">Ver Saldo</p>
-                    <p className="text-xs text-muted-foreground">
-                      Consultar creditos acumulados
-                    </p>
-                  </div>
+              </Button>
+            </Link>
+            
+            <Link href="/parceiro/saldo" className="block">
+              <Button className="w-full justify-start h-auto py-3" variant="outline">
+                <DollarSign className="mr-3 h-5 w-5" />
+                <div className="text-left">
+                  <p className="font-medium">Ver Saldo</p>
+                  <p className="text-xs text-muted-foreground">Consultar créditos acumulados</p>
                 </div>
-              </Link>
-            </Button>
-
-            <Button variant="outline" className="justify-start h-auto py-4" asChild>
-              <Link href="/parceiro/perfil">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-purple-500/10 p-2">
-                    <TrendingUp className="h-5 w-5 text-purple-500" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">Minha Empresa</p>
-                    <p className="text-xs text-muted-foreground">
-                      Atualizar informacoes
-                    </p>
-                  </div>
+              </Button>
+            </Link>
+            
+            <Link href="/parceiro/perfil" className="block">
+              <Button className="w-full justify-start h-auto py-3" variant="outline">
+                <TrendingUp className="mr-3 h-5 w-5" />
+                <div className="text-left">
+                  <p className="font-medium">Minha Empresa</p>
+                  <p className="text-xs text-muted-foreground">Atualizar informações</p>
                 </div>
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
     </div>
   )
 }
-

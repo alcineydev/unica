@@ -1,26 +1,49 @@
-import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth'
-import { ParceiroSidebar, ParceiroHeader } from '@/components/parceiro'
+'use client'
 
-export default async function ParceiroLayout({
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { ParceiroSidebar } from '@/components/parceiro'
+import { Loader2 } from 'lucide-react'
+
+export default function ParceiroLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth()
+  const { data: session, status } = useSession()
+  const router = useRouter()
 
-  if (!session || session.user.role !== 'PARCEIRO') {
-    redirect('/login')
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login')
+    } else if (session && !['DEVELOPER', 'ADMIN', 'PARCEIRO'].includes(session.user.role)) {
+      router.push('/app')
+    }
+  }, [session, status, router])
+
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!session || !['DEVELOPER', 'ADMIN', 'PARCEIRO'].includes(session.user.role)) {
+    return null
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-muted/30">
       <ParceiroSidebar />
-      <div className="ml-[250px]">
-        <ParceiroHeader />
-        <main className="p-6">{children}</main>
-      </div>
+      
+      {/* Main Content */}
+      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0">
+        <div className="p-4 md:p-6">
+          {children}
+        </div>
+      </main>
     </div>
   )
 }
-
