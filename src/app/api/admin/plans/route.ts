@@ -4,6 +4,9 @@ import { auth } from '@/lib/auth'
 import { createPlanSchema } from '@/lib/validations/plan'
 import { generateSlug } from '@/lib/utils/slug'
 
+// Forçar rota dinâmica
+export const dynamic = 'force-dynamic'
+
 // GET - Listar todos os planos
 export async function GET(request: Request) {
   console.log('=== GET /api/admin/plans ===')

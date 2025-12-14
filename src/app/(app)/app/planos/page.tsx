@@ -56,7 +56,9 @@ export default function PlanosPage() {
 
   const fetchPlans = async () => {
     try {
-      const response = await fetch('/api/app/planos')
+      const response = await fetch('/api/app/planos', {
+        cache: 'no-store'
+      })
       const data = await response.json()
       
       if (data.plans) {

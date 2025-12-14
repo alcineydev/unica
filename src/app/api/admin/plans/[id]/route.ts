@@ -4,6 +4,9 @@ import { auth } from '@/lib/auth'
 import { updatePlanSchema } from '@/lib/validations/plan'
 import { generateSlug } from '@/lib/utils/slug'
 
+// Forçar rota dinâmica
+export const dynamic = 'force-dynamic'
+
 interface RouteParams {
   params: Promise<{ id: string }>
 }
