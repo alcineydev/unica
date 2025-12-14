@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -349,26 +350,24 @@ export default function ParceirosPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      {/* Header responsivo */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Parceiros</h1>
-          <p className="text-muted-foreground">
-            Gerencie as empresas parceiras do clube
-          </p>
+          <h1 className="text-xl md:text-2xl font-bold">Parceiros</h1>
+          <p className="text-sm text-muted-foreground">Gerencie as empresas parceiras do clube</p>
         </div>
         <Link href="/admin/parceiros/novo">
-          <Button>
+          <Button className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Novo Parceiro
           </Button>
         </Link>
       </div>
 
-      {/* Filtros */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      {/* Filtros responsivos */}
+      <div className="flex flex-col gap-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar parceiro..."
             value={search}
@@ -376,132 +375,98 @@ export default function ParceirosPage() {
             className="pl-10"
           />
         </div>
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas categorias</SelectItem>
-            {PARTNER_CATEGORIES.map((cat) => (
-              <SelectItem key={cat.value} value={cat.value}>
-                {cat.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterCity} onValueChange={setFilterCity}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Cidade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas cidades</SelectItem>
-            {cities.map((city) => (
-              <SelectItem key={city.id} value={city.id}>
-                {city.name} - {city.state}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-2 gap-2">
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas categorias</SelectItem>
+              {PARTNER_CATEGORIES.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  {cat.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterCity} onValueChange={setFilterCity}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Cidade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas cidades</SelectItem>
+              {cities.map((city) => (
+                <SelectItem key={city.id} value={city.id}>
+                  {city.name} - {city.state}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Tabela */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Empresa</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Cidade</TableHead>
-              <TableHead>Contato</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-10 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                  <TableCell className="text-center"><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                </TableRow>
-              ))
-            ) : filteredPartners.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <Store className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      {search || filterCategory !== 'all' || filterCity !== 'all' 
-                        ? 'Nenhum parceiro encontrado' 
-                        : 'Nenhum parceiro cadastrado'}
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredPartners.map((partner) => (
-                <TableRow key={partner.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      {partner.logo ? (
-                        <div className="relative h-10 w-10 rounded-full overflow-hidden border bg-muted flex-shrink-0">
-                          <Image
-                            src={partner.logo}
-                            alt={partner.tradeName || partner.companyName}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                          <Building2 className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-medium">{partner.tradeName || partner.companyName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatCNPJ(partner.cnpj)}
-                        </p>
+      {/* Listagem */}
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredPartners.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Store className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">
+              {search || filterCategory !== 'all' || filterCity !== 'all' 
+                ? 'Nenhum parceiro encontrado' 
+                : 'Nenhum parceiro cadastrado'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Mobile: Cards */}
+          <div className="lg:hidden space-y-3">
+            {filteredPartners.map((partner) => (
+              <Card key={partner.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    {/* Logo */}
+                    {partner.logo ? (
+                      <div className="relative h-14 w-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                        <Image src={partner.logo} alt={partner.tradeName || partner.companyName} fill className="object-cover" unoptimized />
+                      </div>
+                    ) : (
+                      <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        <Building2 className="h-7 w-7 text-muted-foreground" />
+                      </div>
+                    )}
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="font-semibold truncate">{partner.tradeName || partner.companyName}</p>
+                        <Badge variant={partner.isActive ? "default" : "secondary"} className={partner.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
+                          {partner.isActive ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </div>
+                      <Badge variant="outline" className="mb-2">{getCategoryLabel(partner.category)}</Badge>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        {partner.city && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {partner.city.name}
+                          </span>
+                        )}
+                        {partner.contact?.whatsapp && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {partner.contact.whatsapp}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {getCategoryLabel(partner.category)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-sm">
-                      <MapPin className="h-3 w-3 text-muted-foreground" />
-                      {partner.city.name}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3 text-muted-foreground" />
-                        {partner.contact.whatsapp}
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        {partner.user.email}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={partner.isActive ? 'default' : 'secondary'}>
-                      {partner.isActive ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
+                    
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -526,22 +491,132 @@ export default function ParceirosPage() {
                           )}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDeleteClick(partner)}
-                        >
+                        <DropdownMenuItem onClick={() => handleDeleteClick(partner)} className="text-red-600">
                           <Trash2 className="mr-2 h-4 w-4" />
                           Excluir
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </TableCell>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop: Table */}
+          <div className="hidden lg:block rounded-lg border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Cidade</TableHead>
+                  <TableHead>Contato</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {filteredPartners.map((partner) => (
+                  <TableRow key={partner.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        {partner.logo ? (
+                          <div className="relative h-10 w-10 rounded-full overflow-hidden border bg-muted flex-shrink-0">
+                            <Image
+                              src={partner.logo}
+                              alt={partner.tradeName || partner.companyName}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                            <Building2 className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium">{partner.tradeName || partner.companyName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatCNPJ(partner.cnpj)}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {getCategoryLabel(partner.category)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-sm">
+                        <MapPin className="h-3 w-3 text-muted-foreground" />
+                        {partner.city.name}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3 text-muted-foreground" />
+                          {partner.contact.whatsapp}
+                        </div>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Mail className="h-3 w-3" />
+                          {partner.user.email}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={partner.isActive ? 'default' : 'secondary'} className={partner.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
+                        {partner.isActive ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/parceiros/${partner.id}/editar`}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleStatus(partner)}>
+                            {partner.isActive ? (
+                              <>
+                                <PowerOff className="mr-2 h-4 w-4" />
+                                Desativar
+                              </>
+                            ) : (
+                              <>
+                                <Power className="mr-2 h-4 w-4" />
+                                Ativar
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeleteClick(partner)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
 
       {/* Dialog Criar/Editar */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

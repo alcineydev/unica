@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -235,86 +236,72 @@ export default function CidadesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      {/* Header responsivo */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Cidades</h1>
-          <p className="text-muted-foreground">
-            Gerencie as cidades onde o Unica está disponível
-          </p>
+          <h1 className="text-xl md:text-2xl font-bold">Cidades</h1>
+          <p className="text-sm text-muted-foreground">Gerencie as cidades onde o Unica está disponível</p>
         </div>
-        <Button onClick={handleCreate}>
+        <Button onClick={handleCreate} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Nova Cidade
         </Button>
       </div>
 
-      {/* Filtros */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar cidade..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      {/* Filtros responsivos */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Buscar cidade..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
-      {/* Tabela */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Cidade</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-center">Parceiros</TableHead>
-              <TableHead className="text-center">Assinantes</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              // Skeleton loading
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-10" /></TableCell>
-                  <TableCell className="text-center"><Skeleton className="h-5 w-8 mx-auto" /></TableCell>
-                  <TableCell className="text-center"><Skeleton className="h-5 w-8 mx-auto" /></TableCell>
-                  <TableCell className="text-center"><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                </TableRow>
-              ))
-            ) : filteredCities.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <MapPin className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      {search ? 'Nenhuma cidade encontrada' : 'Nenhuma cidade cadastrada'}
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredCities.map((city) => (
-                <TableRow key={city.id}>
-                  <TableCell className="font-medium">{city.name}</TableCell>
-                  <TableCell>{city.state}</TableCell>
-                  <TableCell className="text-center">{city._count.parceiros}</TableCell>
-                  <TableCell className="text-center">{city._count.assinantes}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={city.isActive ? 'default' : 'secondary'}>
-                      {city.isActive ? 'Ativa' : 'Inativa'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
+      {/* Listagem */}
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredCities.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">
+              {search ? 'Nenhuma cidade encontrada' : 'Nenhuma cidade cadastrada'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Mobile: Cards */}
+          <div className="lg:hidden space-y-3">
+            {filteredCities.map((city) => (
+              <Card key={city.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-muted">
+                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{city.name}</p>
+                          <Badge variant={city.isActive ? "default" : "secondary"} className={city.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
+                            {city.isActive ? 'Ativa' : 'Inativa'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{city.state}</p>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                          <span>{city._count.parceiros} parceiros</span>
+                          <span>{city._count.assinantes} assinantes</span>
+                        </div>
+                      </div>
+                    </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -337,22 +324,86 @@ export default function CidadesPage() {
                           )}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDeleteClick(city)}
-                        >
+                        <DropdownMenuItem onClick={() => handleDeleteClick(city)} className="text-red-600">
                           <Trash2 className="mr-2 h-4 w-4" />
                           Excluir
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </TableCell>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop: Table */}
+          <div className="hidden lg:block rounded-lg border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cidade</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-center">Parceiros</TableHead>
+                  <TableHead className="text-center">Assinantes</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {filteredCities.map((city) => (
+                  <TableRow key={city.id}>
+                    <TableCell className="font-medium">{city.name}</TableCell>
+                    <TableCell>{city.state}</TableCell>
+                    <TableCell className="text-center">{city._count.parceiros}</TableCell>
+                    <TableCell className="text-center">{city._count.assinantes}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={city.isActive ? 'default' : 'secondary'} className={city.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
+                        {city.isActive ? 'Ativa' : 'Inativa'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(city)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleStatus(city)}>
+                            {city.isActive ? (
+                              <>
+                                <PowerOff className="mr-2 h-4 w-4" />
+                                Desativar
+                              </>
+                            ) : (
+                              <>
+                                <Power className="mr-2 h-4 w-4" />
+                                Ativar
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeleteClick(city)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
 
       {/* Dialog Criar/Editar */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

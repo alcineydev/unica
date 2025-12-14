@@ -340,114 +340,81 @@ export default function PlanosPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      {/* Header responsivo */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Planos</h1>
-          <p className="text-muted-foreground">
-            Crie planos combinando benefícios e definindo preços
-          </p>
+          <h1 className="text-xl md:text-2xl font-bold">Planos</h1>
+          <p className="text-sm text-muted-foreground">Crie planos combinando benefícios e definindo preços</p>
         </div>
-        <Button onClick={handleCreate}>
+        <Button onClick={handleCreate} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Novo Plano
         </Button>
       </div>
 
-      {/* Filtros */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar plano..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      {/* Filtros responsivos */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Buscar plano..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
-      {/* Tabela */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Plano</TableHead>
-              <TableHead>Preço</TableHead>
-              <TableHead className="text-center">Benefícios</TableHead>
-              <TableHead className="text-center">Assinantes</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                  <TableCell className="text-center"><Skeleton className="h-5 w-8 mx-auto" /></TableCell>
-                  <TableCell className="text-center"><Skeleton className="h-5 w-8 mx-auto" /></TableCell>
-                  <TableCell className="text-center"><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                </TableRow>
-              ))
-            ) : filteredPlans.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <CreditCard className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      {search ? 'Nenhum plano encontrado' : 'Nenhum plano cadastrado'}
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredPlans.map((plan) => (
-                <TableRow key={plan.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{plan.name}</p>
-                      <p className="text-sm text-muted-foreground line-clamp-1">
-                        {plan.description}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-0.5">
-                      <p className="font-semibold text-primary">
-                        {formatPrice(plan.price)}<span className="text-xs font-normal text-muted-foreground">/mês</span>
-                      </p>
-                      {(plan.priceYearly || plan.priceSingle) && (
-                        <div className="text-xs text-muted-foreground">
-                          {plan.priceYearly && <span>Anual: {formatPrice(plan.priceYearly)}</span>}
-                          {plan.priceSingle && <span className="ml-2">Vitalício: {formatPrice(plan.priceSingle)}</span>}
-                        </div>
+      {/* Listagem */}
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredPlans.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">
+              {search ? 'Nenhum plano encontrado' : 'Nenhum plano cadastrado'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Mobile: Cards */}
+          <div className="lg:hidden space-y-3">
+            {filteredPlans.map((plan) => (
+              <Card key={plan.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="font-semibold truncate">{plan.name}</p>
+                        <Badge variant={plan.isActive ? "default" : "secondary"} className={plan.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
+                          {plan.isActive ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </div>
+                      {plan.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{plan.description}</p>
                       )}
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-bold">
+                          {formatPrice(plan.price)}
+                        </span>
+                        <span className="text-sm text-muted-foreground">/mês</span>
+                      </div>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Gift className="h-3 w-3" />
+                          {plan.planBenefits.length} benefícios
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          {plan._count.assinantes} assinantes
+                        </span>
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <Gift className="h-4 w-4 text-muted-foreground" />
-                      {plan.planBenefits.length}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      {plan._count.assinantes}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={plan.isActive ? 'default' : 'secondary'}>
-                      {plan.isActive ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -460,7 +427,7 @@ export default function PlanosPage() {
                           <>
                             <DropdownMenuItem onClick={() => copyCheckoutLink(plan.slug!)}>
                               <Copy className="mr-2 h-4 w-4" />
-                              Copiar link do checkout
+                              Copiar link
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openCheckout(plan.slug!)}>
                               <ExternalLink className="mr-2 h-4 w-4" />
@@ -469,36 +436,128 @@ export default function PlanosPage() {
                           </>
                         )}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleToggleStatus(plan)}>
-                          {plan.isActive ? (
-                            <>
-                              <PowerOff className="mr-2 h-4 w-4" />
-                              Desativar
-                            </>
-                          ) : (
-                            <>
-                              <Power className="mr-2 h-4 w-4" />
-                              Ativar
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDeleteClick(plan)}
-                        >
+                        <DropdownMenuItem onClick={() => handleDeleteClick(plan)} className="text-red-600">
                           <Trash2 className="mr-2 h-4 w-4" />
                           Excluir
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </TableCell>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop: Table */}
+          <div className="hidden lg:block rounded-lg border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Plano</TableHead>
+                  <TableHead>Preço</TableHead>
+                  <TableHead className="text-center">Benefícios</TableHead>
+                  <TableHead className="text-center">Assinantes</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {filteredPlans.map((plan) => (
+                  <TableRow key={plan.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{plan.name}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-1">
+                          {plan.description}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-0.5">
+                        <p className="font-semibold text-primary">
+                          {formatPrice(plan.price)}<span className="text-xs font-normal text-muted-foreground">/mês</span>
+                        </p>
+                        {(plan.priceYearly || plan.priceSingle) && (
+                          <div className="text-xs text-muted-foreground">
+                            {plan.priceYearly && <span>Anual: {formatPrice(plan.priceYearly)}</span>}
+                            {plan.priceSingle && <span className="ml-2">Vitalício: {formatPrice(plan.priceSingle)}</span>}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Gift className="h-4 w-4 text-muted-foreground" />
+                        {plan.planBenefits.length}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        {plan._count.assinantes}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={plan.isActive ? 'default' : 'secondary'} className={plan.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
+                        {plan.isActive ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(plan)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          {plan.slug && (
+                            <>
+                              <DropdownMenuItem onClick={() => copyCheckoutLink(plan.slug!)}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Copiar link do checkout
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openCheckout(plan.slug!)}>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                Abrir checkout
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleToggleStatus(plan)}>
+                            {plan.isActive ? (
+                              <>
+                                <PowerOff className="mr-2 h-4 w-4" />
+                                Desativar
+                              </>
+                            ) : (
+                              <>
+                                <Power className="mr-2 h-4 w-4" />
+                                Ativar
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeleteClick(plan)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
 
       {/* Dialog Criar/Editar */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

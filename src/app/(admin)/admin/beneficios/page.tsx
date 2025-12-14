@@ -26,6 +26,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import {
   Table,
   TableBody,
@@ -324,24 +326,22 @@ export default function BeneficiosPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      {/* Header responsivo */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Benefícios</h1>
-          <p className="text-muted-foreground">
-            Crie e gerencie os benefícios modulares do sistema
-          </p>
+          <h1 className="text-xl md:text-2xl font-bold">Benefícios</h1>
+          <p className="text-sm text-muted-foreground">Crie e gerencie os benefícios modulares do sistema</p>
         </div>
-        <Button onClick={handleCreate}>
+        <Button onClick={handleCreate} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Novo Benefício
         </Button>
       </div>
 
-      {/* Filtros */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      {/* Filtros responsivos */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar benefício..."
             value={search}
@@ -350,7 +350,7 @@ export default function BeneficiosPage() {
           />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-44">
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
@@ -364,76 +364,58 @@ export default function BeneficiosPage() {
         </Select>
       </div>
 
-      {/* Tabela */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Benefício</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Valor</TableHead>
-              <TableHead className="text-center">Planos</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-5 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                  <TableCell className="text-center"><Skeleton className="h-5 w-8 mx-auto" /></TableCell>
-                  <TableCell className="text-center"><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                </TableRow>
-              ))
-            ) : filteredBenefits.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <Gift className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      {search || filterType !== 'all' ? 'Nenhum benefício encontrado' : 'Nenhum benefício cadastrado'}
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredBenefits.map((benefit) => {
-                const Icon = typeIcons[benefit.type]
-                return (
-                  <TableRow key={benefit.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{benefit.name}</p>
-                        <p className="text-sm text-muted-foreground line-clamp-1">
-                          {benefit.description}
-                        </p>
+      {/* Listagem */}
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredBenefits.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Gift className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">
+              {search || filterType !== 'all' ? 'Nenhum benefício encontrado' : 'Nenhum benefício cadastrado'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Mobile: Cards */}
+          <div className="lg:hidden space-y-3">
+            {filteredBenefits.map((benefit) => {
+              const Icon = typeIcons[benefit.type]
+              return (
+                <Card key={benefit.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className={cn(
+                          "p-2 rounded-lg flex-shrink-0",
+                          typeColors[benefit.type]
+                        )}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium truncate">{benefit.name}</p>
+                            <Badge variant={benefit.isActive ? "default" : "secondary"} className={benefit.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
+                              {benefit.isActive ? 'Ativo' : 'Inativo'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-green-600 font-medium">
+                            {formatValue(benefit)}
+                          </p>
+                          {benefit.description && (
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{benefit.description}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {benefit._count.planBenefits} planos usando
+                          </p>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${typeColors[benefit.type]}`}>
-                        <Icon className="h-3 w-3" />
-                        {BENEFIT_TYPES[benefit.type].label}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {formatValue(benefit)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {benefit._count.planBenefits}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant={benefit.isActive ? 'default' : 'secondary'}>
-                        {benefit.isActive ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -456,23 +438,106 @@ export default function BeneficiosPage() {
                             )}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDeleteClick(benefit)}
-                          >
+                          <DropdownMenuItem onClick={() => handleDeleteClick(benefit)} className="text-red-600">
                             <Trash2 className="mr-2 h-4 w-4" />
                             Excluir
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+
+          {/* Desktop: Table */}
+          <div className="hidden lg:block rounded-lg border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Benefício</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead className="text-center">Planos</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="w-[70px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredBenefits.map((benefit) => {
+                  const Icon = typeIcons[benefit.type]
+                  return (
+                    <TableRow key={benefit.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{benefit.name}</p>
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {benefit.description}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${typeColors[benefit.type]}`}>
+                          <Icon className="h-3 w-3" />
+                          {BENEFIT_TYPES[benefit.type].label}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatValue(benefit)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {benefit._count.planBenefits}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={benefit.isActive ? 'default' : 'secondary'} className={benefit.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
+                          {benefit.isActive ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(benefit)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleToggleStatus(benefit)}>
+                              {benefit.isActive ? (
+                                <>
+                                  <PowerOff className="mr-2 h-4 w-4" />
+                                  Desativar
+                                </>
+                              ) : (
+                                <>
+                                  <Power className="mr-2 h-4 w-4" />
+                                  Ativar
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDeleteClick(benefit)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
 
       {/* Dialog Criar/Editar */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
