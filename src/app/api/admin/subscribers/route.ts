@@ -84,6 +84,7 @@ export async function POST(request: Request) {
 
     const validationResult = createSubscriberSchema.safeParse(body)
     if (!validationResult.success) {
+      console.error('Erro de validação:', validationResult.error.flatten().fieldErrors)
       return NextResponse.json(
         { error: 'Dados inválidos', details: validationResult.error.flatten().fieldErrors },
         { status: 400 }
@@ -106,44 +107,50 @@ export async function POST(request: Request) {
       )
     }
 
-    // Verifica se CPF já existe
-    const existingCPF = await prisma.assinante.findUnique({
-      where: { cpf },
-    })
-    if (existingCPF) {
-      return NextResponse.json(
-        { error: 'Este CPF já está cadastrado' },
-        { status: 409 }
-      )
+    // Verifica se CPF já existe (apenas se foi fornecido)
+    if (cpf) {
+      const existingCPF = await prisma.assinante.findUnique({
+        where: { cpf },
+      })
+      if (existingCPF) {
+        return NextResponse.json(
+          { error: 'Este CPF já está cadastrado' },
+          { status: 409 }
+        )
+      }
     }
 
-    // Verifica se cidade existe
-    const city = await prisma.city.findUnique({
-      where: { id: cityId },
-    })
-    if (!city) {
-      return NextResponse.json(
-        { error: 'Cidade não encontrada' },
-        { status: 400 }
-      )
+    // Verifica se cidade existe (apenas se foi selecionada)
+    if (cityId) {
+      const city = await prisma.city.findUnique({
+        where: { id: cityId },
+      })
+      if (!city) {
+        return NextResponse.json(
+          { error: 'Cidade não encontrada' },
+          { status: 400 }
+        )
+      }
     }
 
-    // Verifica se plano existe
-    const plan = await prisma.plan.findUnique({
-      where: { id: planId },
-    })
-    if (!plan) {
-      return NextResponse.json(
-        { error: 'Plano não encontrado' },
-        { status: 400 }
-      )
+    // Verifica se plano existe (apenas se foi selecionado)
+    if (planId) {
+      const plan = await prisma.plan.findUnique({
+        where: { id: planId },
+      })
+      if (!plan) {
+        return NextResponse.json(
+          { error: 'Plano não encontrado' },
+          { status: 400 }
+        )
+      }
     }
 
     // Hash da senha
     const hashedPassword = await hashPassword(password)
 
-    // Gera QR Code baseado no CPF
-    const qrCode = `UNICA-${cpf}`
+    // Gera QR Code baseado no CPF ou ID único
+    const qrCode = cpf ? `UNICA-${cpf}` : `UNICA-${Date.now()}`
 
     // Cria o usuário e o assinante
     const user = await prisma.user.create({
@@ -151,25 +158,18 @@ export async function POST(request: Request) {
         email,
         password: hashedPassword,
         role: 'ASSINANTE',
-        isActive: subscriptionStatus === 'ACTIVE',
+        isActive: true,
         assinante: {
           create: {
             name,
-            cpf,
-            phone,
+            cpf: cpf || null,
+            phone: phone || null,
             qrCode,
-            cityId,
-            planId,
-            subscriptionStatus,
+            cityId: cityId || null,
+            planId: planId || null,
+            subscriptionStatus: subscriptionStatus || 'PENDING',
             points: 0,
             cashback: 0,
-            address: {
-              street: '',
-              number: '',
-              complement: '',
-              neighborhood: '',
-              zipCode: '',
-            },
           },
         },
       },

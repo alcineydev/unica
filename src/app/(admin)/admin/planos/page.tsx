@@ -68,9 +68,8 @@ import { BENEFIT_TYPES } from '@/constants'
 const planSchema = z.object({
   name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
   description: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres'),
-  price: z.number().min(0, 'Preço não pode ser negativo'),
+  price: z.number().min(0.01, 'Preço mensal é obrigatório'),
   slug: z.string().optional().nullable(),
-  priceMonthly: z.number().min(0).optional().nullable(),
   priceYearly: z.number().min(0).optional().nullable(),
   priceSingle: z.number().min(0).optional().nullable(),
   benefitIds: z.array(z.string()).min(1, 'Selecione pelo menos um benefício'),
@@ -107,7 +106,6 @@ interface Plan {
   description: string
   price: string | number
   slug: string | null
-  priceMonthly: string | number | null
   priceYearly: string | number | null
   priceSingle: string | number | null
   isActive: boolean
@@ -185,7 +183,6 @@ export default function PlanosPage() {
       description: '',
       price: 0,
       slug: '',
-      priceMonthly: null,
       priceYearly: null,
       priceSingle: null,
       benefitIds: [],
@@ -203,7 +200,6 @@ export default function PlanosPage() {
       description: plan.description,
       price: Number(plan.price),
       slug: plan.slug || '',
-      priceMonthly: plan.priceMonthly ? Number(plan.priceMonthly) : null,
       priceYearly: plan.priceYearly ? Number(plan.priceYearly) : null,
       priceSingle: plan.priceSingle ? Number(plan.priceSingle) : null,
       benefitIds,
@@ -423,10 +419,10 @@ export default function PlanosPage() {
                       <p className="font-semibold text-primary">
                         {formatPrice(plan.price)}<span className="text-xs font-normal text-muted-foreground">/mês</span>
                       </p>
-                      {(plan.priceMonthly || plan.priceYearly || plan.priceSingle) && (
+                      {(plan.priceYearly || plan.priceSingle) && (
                         <div className="text-xs text-muted-foreground">
                           {plan.priceYearly && <span>Anual: {formatPrice(plan.priceYearly)}</span>}
-                          {plan.priceSingle && <span className="ml-2">Único: {formatPrice(plan.priceSingle)}</span>}
+                          {plan.priceSingle && <span className="ml-2">Vitalício: {formatPrice(plan.priceSingle)}</span>}
                         </div>
                       )}
                     </div>
@@ -569,38 +565,27 @@ export default function PlanosPage() {
             {/* Preços */}
             <div className="space-y-3">
               <Label className="text-base font-semibold">💰 Preços</Label>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Preço Base (R$)</Label>
+                  <Label htmlFor="price">Preço Mensal (R$) *</Label>
                   <Input
                     id="price"
                     type="number"
                     step="0.01"
                     min="0"
-                    placeholder="49.90"
+                    placeholder="29.90"
                     {...register('price', { valueAsNumber: true })}
                   />
                   {errors.price && (
                     <p className="text-sm text-destructive">{errors.price.message}</p>
                   )}
+                  <p className="text-xs text-muted-foreground">
+                    Valor cobrado mensalmente
+                  </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="priceMonthly">Mensal (R$)</Label>
-                  <Input
-                    id="priceMonthly"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="29.90"
-                    {...register('priceMonthly', { 
-                      setValueAs: (v) => v === '' ? null : parseFloat(v) 
-                    })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="priceYearly">Anual (R$)</Label>
+                  <Label htmlFor="priceYearly">Preço Anual (R$)</Label>
                   <Input
                     id="priceYearly"
                     type="number"
@@ -612,12 +597,12 @@ export default function PlanosPage() {
                     })}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Desconto para pagamento anual
+                    Opcional - deixe vazio se não oferecer
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="priceSingle">Único (R$)</Label>
+                  <Label htmlFor="priceSingle">Preço Vitalício (R$)</Label>
                   <Input
                     id="priceSingle"
                     type="number"
@@ -629,7 +614,7 @@ export default function PlanosPage() {
                     })}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Pagamento único (vitalício)
+                    Opcional - pagamento único
                   </p>
                 </div>
               </div>

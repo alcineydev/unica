@@ -18,15 +18,15 @@ export const createSubscriberSchema = z.object({
   
   // Dados pessoais
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-  cpf: z.string().length(11, 'CPF deve ter 11 dígitos'),
-  phone: z.string().min(10, 'Telefone inválido'),
+  cpf: z.string().length(11, 'CPF deve ter 11 dígitos').optional().nullable(),
+  phone: z.string().min(10, 'Telefone inválido').optional().nullable(),
   
-  // Localização e plano
-  cityId: z.string().min(1, 'Selecione uma cidade'),
-  planId: z.string().min(1, 'Selecione um plano'),
+  // Localização e plano (opcionais)
+  cityId: z.string().optional().nullable(),
+  planId: z.string().optional().nullable(),
   
   // Status
-  subscriptionStatus: subscriptionStatusEnum.default('ACTIVE'),
+  subscriptionStatus: subscriptionStatusEnum.default('PENDING'),
 })
 
 // Schema de atualização (sem email/senha/cpf)
