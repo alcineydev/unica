@@ -13,12 +13,30 @@ export const createPartnerSchema = z.object({
   category: z.string().min(1, 'Selecione uma categoria'),
   description: z.string().optional(),
   
+  // Imagens
+  logo: z.string().nullable().optional(),
+  banner: z.string().nullable().optional(),
+  gallery: z.array(z.string()).optional(),
+  
   // Localização
   cityId: z.string().min(1, 'Selecione uma cidade'),
+  
+  // Endereço detalhado
+  address: z.string().optional(),
+  addressNumber: z.string().optional(),
+  neighborhood: z.string().optional(),
+  complement: z.string().optional(),
+  zipCode: z.string().optional(),
   
   // Contato
   whatsapp: z.string().min(10, 'WhatsApp inválido'),
   phone: z.string().optional(),
+  website: z.string().optional(),
+  instagram: z.string().optional(),
+  facebook: z.string().optional(),
+  
+  // Benefícios
+  benefitIds: z.array(z.string()).optional(),
   
   // Status
   isActive: z.boolean().default(true),
@@ -30,9 +48,32 @@ export const updatePartnerSchema = z.object({
   tradeName: z.string().optional().nullable(),
   category: z.string().optional(),
   description: z.string().optional().nullable(),
+  
+  // Imagens
+  logo: z.string().nullable().optional(),
+  banner: z.string().nullable().optional(),
+  gallery: z.array(z.string()).optional(),
+  
+  // Localização
   cityId: z.string().optional(),
+  
+  // Endereço detalhado
+  address: z.string().optional(),
+  addressNumber: z.string().optional(),
+  neighborhood: z.string().optional(),
+  complement: z.string().optional(),
+  zipCode: z.string().optional(),
+  
+  // Contato
   whatsapp: z.string().min(10, 'WhatsApp inválido').optional(),
   phone: z.string().optional().nullable(),
+  website: z.string().optional().nullable(),
+  instagram: z.string().optional().nullable(),
+  facebook: z.string().optional().nullable(),
+  
+  // Benefícios
+  benefitIds: z.array(z.string()).optional(),
+  
   isActive: z.boolean().optional(),
 })
 

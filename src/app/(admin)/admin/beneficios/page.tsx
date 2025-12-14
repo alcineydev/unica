@@ -554,14 +554,14 @@ export default function BeneficiosPage() {
               <div className="space-y-2">
                 <Label>Categoria (opcional)</Label>
                 <Select
-                  value={watch('category') || ''}
-                  onValueChange={(value) => setValue('category', value)}
+                  value={watch('category') || 'all'}
+                  onValueChange={(value) => setValue('category', value === 'all' ? '' : value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todas as categorias" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas as categorias</SelectItem>
+                    <SelectItem value="all">Todas as categorias</SelectItem>
                     {PARTNER_CATEGORIES.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>
                         {cat.label}

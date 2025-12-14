@@ -32,6 +32,11 @@ export async function GET(request: Request, { params }: RouteParams) {
           },
         },
         city: true,
+        benefitAccess: {
+          include: {
+            benefit: true,
+          },
+        },
         _count: {
           select: {
             transactions: true,
@@ -94,10 +99,21 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       )
     }
 
-    const { isActive, whatsapp, phone, cityId, ...rest } = validationResult.data
+    const { 
+      isActive, whatsapp, phone, cityId, benefitIds,
+      logo, banner, gallery,
+      address, addressNumber, neighborhood, complement, zipCode,
+      website, instagram, facebook,
+      ...rest 
+    } = validationResult.data
 
     // Prepara os dados de atualização
     const updateData: Record<string, unknown> = { ...rest }
+
+    // Atualiza imagens se fornecidas
+    if (logo !== undefined) updateData.logo = logo
+    if (banner !== undefined) updateData.banner = banner
+    if (gallery !== undefined) updateData.gallery = gallery
 
     // Atualiza cidade se fornecida
     if (cityId) {
@@ -111,13 +127,31 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       updateData.cityId = cityId
     }
 
+    // Atualiza endereço
+    if (address !== undefined || addressNumber !== undefined || 
+        neighborhood !== undefined || complement !== undefined || zipCode !== undefined) {
+      const currentAddress = existingPartner.address as Record<string, string> || {}
+      updateData.address = {
+        ...currentAddress,
+        ...(address !== undefined && { street: address }),
+        ...(addressNumber !== undefined && { number: addressNumber }),
+        ...(neighborhood !== undefined && { neighborhood }),
+        ...(complement !== undefined && { complement }),
+        ...(zipCode !== undefined && { zipCode }),
+      }
+    }
+
     // Atualiza contato se fornecido
-    if (whatsapp || phone !== undefined) {
-      const currentContact = existingPartner.contact as Record<string, string>
+    if (whatsapp !== undefined || phone !== undefined || 
+        website !== undefined || instagram !== undefined || facebook !== undefined) {
+      const currentContact = existingPartner.contact as Record<string, string> || {}
       updateData.contact = {
         ...currentContact,
-        ...(whatsapp && { whatsapp }),
+        ...(whatsapp !== undefined && { whatsapp }),
         ...(phone !== undefined && { phone: phone || '' }),
+        ...(website !== undefined && { website: website || '' }),
+        ...(instagram !== undefined && { instagram: instagram || '' }),
+        ...(facebook !== undefined && { facebook: facebook || '' }),
       }
     }
 
@@ -132,8 +166,32 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             email: true,
           },
         },
+        benefitAccess: {
+          include: {
+            benefit: true,
+          },
+        },
       },
     })
+
+    // Atualiza benefícios se fornecidos
+    if (benefitIds !== undefined) {
+      // Remove todos os benefícios existentes
+      await prisma.benefitAccess.deleteMany({
+        where: { parceiroId: id },
+      })
+
+      // Adiciona os novos benefícios
+      if (benefitIds.length > 0) {
+        await prisma.benefitAccess.createMany({
+          data: benefitIds.map((benefitId: string) => ({
+            benefitId,
+            parceiroId: id,
+          })),
+          skipDuplicates: true,
+        })
+      }
+    }
 
     // Se está alterando status, atualiza também o usuário
     if (isActive !== undefined) {

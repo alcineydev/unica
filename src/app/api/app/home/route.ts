@@ -43,32 +43,97 @@ export async function GET() {
       )
     }
 
-    // Busca parceiros (se tiver cidade, filtra por cidade)
-    const parceiros = await prisma.parceiro.findMany({
-      where: {
-        ...(assinante.cityId ? { cityId: assinante.cityId } : {}),
-        isActive: true,
-        user: {
-          isActive: true,
-        },
-      },
-      select: {
-        id: true,
-        companyName: true,
-        tradeName: true,
-        category: true,
-        description: true,
-        city: {
-          select: {
-            name: true,
-          },
-        },
-      },
-      take: 10,
-    })
-
     // Verifica se o assinante tem plano ATIVO (planId + status ACTIVE)
     const temPlanoAtivo = assinante.planId && assinante.subscriptionStatus === 'ACTIVE'
+
+    // Buscar parceiros APENAS se tiver plano ativo
+    let parceiros: Array<{
+      id: string
+      companyName: string
+      tradeName: string | null
+      logo: string | null
+      category: string
+      description: string | null
+      city: { name: string } | null
+      benefits: Array<{ id: string; name: string; type: string; value: number }>
+    }> = []
+
+    if (temPlanoAtivo && assinante.plan) {
+      // IDs dos benefícios do plano do assinante
+      const benefitIdsDoPlano = assinante.plan.planBenefits.map(pb => pb.benefitId)
+
+      if (benefitIdsDoPlano.length > 0) {
+        // Buscar apenas parceiros que oferecem benefícios do plano do assinante
+        const parceirosDb = await prisma.parceiro.findMany({
+          where: {
+            isActive: true,
+            user: {
+              isActive: true,
+            },
+            benefitAccess: {
+              some: {
+                benefitId: {
+                  in: benefitIdsDoPlano
+                }
+              }
+            },
+            // Filtrar por cidade do assinante se ele tiver uma
+            ...(assinante.cityId ? { cityId: assinante.cityId } : {}),
+          },
+          select: {
+            id: true,
+            companyName: true,
+            tradeName: true,
+            logo: true,
+            category: true,
+            description: true,
+            city: {
+              select: {
+                name: true,
+              },
+            },
+            benefitAccess: {
+              where: {
+                benefitId: {
+                  in: benefitIdsDoPlano
+                }
+              },
+              include: {
+                benefit: {
+                  select: {
+                    id: true,
+                    name: true,
+                    type: true,
+                    value: true
+                  }
+                }
+              }
+            }
+          },
+          take: 10,
+          orderBy: { companyName: 'asc' }
+        })
+
+        parceiros = parceirosDb.map(p => ({
+          id: p.id,
+          companyName: p.companyName,
+          tradeName: p.tradeName,
+          logo: p.logo,
+          category: p.category,
+          description: p.description,
+          city: p.city,
+          benefits: p.benefitAccess.map(ba => {
+            const value = ba.benefit.value as Record<string, number>
+            return {
+              id: ba.benefit.id,
+              name: ba.benefit.name,
+              type: ba.benefit.type,
+              value: value.percentage || value.monthlyPoints || 0
+            }
+          })
+        }))
+      }
+    }
 
     // Se não tem plano ativo, busca planos disponíveis
     let planosDisponiveis = null

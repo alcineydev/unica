@@ -7,8 +7,6 @@ import {
   Gift,
   ArrowRight,
   Store,
-  Percent,
-  MapPin,
   AlertCircle,
   Check,
   Crown,
@@ -17,6 +15,7 @@ import {
 } from 'lucide-react'
 
 import { AppHeader } from '@/components/app'
+import { ParceiroCard } from '@/components/app/parceiro-card'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -25,12 +24,19 @@ import { Skeleton } from '@/components/ui/skeleton'
 interface Parceiro {
   id: string
   companyName: string
-  tradeName: string
+  tradeName: string | null
   category: string
-  description: string
+  description: string | null
+  logo: string | null
   city: {
     name: string
-  }
+  } | null
+  benefits?: Array<{
+    id: string
+    name: string
+    type: string
+    value: number
+  }>
 }
 
 interface Plan {
@@ -307,41 +313,24 @@ export default function AppHomePage() {
             {isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-24 w-full" />
+                  <Skeleton key={i} className="h-24 w-full rounded-2xl" />
                 ))}
               </div>
             ) : data?.parceiros && data.parceiros.length > 0 ? (
-              <div className="space-y-3">
-                {data.parceiros.slice(0, 5).map((parceiro) => (
-                  <Link key={parceiro.id} href={`/app/parceiros/${parceiro.id}`}>
-                    <Card className="hover:bg-muted/50 transition-colors">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="rounded-full bg-gray-100 p-3">
-                            <Store className="h-5 w-5 text-gray-700" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold truncate">
-                                {parceiro.tradeName || parceiro.companyName}
-                              </p>
-                              <Badge variant="outline" className="shrink-0 text-xs">
-                                <Percent className="h-3 w-3 mr-1" />
-                                Desconto
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {parceiro.category}
-                            </p>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                              <MapPin className="h-3 w-3" />
-                              {parceiro.city.name}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {data.parceiros.slice(0, 4).map((parceiro) => (
+                  <ParceiroCard
+                    key={parceiro.id}
+                    parceiro={{
+                      id: parceiro.id,
+                      name: parceiro.tradeName || parceiro.companyName,
+                      category: parceiro.category,
+                      logo: parceiro.logo,
+                      city: parceiro.city,
+                      benefits: parceiro.benefits
+                    }}
+                    variant="compact"
+                  />
                 ))}
               </div>
             ) : (

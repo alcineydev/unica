@@ -1,373 +1,523 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import {
-  ArrowLeft,
-  MapPin,
+import { Separator } from '@/components/ui/separator'
+import { 
+  ArrowLeft, 
+  Building2, 
+  MapPin, 
   Phone,
-  Clock,
+  Mail,
+  Globe,
+  Instagram,
+  Facebook,
   MessageCircle,
   Percent,
   Gift,
-  Star,
+  Coins,
+  Loader2,
   ExternalLink,
+  Star,
+  ChevronRight,
+  X
 } from 'lucide-react'
-import { toast } from 'sonner'
-
-interface Benefit {
-  id: string
-  name: string
-  type: string
-  description: string
-  value: Record<string, unknown>
-}
 
 interface Parceiro {
   id: string
-  companyName: string
-  logo: string | null
+  name: string
+  tradeName?: string
+  description?: string
   category: string
-  description: string | null
-  city: {
-    id: string
+  logo?: string
+  banner?: string
+  gallery: string[]
+  phone?: string
+  whatsapp?: string
+  email?: string
+  website?: string
+  instagram?: string
+  facebook?: string
+  address?: string
+  addressNumber?: string
+  neighborhood?: string
+  complement?: string
+  zipCode?: string
+  city?: {
     name: string
     state: string
   }
-  address: {
-    street?: string
-    number?: string
-    neighborhood?: string
-    zipCode?: string
-  }
-  contact: {
-    whatsapp?: string
-    phone?: string
-    email?: string
-  }
-  hours: Array<{
-    day: string
-    open: string
-    close: string
-  }>
-  beneficios: Benefit[]
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  alimentacao: 'Alimentação',
-  saude: 'Saúde',
-  beleza: 'Beleza',
-  educacao: 'Educação',
-  servicos: 'Serviços',
-  lazer: 'Lazer',
-  comercio: 'Comércio',
-  outros: 'Outros',
-}
-
-const DAY_LABELS: Record<string, string> = {
-  monday: 'Segunda',
-  tuesday: 'Terça',
-  wednesday: 'Quarta',
-  thursday: 'Quinta',
-  friday: 'Sexta',
-  saturday: 'Sábado',
-  sunday: 'Domingo',
-  seg: 'Segunda',
-  ter: 'Terça',
-  qua: 'Quarta',
-  qui: 'Quinta',
-  sex: 'Sexta',
-  sab: 'Sábado',
-  dom: 'Domingo',
+  benefits: {
+    id: string
+    name: string
+    type: string
+    value: number
+    description?: string
+  }[]
 }
 
 export default function ParceiroDetalhesPage() {
   const params = useParams()
   const router = useRouter()
+  const parceiroId = params.id as string
+
   const [parceiro, setParceiro] = useState<Parceiro | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   useEffect(() => {
-    loadParceiro()
-  }, [params.id])
+    fetchParceiro()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parceiroId])
 
-  async function loadParceiro() {
+  const fetchParceiro = async () => {
     try {
-      const response = await fetch(`/api/app/parceiros/${params.id}`)
-      if (response.ok) {
-        const data = await response.json()
-        setParceiro(data)
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Parceiro não encontrado')
-        router.push('/app/parceiros')
+      const response = await fetch(`/api/app/parceiros/${parceiroId}`)
+      const data = await response.json()
+      
+      if (data.parceiro) {
+        setParceiro(data.parceiro)
       }
     } catch (error) {
-      console.error('Erro ao carregar parceiro:', error)
-      toast.error('Erro ao carregar parceiro')
+      console.error('Erro ao buscar parceiro:', error)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  async function handleWhatsAppClick() {
-    if (!parceiro?.contact.whatsapp) return
-
-    // Registrar clique
-    try {
-      await fetch(`/api/app/parceiros/${params.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'whatsapp_click' }),
-      })
-    } catch (error) {
-      console.error('Erro ao registrar clique:', error)
+  const formatPhone = (phone: string) => {
+    const numbers = phone.replace(/\D/g, '')
+    if (numbers.length === 11) {
+      return numbers.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3')
     }
+    return numbers.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3')
+  }
 
-    // Abrir WhatsApp
-    const phone = parceiro.contact.whatsapp.replace(/\D/g, '')
+  const getWhatsAppLink = () => {
+    if (!parceiro?.whatsapp) return null
+    const phone = parceiro.whatsapp.replace(/\D/g, '')
+    const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`
     const message = encodeURIComponent(
-      `Olá! Sou assinante do Unica Clube de Benefícios e gostaria de mais informações.`
+      `Olá! Sou assinante do UNICA Clube de Benefícios e gostaria de utilizar meus benefícios na ${parceiro.name}! 🎉`
     )
-    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank')
+    return `https://wa.me/${phoneWithCountry}?text=${message}`
   }
 
-  function formatPhone(phone: string) {
-    const cleaned = phone.replace(/\D/g, '')
-    if (cleaned.length === 11) {
-      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`
+  const getFullAddress = () => {
+    if (!parceiro) return null
+    const parts = []
+    if (parceiro.address) {
+      let addr = parceiro.address
+      if (parceiro.addressNumber) addr += `, ${parceiro.addressNumber}`
+      parts.push(addr)
     }
-    if (cleaned.length === 10) {
-      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`
-    }
-    return phone
+    if (parceiro.neighborhood) parts.push(parceiro.neighborhood)
+    if (parceiro.city) parts.push(`${parceiro.city.name} - ${parceiro.city.state}`)
+    return parts.length > 0 ? parts.join(' • ') : null
   }
 
-  function getBenefitIcon(type: string) {
+  const getBenefitIcon = (type: string) => {
     switch (type) {
       case 'DESCONTO':
-        return <Percent className="h-4 w-4" />
-      case 'CASHBACK':
-        return <Gift className="h-4 w-4" />
+      case 'DISCOUNT': return <Percent className="h-5 w-5" />
+      case 'CASHBACK': return <Coins className="h-5 w-5" />
+      case 'PONTOS':
+      case 'POINTS': return <Star className="h-5 w-5" />
       case 'ACESSO_EXCLUSIVO':
-        return <Star className="h-4 w-4" />
-      default:
-        return <Gift className="h-4 w-4" />
+      case 'FREEBIE': return <Gift className="h-5 w-5" />
+      default: return <Gift className="h-5 w-5" />
     }
   }
 
-  function getBenefitValue(benefit: Benefit) {
-    const value = benefit.value as Record<string, number>
-    if (benefit.type === 'DESCONTO') {
-      return `${value.percentage}% de desconto`
+  const getBenefitColor = (type: string) => {
+    switch (type) {
+      case 'DESCONTO':
+      case 'DISCOUNT': return 'bg-green-500'
+      case 'CASHBACK': return 'bg-yellow-500'
+      case 'PONTOS':
+      case 'POINTS': return 'bg-blue-500'
+      case 'ACESSO_EXCLUSIVO':
+      case 'FREEBIE': return 'bg-purple-500'
+      default: return 'bg-gray-500'
     }
-    if (benefit.type === 'CASHBACK') {
-      return `${value.percentage}% de cashback`
-    }
-    return benefit.description
   }
 
-  if (loading) {
+  const getBenefitTextColor = (type: string) => {
+    switch (type) {
+      case 'DESCONTO':
+      case 'DISCOUNT': return 'text-green-500'
+      case 'CASHBACK': return 'text-yellow-500'
+      case 'PONTOS':
+      case 'POINTS': return 'text-blue-500'
+      case 'ACESSO_EXCLUSIVO':
+      case 'FREEBIE': return 'text-purple-500'
+      default: return 'text-gray-500'
+    }
+  }
+
+  const getBenefitText = (benefit: { type: string; value: number }) => {
+    switch (benefit.type) {
+      case 'DESCONTO':
+      case 'DISCOUNT': return `${benefit.value}% de desconto`
+      case 'CASHBACK': return `${benefit.value}% de cashback`
+      case 'PONTOS':
+      case 'POINTS': return `${benefit.value} pontos`
+      case 'ACESSO_EXCLUSIVO':
+      case 'FREEBIE': return 'Acesso exclusivo'
+      default: return 'Benefício exclusivo'
+    }
+  }
+
+  if (isLoading) {
     return (
-      <div className="space-y-4 pb-20">
-        <Skeleton className="h-8 w-32" />
-        <Skeleton className="h-48 w-full rounded-xl" />
-        <Skeleton className="h-32 w-full rounded-xl" />
-        <Skeleton className="h-32 w-full rounded-xl" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
       </div>
     )
   }
 
   if (!parceiro) {
-    return null
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
+        <div className="bg-muted/50 rounded-full w-20 h-20 flex items-center justify-center mb-4">
+          <Building2 className="h-10 w-10 text-muted-foreground" />
+        </div>
+        <h2 className="text-xl font-semibold mb-2">Parceiro não encontrado</h2>
+        <p className="text-muted-foreground text-center mb-6">
+          Este parceiro não existe ou você não tem acesso.
+        </p>
+        <Button onClick={() => router.back()}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar
+        </Button>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-4 pb-24">
-      {/* Header */}
-      <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background pb-28">
+      {/* Header com Banner */}
+      <div className="relative">
+        {/* Banner */}
+        <div className="h-48 md:h-64 bg-gradient-to-br from-primary/30 via-primary/20 to-primary/5">
+          {parceiro.banner && (
+            <Image
+              src={parceiro.banner}
+              alt={parceiro.name}
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          )}
+          {/* Overlay gradiente */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+        </div>
+
+        {/* Botão Voltar */}
         <Button
-          variant="ghost"
+          variant="secondary"
           size="icon"
+          className="absolute top-4 left-4 rounded-full shadow-lg bg-background/80 backdrop-blur-sm"
           onClick={() => router.back()}
-          className="shrink-0"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-xl font-bold truncate">{parceiro.companyName}</h1>
-      </div>
 
-      {/* Logo e Info Principal */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex gap-4">
+        {/* Logo e Título */}
+        <div className="container max-w-4xl relative -mt-16 px-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
             {/* Logo */}
-            <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white text-3xl font-bold shrink-0">
+            <div className="relative h-28 w-28 rounded-2xl overflow-hidden bg-card border-4 border-background shadow-xl">
               {parceiro.logo ? (
-                <img
+                <Image
                   src={parceiro.logo}
-                  alt={parceiro.companyName}
-                  className="w-full h-full object-cover rounded-xl"
+                  alt={parceiro.name}
+                  fill
+                  className="object-cover"
+                  unoptimized
                 />
               ) : (
-                parceiro.companyName.charAt(0).toUpperCase()
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                  <Building2 className="h-12 w-12 text-primary/60" />
+                </div>
               )}
             </div>
 
             {/* Info */}
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold truncate">{parceiro.companyName}</h2>
-              <Badge variant="secondary" className="mt-1">
-                {CATEGORY_LABELS[parceiro.category] || parceiro.category}
-              </Badge>
-              <p className="text-sm text-muted-foreground mt-2 flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                {parceiro.city.name} - {parceiro.city.state}
-              </p>
+            <div className="flex-1 pb-2">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h1 className="text-2xl font-bold">{parceiro.name}</h1>
+                <Badge variant="secondary">{parceiro.category}</Badge>
+              </div>
+              {parceiro.city && (
+                <p className="text-muted-foreground flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  {parceiro.city.name}, {parceiro.city.state}
+                </p>
+              )}
             </div>
           </div>
+        </div>
+      </div>
 
-          {parceiro.description && (
-            <p className="text-sm text-muted-foreground mt-4">
-              {parceiro.description}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Benefícios */}
-      {parceiro.beneficios.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Gift className="h-4 w-4 text-purple-500" />
+      {/* Conteúdo */}
+      <div className="container max-w-4xl px-4 py-6 space-y-6">
+        
+        {/* Benefícios em destaque */}
+        {parceiro.benefits && parceiro.benefits.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Gift className="h-5 w-5 text-primary" />
               Seus Benefícios
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {parceiro.beneficios.map((beneficio) => (
-              <div
-                key={beneficio.id}
-                className="flex items-center gap-3 p-3 bg-purple-500/10 rounded-lg"
-              >
-                <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-500">
-                  {getBenefitIcon(beneficio.type)}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">{beneficio.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {getBenefitValue(beneficio)}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Endereço */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-blue-500" />
-            Endereço
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm">
-            {parceiro.address.street}
-            {parceiro.address.number && `, ${parceiro.address.number}`}
-          </p>
-          {parceiro.address.neighborhood && (
-            <p className="text-sm text-muted-foreground">
-              {parceiro.address.neighborhood}
-            </p>
-          )}
-          <p className="text-sm text-muted-foreground">
-            {parceiro.city.name} - {parceiro.city.state}
-            {parceiro.address.zipCode && ` | CEP: ${parceiro.address.zipCode}`}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Horários */}
-      {parceiro.hours && parceiro.hours.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="h-4 w-4 text-green-500" />
-              Horário de Funcionamento
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {parceiro.hours.map((hour, index) => (
-                <div key={index} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {DAY_LABELS[hour.day.toLowerCase()] || hour.day}
-                  </span>
-                  <span>
-                    {hour.open} - {hour.close}
-                  </span>
-                </div>
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {parceiro.benefits.map((benefit) => (
+                <Card key={benefit.id} className="overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="flex items-stretch">
+                      <div className={`w-2 ${getBenefitColor(benefit.type)}`} />
+                      <div className="flex items-center gap-4 p-4 flex-1">
+                        <div className={`p-3 rounded-xl ${getBenefitColor(benefit.type)} bg-opacity-10`}>
+                          <div className={getBenefitTextColor(benefit.type)}>
+                            {getBenefitIcon(benefit.type)}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-semibold">{benefit.name}</p>
+                          <p className="text-sm text-green-600 font-medium">
+                            {getBenefitText(benefit)}
+                          </p>
+                          {benefit.description && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {benefit.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
+
+        {/* Descrição */}
+        {parceiro.description && (
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-2">Sobre</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                {parceiro.description}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Contato e Localização */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Contato */}
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Phone className="h-4 w-4 text-primary" />
+                Contato
+              </h3>
+              
+              <div className="space-y-2">
+                {parceiro.whatsapp && (
+                  <a 
+                    href={getWhatsAppLink() || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <MessageCircle className="h-5 w-5 text-green-600" />
+                      <span className="text-sm font-medium">{formatPhone(parceiro.whatsapp)}</span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-green-600" />
+                  </a>
+                )}
+
+                {parceiro.phone && parceiro.phone !== parceiro.whatsapp && (
+                  <a 
+                    href={`tel:${parceiro.phone}`}
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{formatPhone(parceiro.phone)}</span>
+                  </a>
+                )}
+
+                {parceiro.email && (
+                  <a 
+                    href={`mailto:${parceiro.email}`}
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm truncate">{parceiro.email}</span>
+                  </a>
+                )}
+
+                {parceiro.website && (
+                  <a 
+                    href={parceiro.website.startsWith('http') ? parceiro.website : `https://${parceiro.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm truncate">{parceiro.website}</span>
+                    <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto" />
+                  </a>
+                )}
+              </div>
+
+              {/* Redes sociais */}
+              {(parceiro.instagram || parceiro.facebook) && (
+                <>
+                  <Separator />
+                  <div className="flex gap-2">
+                    {parceiro.instagram && (
+                      <a 
+                        href={`https://instagram.com/${parceiro.instagram.replace('@', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-2 p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 transition-colors"
+                      >
+                        <Instagram className="h-5 w-5 text-pink-600" />
+                        <span className="text-sm font-medium">Instagram</span>
+                      </a>
+                    )}
+                    {parceiro.facebook && (
+                      <a 
+                        href={parceiro.facebook.startsWith('http') ? parceiro.facebook : `https://facebook.com/${parceiro.facebook}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-2 p-3 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
+                      >
+                        <Facebook className="h-5 w-5 text-blue-600" />
+                        <span className="text-sm font-medium">Facebook</span>
+                      </a>
+                    )}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Localização */}
+          {getFullAddress() && (
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  Localização
+                </h3>
+                
+                <div className="space-y-1 text-sm">
+                  {parceiro.address && (
+                    <p>{parceiro.address}{parceiro.addressNumber && `, ${parceiro.addressNumber}`}</p>
+                  )}
+                  {parceiro.neighborhood && (
+                    <p className="text-muted-foreground">{parceiro.neighborhood}</p>
+                  )}
+                  {parceiro.city && (
+                    <p>{parceiro.city.name} - {parceiro.city.state}</p>
+                  )}
+                  {parceiro.zipCode && (
+                    <p className="text-muted-foreground">CEP: {parceiro.zipCode}</p>
+                  )}
+                </div>
+
+                <a 
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getFullAddress() || '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" className="w-full mt-2">
+                    <MapPin className="mr-2 h-4 w-4" />
+                    Abrir no Google Maps
+                  </Button>
+                </a>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Galeria */}
+        {parceiro.gallery && parceiro.gallery.length > 0 && (
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-3">Galeria</h3>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {parceiro.gallery.map((img, index) => (
+                  <div 
+                    key={index}
+                    className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setSelectedImage(img)}
+                  >
+                    <Image
+                      src={img}
+                      alt={`Foto ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Botão WhatsApp fixo */}
+      {parceiro.whatsapp && (
+        <div className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent">
+          <div className="container max-w-4xl">
+            <a href={getWhatsAppLink() || '#'} target="_blank" rel="noopener noreferrer">
+              <Button className="w-full h-14 text-lg bg-green-600 hover:bg-green-700 shadow-lg">
+                <MessageCircle className="mr-2 h-6 w-6" />
+                Falar no WhatsApp
+              </Button>
+            </a>
+          </div>
+        </div>
       )}
 
-      {/* Contato */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Phone className="h-4 w-4 text-amber-500" />
-            Contato
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {parceiro.contact.phone && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Telefone</span>
-              <a
-                href={`tel:${parceiro.contact.phone}`}
-                className="text-sm font-medium text-blue-500"
-              >
-                {formatPhone(parceiro.contact.phone)}
-              </a>
-            </div>
-          )}
-          {parceiro.contact.email && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Email</span>
-              <a
-                href={`mailto:${parceiro.contact.email}`}
-                className="text-sm font-medium text-blue-500 flex items-center gap-1"
-              >
-                {parceiro.contact.email}
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Botão WhatsApp Fixo */}
-      {parceiro.contact.whatsapp && (
-        <div className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-background to-transparent">
+      {/* Modal de imagem ampliada */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setSelectedImage(null)}
+        >
           <Button
-            onClick={handleWhatsAppClick}
-            className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-base"
+            variant="secondary"
+            size="icon"
+            className="absolute top-4 right-4 rounded-full"
+            onClick={() => setSelectedImage(null)}
           >
-            <MessageCircle className="h-5 w-5 mr-2" />
-            Conversar no WhatsApp
+            <X className="h-4 w-4" />
           </Button>
+          <Image
+            src={selectedImage}
+            alt="Imagem ampliada"
+            width={1200}
+            height={800}
+            className="object-contain max-h-[90vh] rounded-lg"
+            unoptimized
+          />
         </div>
       )}
     </div>
   )
 }
-

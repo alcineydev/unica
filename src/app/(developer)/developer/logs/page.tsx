@@ -58,8 +58,8 @@ export default function LogsPage() {
     totalPages: 0,
   })
   const [loading, setLoading] = useState(true)
-  const [actionFilter, setActionFilter] = useState<string>('')
-  const [entityFilter, setEntityFilter] = useState<string>('')
+  const [actionFilter, setActionFilter] = useState<string>('all')
+  const [entityFilter, setEntityFilter] = useState<string>('all')
 
   useEffect(() => {
     loadLogs()
@@ -71,8 +71,8 @@ export default function LogsPage() {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
-        ...(actionFilter && { action: actionFilter }),
-        ...(entityFilter && { entity: entityFilter }),
+        ...(actionFilter && actionFilter !== 'all' && { action: actionFilter }),
+        ...(entityFilter && entityFilter !== 'all' && { entity: entityFilter }),
       })
 
       const response = await fetch(`/api/developer/logs?${params}`)
@@ -140,7 +140,7 @@ export default function LogsPage() {
                   <SelectValue placeholder="Filtrar por ação" />
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-900 border-zinc-700">
-                  <SelectItem value="">Todas as ações</SelectItem>
+                  <SelectItem value="all">Todas as ações</SelectItem>
                   <SelectItem value="CREATE_ADMIN">Criar Admin</SelectItem>
                   <SelectItem value="DELETE_ADMIN">Deletar Admin</SelectItem>
                   <SelectItem value="ACTIVATE_ADMIN">Ativar Admin</SelectItem>
@@ -156,7 +156,7 @@ export default function LogsPage() {
                   <SelectValue placeholder="Filtrar por entidade" />
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-900 border-zinc-700">
-                  <SelectItem value="">Todas as entidades</SelectItem>
+                  <SelectItem value="all">Todas as entidades</SelectItem>
                   <SelectItem value="Admin">Admin</SelectItem>
                   <SelectItem value="User">User</SelectItem>
                   <SelectItem value="Parceiro">Parceiro</SelectItem>

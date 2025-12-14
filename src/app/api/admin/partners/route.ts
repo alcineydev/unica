@@ -27,7 +27,16 @@ export async function GET(request: Request) {
         ...(category ? { category } : {}),
       },
       orderBy: { companyName: 'asc' },
-      include: {
+      select: {
+        id: true,
+        companyName: true,
+        tradeName: true,
+        cnpj: true,
+        category: true,
+        description: true,
+        logo: true,
+        contact: true,
+        isActive: true,
         user: {
           select: {
             email: true,
@@ -83,7 +92,10 @@ export async function POST(request: Request) {
 
     const { 
       email, password, companyName, tradeName, cnpj, 
-      category, description, cityId, whatsapp, phone, isActive 
+      category, description, cityId, whatsapp, phone, isActive,
+      logo, banner, gallery, benefitIds,
+      address, addressNumber, neighborhood, complement, zipCode,
+      website, instagram, facebook
     } = validationResult.data
 
     // Verifica se email já existe
@@ -136,19 +148,25 @@ export async function POST(request: Request) {
             cnpj,
             category,
             description: description || null,
+            logo: logo || null,
+            banner: banner || null,
+            gallery: gallery || [],
             cityId,
             balance: 0,
             address: {
-              street: '',
-              number: '',
-              complement: '',
-              neighborhood: '',
-              zipCode: '',
+              street: address || '',
+              number: addressNumber || '',
+              complement: complement || '',
+              neighborhood: neighborhood || '',
+              zipCode: zipCode || '',
             },
             contact: {
               whatsapp,
               phone: phone || '',
               email,
+              website: website || '',
+              instagram: instagram || '',
+              facebook: facebook || '',
             },
             hours: [
               { day: 0, dayName: 'Domingo', open: '', close: '', isClosed: true },
@@ -177,6 +195,17 @@ export async function POST(request: Request) {
         },
       },
     })
+
+    // Se há benefícios selecionados, cria os relacionamentos
+    if (benefitIds && benefitIds.length > 0 && user.parceiro) {
+      await prisma.benefitAccess.createMany({
+        data: benefitIds.map(benefitId => ({
+          benefitId,
+          parceiroId: user.parceiro!.id,
+        })),
+        skipDuplicates: true,
+      })
+    }
 
     return NextResponse.json(
       { message: 'Parceiro criado com sucesso', data: user.parceiro },

@@ -29,7 +29,6 @@ interface Plan {
 
 async function getPlans(): Promise<Plan[]> {
   try {
-    console.log('Buscando planos...')
     const plans = await prisma.plan.findMany({
       where: { isActive: true },
       orderBy: { price: 'asc' },
@@ -47,8 +46,6 @@ async function getPlans(): Promise<Plan[]> {
         },
       },
     })
-
-    console.log('Planos encontrados:', plans.length)
 
     return plans.map(plan => ({
       id: plan.id,

@@ -112,6 +112,8 @@ model Parceiro {
   companyName   String
   tradeName     String?
   logo          String?
+  banner        String?
+  gallery       String[]        @default([])
   category      String
   description   String?
   cityId        String
@@ -300,8 +302,10 @@ enum BenefitType {
 enum SubscriptionStatus {
   PENDING
   ACTIVE
+  INACTIVE
   SUSPENDED
   CANCELED
+  EXPIRED
 }
 
 enum TransactionType {

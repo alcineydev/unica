@@ -18,7 +18,9 @@ import {
   MapPin,
   Phone,
   Mail,
+  Building2,
 } from 'lucide-react'
+import Image from 'next/image'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -67,6 +69,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PARTNER_CATEGORIES } from '@/constants'
+import Link from 'next/link'
 
 // Schema de validação
 const partnerSchema = z.object({
@@ -97,6 +100,7 @@ interface Partner {
   cnpj: string
   category: string
   description: string | null
+  logo: string | null
   contact: {
     whatsapp: string
     phone?: string
@@ -353,10 +357,12 @@ export default function ParceirosPage() {
             Gerencie as empresas parceiras do clube
           </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Parceiro
-        </Button>
+        <Link href="/admin/parceiros/novo">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Parceiro
+          </Button>
+        </Link>
       </div>
 
       {/* Filtros */}
@@ -440,11 +446,28 @@ export default function ParceirosPage() {
               filteredPartners.map((partner) => (
                 <TableRow key={partner.id}>
                   <TableCell>
-                    <div>
-                      <p className="font-medium">{partner.tradeName || partner.companyName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatCNPJ(partner.cnpj)}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      {partner.logo ? (
+                        <div className="relative h-10 w-10 rounded-full overflow-hidden border bg-muted flex-shrink-0">
+                          <Image
+                            src={partner.logo}
+                            alt={partner.tradeName || partner.companyName}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                          <Building2 className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium">{partner.tradeName || partner.companyName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatCNPJ(partner.cnpj)}
+                        </p>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -483,9 +506,11 @@ export default function ParceirosPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(partner)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/parceiros/${partner.id}/editar`}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleToggleStatus(partner)}>
                           {partner.isActive ? (

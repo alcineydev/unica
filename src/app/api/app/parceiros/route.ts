@@ -5,80 +5,133 @@ import { auth } from '@/lib/auth'
 export async function GET() {
   try {
     const session = await auth()
-    
-    if (!session || session.user.role !== 'ASSINANTE') {
-      return NextResponse.json(
-        { error: 'Nao autorizado' },
-        { status: 401 }
-      )
+
+    if (!session) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    // Busca o assinante para pegar a cidade
+    // Buscar assinante com seu plano e benefícios do plano
     const assinante = await prisma.assinante.findUnique({
       where: { userId: session.user.id! },
+      include: {
+        plan: {
+          include: {
+            planBenefits: {
+              select: { benefitId: true }
+            }
+          }
+        }
+      }
     })
 
-    if (!assinante) {
-      return NextResponse.json(
-        { error: 'Assinante nao encontrado' },
-        { status: 404 }
-      )
+    if (!assinante?.plan) {
+      return NextResponse.json({ 
+        data: [],
+        message: 'Você não possui um plano ativo'
+      })
     }
 
-    // Busca parceiros da mesma cidade
+    // IDs dos benefícios do plano do assinante
+    const benefitIdsDoPlano = assinante.plan.planBenefits.map(pb => pb.benefitId)
+
+    if (benefitIdsDoPlano.length === 0) {
+      return NextResponse.json({ 
+        data: [],
+        message: 'Seu plano não possui benefícios configurados'
+      })
+    }
+
+    // Buscar apenas parceiros que oferecem benefícios do plano do assinante
     const parceiros = await prisma.parceiro.findMany({
       where: {
-        cityId: assinante.cityId,
         isActive: true,
         user: {
-          isActive: true,
+          isActive: true
         },
+        benefitAccess: {
+          some: {
+            benefitId: {
+              in: benefitIdsDoPlano
+            }
+          }
+        }
       },
       select: {
         id: true,
         companyName: true,
         tradeName: true,
+        logo: true,
+        banner: true,
         category: true,
         description: true,
         contact: true,
         city: {
-          select: {
-            name: true,
-          },
+          select: { 
+            id: true,
+            name: true, 
+            state: true 
+          }
         },
+        benefitAccess: {
+          where: {
+            benefitId: {
+              in: benefitIdsDoPlano
+            }
+          },
+          include: {
+            benefit: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+                value: true
+              }
+            }
+          }
+        }
       },
       orderBy: [
         { category: 'asc' },
-        { companyName: 'asc' },
-      ],
+        { companyName: 'asc' }
+      ]
     })
 
-    // Incrementa pageViews de cada parceiro visualizado
-    // Em producao, fazer isso de forma mais eficiente
-    for (const p of parceiros) {
-      await prisma.parceiro.update({
-        where: { id: p.id },
-        data: {
-          metrics: {
-            ...(await prisma.parceiro.findUnique({ where: { id: p.id } }))?.metrics as object,
-            pageViews: ((await prisma.parceiro.findUnique({ where: { id: p.id } }))?.metrics as { pageViews?: number })?.pageViews || 0 + 1,
-          },
+    // Formatar resposta
+    const parceirosFormatados = parceiros.map(p => {
+      const contact = p.contact as Record<string, string> || {}
+      return {
+        id: p.id,
+        companyName: p.companyName,
+        tradeName: p.tradeName,
+        logo: p.logo,
+        banner: p.banner,
+        category: p.category,
+        description: p.description,
+        contact: {
+          whatsapp: contact.whatsapp,
+          phone: contact.phone
         },
-      }).catch(() => {}) // Ignora erros de metricas
-    }
-
-    return NextResponse.json({
-      data: parceiros.map(p => ({
-        ...p,
-        contact: p.contact as { whatsapp: string; phone: string },
-      })),
+        city: p.city,
+        benefits: p.benefitAccess.map(ba => {
+          const value = ba.benefit.value as Record<string, number>
+          return {
+            id: ba.benefit.id,
+            name: ba.benefit.name,
+            type: ba.benefit.type,
+            value: value.percentage || value.monthlyPoints || 0
+          }
+        })
+      }
     })
+
+    return NextResponse.json({ 
+      data: parceirosFormatados,
+      total: parceirosFormatados.length,
+      planName: assinante.plan.name
+    })
+
   } catch (error) {
-    console.error('Erro ao carregar parceiros:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    console.error('Erro ao buscar parceiros:', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
-

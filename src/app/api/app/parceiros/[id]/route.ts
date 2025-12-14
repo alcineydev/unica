@@ -2,41 +2,36 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
-export const runtime = 'nodejs'
-
-// GET - Buscar detalhes de um parceiro específico
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
-    
-    if (!session || session.user.role !== 'ASSINANTE') {
+
+    if (!session) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
+    // Await params no Next.js 15
     const { id } = await params
 
-    // Buscar assinante para verificar cidade e plano
-    const assinante = await prisma.assinante.findFirst({
-      where: { user: { email: session.user.email! } },
+    // Buscar assinante e seu plano
+    const assinante = await prisma.assinante.findUnique({
+      where: { userId: session.user.id! },
       include: {
         plan: {
           include: {
             planBenefits: {
-              include: {
-                benefit: true,
-              },
-            },
-          },
-        },
-      },
+              select: { benefitId: true }
+            }
+          }
+        }
+      }
     })
 
-    if (!assinante) {
-      return NextResponse.json({ error: 'Assinante não encontrado' }, { status: 404 })
-    }
+    // IDs dos benefícios do plano do assinante
+    const benefitIdsDoPlano = assinante?.plan?.planBenefits.map(pb => pb.benefitId) || []
 
     // Buscar parceiro
     const parceiro = await prisma.parceiro.findUnique({
@@ -44,156 +39,128 @@ export async function GET(
       include: {
         city: true,
         user: {
-          select: {
-            isActive: true,
-          },
+          select: { email: true }
         },
         benefitAccess: {
+          where: benefitIdsDoPlano.length > 0 ? {
+            benefitId: {
+              in: benefitIdsDoPlano
+            }
+          } : undefined,
           include: {
-            benefit: true,
-          },
-        },
-      },
+            benefit: true
+          }
+        }
+      }
     })
 
     if (!parceiro) {
       return NextResponse.json({ error: 'Parceiro não encontrado' }, { status: 404 })
     }
 
-    // Verificar se parceiro está ativo
-    if (!parceiro.isActive || !parceiro.user.isActive) {
-      return NextResponse.json({ error: 'Parceiro não disponível' }, { status: 404 })
+    // Se não tem benefícios do plano, o assinante não tem acesso
+    if (benefitIdsDoPlano.length > 0 && parceiro.benefitAccess.length === 0) {
+      return NextResponse.json({ error: 'Você não tem acesso a este parceiro' }, { status: 403 })
     }
 
-    // Verificar se parceiro é da mesma cidade do assinante
-    if (parceiro.cityId !== assinante.cityId) {
-      return NextResponse.json({ error: 'Parceiro não disponível na sua cidade' }, { status: 403 })
-    }
-
-    // Incrementar pageViews
-    const metrics = (parceiro.metrics as Record<string, number>) || {}
-    await prisma.parceiro.update({
-      where: { id },
-      data: {
-        metrics: {
-          ...metrics,
-          pageViews: (metrics.pageViews || 0) + 1,
-        },
-      },
+    // Formatar benefícios
+    const beneficios = parceiro.benefitAccess.map(ba => {
+      const value = ba.benefit.value as Record<string, number>
+      return {
+        id: ba.benefit.id,
+        name: ba.benefit.name,
+        type: ba.benefit.type,
+        value: value.percentage || value.monthlyPoints || 0,
+        description: ba.benefit.description
+      }
     })
 
-    // Calcular benefícios aplicáveis ao assinante neste parceiro
-    const beneficiosAplicaveis = []
-    
-    for (const planBenefit of assinante.plan.planBenefits) {
-      const benefit = planBenefit.benefit
-      
-      // Verificar se o benefício se aplica a este parceiro
-      const parceiroTemBeneficio = parceiro.benefitAccess.some(
-        (ba) => ba.benefitId === benefit.id
-      )
+    // Extrair dados de contato e endereço
+    const contact = parceiro.contact as Record<string, string> || {}
+    const address = parceiro.address as Record<string, string> || {}
 
-      // Benefícios de categoria
-      if (benefit.type === 'DESCONTO') {
-        const value = benefit.value as { percentage?: number; category?: string }
-        if (value.category === parceiro.category || parceiroTemBeneficio) {
-          beneficiosAplicaveis.push({
-            id: benefit.id,
-            name: benefit.name,
-            type: benefit.type,
-            description: benefit.description,
-            value: value,
-          })
-        }
-      } else if (benefit.type === 'CASHBACK') {
-        beneficiosAplicaveis.push({
-          id: benefit.id,
-          name: benefit.name,
-          type: benefit.type,
-          description: benefit.description,
-          value: benefit.value,
-        })
-      } else if (benefit.type === 'ACESSO_EXCLUSIVO' && parceiroTemBeneficio) {
-        beneficiosAplicaveis.push({
-          id: benefit.id,
-          name: benefit.name,
-          type: benefit.type,
-          description: benefit.description,
-          value: benefit.value,
-        })
+    return NextResponse.json({
+      parceiro: {
+        id: parceiro.id,
+        name: parceiro.tradeName || parceiro.companyName,
+        tradeName: parceiro.tradeName,
+        companyName: parceiro.companyName,
+        description: parceiro.description,
+        category: parceiro.category,
+        logo: parceiro.logo,
+        banner: parceiro.banner,
+        gallery: parceiro.gallery || [],
+        phone: contact.phone,
+        whatsapp: contact.whatsapp,
+        email: parceiro.user?.email,
+        website: contact.website,
+        instagram: contact.instagram,
+        facebook: contact.facebook,
+        address: address.street,
+        addressNumber: address.number,
+        neighborhood: address.neighborhood,
+        complement: address.complement,
+        zipCode: address.zipCode,
+        city: parceiro.city,
+        benefits: beneficios
       }
-    }
+    })
 
-    // Formatar resposta
-    const response = {
-      id: parceiro.id,
-      companyName: parceiro.companyName,
-      logo: parceiro.logo,
-      category: parceiro.category,
-      description: parceiro.description,
-      city: parceiro.city,
-      address: parceiro.address,
-      contact: parceiro.contact,
-      hours: parceiro.hours,
-      beneficios: beneficiosAplicaveis,
-      metrics: {
-        pageViews: (metrics.pageViews || 0) + 1,
-      },
-    }
-
-    return NextResponse.json(response)
   } catch (error) {
     console.error('Erro ao buscar parceiro:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
-// POST - Registrar clique no WhatsApp
+// POST - Registrar ação (whatsapp_click, page_view)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
-    
-    if (!session || session.user.role !== 'ASSINANTE') {
+
+    if (!session) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
     const { id } = await params
     const body = await request.json()
+    const { action } = body
 
-    if (body.action === 'whatsapp_click') {
-      const parceiro = await prisma.parceiro.findUnique({
-        where: { id },
-      })
+    // Buscar parceiro
+    const parceiro = await prisma.parceiro.findUnique({
+      where: { id },
+      select: { id: true, metrics: true }
+    })
 
-      if (parceiro) {
-        const metrics = (parceiro.metrics as Record<string, number>) || {}
-        await prisma.parceiro.update({
-          where: { id },
-          data: {
-            metrics: {
-              ...metrics,
-              whatsappClicks: (metrics.whatsappClicks || 0) + 1,
-            },
-          },
-        })
-      }
-
-      return NextResponse.json({ success: true })
+    if (!parceiro) {
+      return NextResponse.json({ error: 'Parceiro não encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json({ error: 'Ação inválida' }, { status: 400 })
+    // Atualizar métricas
+    const currentMetrics = parceiro.metrics as Record<string, number> || {
+      pageViews: 0,
+      whatsappClicks: 0,
+      totalSales: 0,
+      salesAmount: 0
+    }
+
+    if (action === 'whatsapp_click') {
+      currentMetrics.whatsappClicks = (currentMetrics.whatsappClicks || 0) + 1
+    } else if (action === 'page_view') {
+      currentMetrics.pageViews = (currentMetrics.pageViews || 0) + 1
+    }
+
+    await prisma.parceiro.update({
+      where: { id },
+      data: { metrics: currentMetrics }
+    })
+
+    return NextResponse.json({ success: true })
+
   } catch (error) {
     console.error('Erro ao registrar ação:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
-
