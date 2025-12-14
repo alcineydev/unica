@@ -142,7 +142,7 @@ export default function AppHomePage() {
             </CardHeader>
             <CardFooter>
               <Button asChild className="bg-gray-900 hover:bg-gray-800">
-                <Link href="/planos">
+                <Link href="/app/planos">
                   <Sparkles className="h-4 w-4 mr-2" />
                   Ver planos disponíveis
                 </Link>

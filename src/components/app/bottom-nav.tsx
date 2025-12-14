@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Home, Store, QrCode, User } from 'lucide-react'
+import { Home, Store, QrCode, User, Crown } from 'lucide-react'
 
 const navItems = [
   {
-    title: 'Inicio',
+    title: 'Início',
     href: '/app',
     icon: Home,
   },
@@ -15,6 +15,11 @@ const navItems = [
     title: 'Parceiros',
     href: '/app/parceiros',
     icon: Store,
+  },
+  {
+    title: 'Planos',
+    href: '/app/planos',
+    icon: Crown,
   },
   {
     title: 'Carteira',
