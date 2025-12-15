@@ -358,3 +358,56 @@ enum NotificationStatus {
   PARTIAL
   FAILED
 }
+
+/// Configurações do PWA (Progressive Web App)
+model PWAConfig {
+  id                String   @id @default(cuid())
+  
+  // Informações básicas
+  appName           String   @default("UNICA")
+  shortName         String   @default("UNICA")
+  description       String   @default("Seu clube de benefícios e descontos exclusivos")
+  
+  // Cores
+  themeColor        String   @default("#000000")
+  backgroundColor   String   @default("#ffffff")
+  
+  // Ícones
+  icon72            String?
+  icon96            String?
+  icon128           String?
+  icon144           String?
+  icon152           String?
+  icon192           String?
+  icon384           String?
+  icon512           String?
+  
+  // Splash Screens
+  splashIphone5     String?  // 640x1136
+  splashIphone6     String?  // 750x1334
+  splashIphonePlus  String?  // 1242x2208
+  splashIphoneX     String?  // 1125x2436
+  splashIphoneXr    String?  // 828x1792
+  splashIphoneXsMax String?  // 1242x2688
+  splashIpad        String?  // 1536x2048
+  splashIpadPro     String?  // 2048x2732
+  
+  // Configurações avançadas
+  display           String   @default("standalone") // standalone, fullscreen, minimal-ui, browser
+  orientation       String   @default("portrait-primary")
+  startUrl          String   @default("/")
+  scope             String   @default("/")
+  
+  // Screenshots
+  screenshot1       String?
+  screenshot2       String?
+  screenshot3       String?
+  
+  // Status
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("pwa_configs")
+}

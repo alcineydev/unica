@@ -21,6 +21,15 @@ export const metadata: Metadata = {
   },
   description: 'Clube de benefícios do Grupo Zan Norte - Descontos, cashback e muito mais',
   keywords: ['clube de benefícios', 'descontos', 'cashback', 'Sinop', 'Mato Grosso'],
+  manifest: '/api/manifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'UNICA',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 }
 
 export default function RootLayout({

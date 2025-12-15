@@ -22,7 +22,11 @@ import {
   Bell,
   Menu,
   LogOut,
-  X
+  X,
+  Smartphone,
+  Terminal,
+  Key,
+  Shield
 } from 'lucide-react'
 
 const menuItems = [
