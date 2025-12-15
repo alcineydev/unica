@@ -1,15 +1,8 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
-import { z } from 'zod'
 import { authConfig } from './auth.config'
 import prisma from './prisma'
-
-// Schema de validação do login
-const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
-})
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -21,65 +14,40 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Senha', type: 'password' },
       },
       async authorize(credentials) {
-        // Valida os dados de entrada
-        const parsed = loginSchema.safeParse(credentials)
-        if (!parsed.success) {
-          console.log('[AUTH] Validação falhou:', parsed.error.issues)
+        if (!credentials?.email || !credentials?.password) {
+          console.log('[AUTH] Credenciais não fornecidas')
           return null
         }
 
-        const { email, password } = parsed.data
-        console.log('[AUTH] Tentativa de login:', email)
-
         try {
-          // Busca o usuário no banco
           const user = await prisma.user.findUnique({
-            where: { email },
+            where: { email: credentials.email },
             include: {
-              admin: true,
-              parceiro: true,
               assinante: true,
-            },
+              parceiro: true,
+              admin: true
+            }
           })
 
-          console.log('[AUTH] Usuário encontrado:', !!user)
-
           if (!user) {
-            console.log('[AUTH] Usuário não existe')
+            console.log('[AUTH] Usuário não encontrado:', credentials.email)
             return null
           }
 
-          // Verifica a senha
-          const passwordMatch = await bcrypt.compare(password, user.password)
-          console.log('[AUTH] Senha válida:', passwordMatch)
-          
-          if (!passwordMatch) {
-            console.log('[AUTH] Senha incorreta')
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+
+          if (!isPasswordValid) {
+            console.log('[AUTH] Senha incorreta para:', credentials.email)
             return null
           }
 
-          // Para outros roles (ADMIN, PARCEIRO, DEVELOPER): verifica isActive
-          if (user.role !== 'ASSINANTE' && !user.isActive) {
-            console.log('[AUTH] Usuário bloqueado (isActive=false)')
-            throw new Error('Conta desativada. Entre em contato com o suporte.')
-          }
-
-          // Para ASSINANTE: verificar status da assinatura
-          if (user.role === 'ASSINANTE') {
-            if (!user.assinante) {
-              console.log('[AUTH] Assinante não encontrado')
-              throw new Error('Perfil de assinante não encontrado. Por favor, faça sua assinatura.')
-            }
-            
-            // Verificar se assinante está ativo
-            if (user.assinante.subscriptionStatus !== 'ACTIVE') {
-              console.log('[AUTH] Assinatura não está ativa:', user.assinante.subscriptionStatus)
-              throw new Error('Sua assinatura está inativa. Refaça sua assinatura para continuar.')
-            }
+          if (!user.isActive) {
+            console.log('[AUTH] Usuário desativado:', credentials.email)
+            return null
           }
 
           // Obtém o nome do perfil correspondente
-          let name = 'Usuário'
+          let name = user.email
           if (user.admin) {
             name = user.admin.name
           } else if (user.parceiro) {
@@ -88,18 +56,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name = user.assinante.name
           }
 
-          console.log('[AUTH] Login bem sucedido:', { email, role: user.role, name })
+          console.log('[AUTH] Login bem-sucedido:', credentials.email, 'Role:', user.role)
 
-          // Retorna os dados do usuário para o token
           return {
             id: user.id,
             email: user.email,
-            role: user.role,
             name,
-            avatar: user.avatar,
+            role: user.role,
+            avatar: user.avatar
           }
         } catch (error) {
-          console.error('[AUTH] Erro na autenticação:', error)
+          console.error('[AUTH] Erro no authorize:', error)
           return null
         }
       },
