@@ -14,14 +14,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Senha', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        // Verificar se credentials existe e tem os campos necessários
+        const email = credentials?.email as string
+        const password = credentials?.password as string
+
+        if (!email || !password) {
           console.log('[AUTH] Credenciais não fornecidas')
           return null
         }
 
         try {
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
+            where: { email },
             include: {
               assinante: true,
               parceiro: true,
@@ -30,19 +34,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           })
 
           if (!user) {
-            console.log('[AUTH] Usuário não encontrado:', credentials.email)
+            console.log('[AUTH] Usuário não encontrado:', email)
             return null
           }
 
-          const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+          const isPasswordValid = await bcrypt.compare(password, user.password)
 
           if (!isPasswordValid) {
-            console.log('[AUTH] Senha incorreta para:', credentials.email)
+            console.log('[AUTH] Senha incorreta para:', email)
             return null
           }
 
           if (!user.isActive) {
-            console.log('[AUTH] Usuário desativado:', credentials.email)
+            console.log('[AUTH] Usuário desativado:', email)
             return null
           }
 
@@ -56,7 +60,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name = user.assinante.name
           }
 
-          console.log('[AUTH] Login bem-sucedido:', credentials.email, 'Role:', user.role)
+          console.log('[AUTH] Login bem-sucedido:', email, 'Role:', user.role)
 
           return {
             id: user.id,
