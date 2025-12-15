@@ -58,12 +58,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return null
           }
 
-          // Para ASSINANTE: permite login independente do isActive
-          // O status (Pendente/Inativo/Expirado) só afeta o que vê no painel, não bloqueia login
-          // Para outros roles (ADMIN, PARCEIRO): verifica isActive para bloqueio administrativo
+          // Para outros roles (ADMIN, PARCEIRO, DEVELOPER): verifica isActive
           if (user.role !== 'ASSINANTE' && !user.isActive) {
             console.log('[AUTH] Usuário bloqueado (isActive=false)')
-            return null
+            throw new Error('Conta desativada. Entre em contato com o suporte.')
+          }
+
+          // Para ASSINANTE: verificar status da assinatura
+          if (user.role === 'ASSINANTE') {
+            if (!user.assinante) {
+              console.log('[AUTH] Assinante não encontrado')
+              throw new Error('Perfil de assinante não encontrado. Por favor, faça sua assinatura.')
+            }
+            
+            if (user.assinante.status === 'CANCELLED') {
+              console.log('[AUTH] Assinatura cancelada')
+              throw new Error('Sua assinatura foi cancelada. Refaça sua assinatura para continuar.')
+            }
+            
+            if (user.assinante.status === 'INACTIVE') {
+              console.log('[AUTH] Assinatura inativa')
+              throw new Error('Sua assinatura está inativa. Renove para continuar.')
+            }
           }
 
           // Obtém o nome do perfil correspondente

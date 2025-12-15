@@ -1,373 +1,252 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Loader2, Mail, Lock, Eye, EyeOff, User, Phone, Building2, Users } from 'lucide-react'
-import { toast } from 'sonner'
-
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { 
+  Loader2, 
+  ArrowLeft,
+  User,
+  Mail,
+  Lock,
+  Phone,
+  Gift,
+  AlertCircle,
+  Check
+} from 'lucide-react'
+import { toast } from 'sonner'
 
-// Schema para cadastro de Assinante
-const assinanteSchema = z.object({
-  name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-  email: z.string().email('Email inválido'),
-  phone: z.string().min(10, 'Telefone inválido').max(11, 'Telefone inválido'),
-  cpf: z.string().length(11, 'CPF deve ter 11 dígitos'),
-  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Senhas não conferem',
-  path: ['confirmPassword'],
-})
-
-// Schema para cadastro de Parceiro
-const parceiroSchema = z.object({
-  companyName: z.string().min(3, 'Razão social deve ter no mínimo 3 caracteres'),
-  tradeName: z.string().optional(),
-  email: z.string().email('Email inválido'),
-  phone: z.string().min(10, 'Telefone inválido').max(11, 'Telefone inválido'),
-  cnpj: z.string().length(14, 'CNPJ deve ter 14 dígitos'),
-  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Senhas não conferem',
-  path: ['confirmPassword'],
-})
-
-type AssinanteFormData = z.infer<typeof assinanteSchema>
-type ParceiroFormData = z.infer<typeof parceiroSchema>
-
-function CadastroForm() {
+export default function CadastroPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const tipo = searchParams.get('tipo')
+  const planId = searchParams.get('plano')
   
-  const [activeTab, setActiveTab] = useState<string>(tipo === 'parceiro' ? 'parceiro' : 'assinante')
-  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-
-  // Form de Assinante
-  const assinanteForm = useForm<AssinanteFormData>({
-    resolver: zodResolver(assinanteSchema),
+  const [error, setError] = useState<string | null>(null)
+  const [planName, setPlanName] = useState<string>('')
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: ''
   })
 
-  // Form de Parceiro
-  const parceiroForm = useForm<ParceiroFormData>({
-    resolver: zodResolver(parceiroSchema),
-  })
+  useEffect(() => {
+    if (planId) {
+      fetchPlanName()
+    }
+  }, [planId])
 
-  async function onSubmitAssinante(data: AssinanteFormData) {
-    setIsLoading(true)
-    
+  const fetchPlanName = async () => {
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch(`/api/public/plans/${planId}`)
+      const data = await response.json()
+      if (data.plan) {
+        setPlanName(data.plan.name)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar plano:', error)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    // Validações
+    if (formData.password !== formData.confirmPassword) {
+      setError('As senhas não coincidem')
+      return
+    }
+
+    if (formData.password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres')
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('/api/auth/register/assinante', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          cpf: data.cpf,
-          password: data.password,
-        }),
+          ...formData,
+          planId
+        })
       })
 
-      const result = await response.json()
+      const data = await response.json()
 
-      if (response.ok) {
-        toast.success('Cadastro realizado com sucesso! Faça login para continuar.')
-        // Aguarda um momento para o toast ser exibido antes do redirecionamento
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        router.push('/login?registered=true')
-      } else {
-        toast.error(result.error || 'Erro ao realizar cadastro')
+      if (!response.ok) {
+        setError(data.error || 'Erro ao criar conta')
         setIsLoading(false)
+        return
       }
-    } catch (error) {
-      console.error('Erro no cadastro:', error)
-      toast.error('Ocorreu um erro ao realizar cadastro. Tente novamente.')
-      setIsLoading(false)
-    }
-  }
 
-  async function onSubmitParceiro(data: ParceiroFormData) {
-    setIsLoading(true)
-    
-    try {
-      const response = await fetch('/api/auth/register/parceiro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-
-      const result = await response.json()
-
-      if (response.ok) {
-        toast.success('Cadastro realizado! Aguarde aprovação.')
-        router.push('/login')
+      toast.success('Conta criada com sucesso!')
+      
+      // Redirecionar para checkout/pagamento
+      if (planId && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl
+      } else if (planId) {
+        router.push(`/checkout/${planId}?user=${data.userId}`)
       } else {
-        toast.error(result.error || 'Erro ao realizar cadastro')
+        router.push('/login?registered=true')
       }
-    } catch {
-      toast.error('Ocorreu um erro ao realizar cadastro')
-    } finally {
+
+    } catch (error) {
+      setError('Erro ao criar conta. Tente novamente.')
       setIsLoading(false)
     }
   }
 
-  // Função para formatar CPF enquanto digita
-  function formatCPF(value: string) {
-    return value.replace(/\D/g, '').slice(0, 11)
-  }
-
-  // Função para formatar CNPJ enquanto digita
-  function formatCNPJ(value: string) {
-    return value.replace(/\D/g, '').slice(0, 14)
-  }
-
-  // Função para formatar telefone enquanto digita
-  function formatPhone(value: string) {
-    return value.replace(/\D/g, '').slice(0, 11)
-  }
-
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="grid w-full grid-cols-2 mb-6">
-        <TabsTrigger value="assinante" className="flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          Assinante
-        </TabsTrigger>
-        <TabsTrigger value="parceiro" className="flex items-center gap-2">
-          <Building2 className="h-4 w-4" />
-          Parceiro
-        </TabsTrigger>
-      </TabsList>
-
-      {/* Formulário de Assinante */}
-      <TabsContent value="assinante">
-        <form onSubmit={assinanteForm.handleSubmit(onSubmitAssinante)} className="space-y-4">
-          {/* Nome */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome completo</Label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="name"
-                placeholder="Seu nome completo"
-                className="pl-10"
-                disabled={isLoading}
-                {...assinanteForm.register('name')}
-              />
-            </div>
-            {assinanteForm.formState.errors.name && (
-              <p className="text-sm text-destructive">{assinanteForm.formState.errors.name.message}</p>
-            )}
-          </div>
-
-          {/* Email */}
-          <div className="space-y-2">
-            <Label htmlFor="email-assinante">Email</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="email-assinante"
-                type="email"
-                placeholder="seu@email.com"
-                className="pl-10"
-                disabled={isLoading}
-                {...assinanteForm.register('email')}
-              />
-            </div>
-            {assinanteForm.formState.errors.email && (
-              <p className="text-sm text-destructive">{assinanteForm.formState.errors.email.message}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Telefone */}
-            <div className="space-y-2">
-              <Label htmlFor="phone-assinante">Telefone</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="phone-assinante"
-                  placeholder="11999999999"
-                  className="pl-10"
-                  disabled={isLoading}
-                  {...assinanteForm.register('phone', {
-                    onChange: (e) => {
-                      e.target.value = formatPhone(e.target.value)
-                    }
-                  })}
-                />
-              </div>
-              {assinanteForm.formState.errors.phone && (
-                <p className="text-sm text-destructive">{assinanteForm.formState.errors.phone.message}</p>
-              )}
-            </div>
-
-            {/* CPF */}
-            <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
-              <Input
-                id="cpf"
-                placeholder="00000000000"
-                disabled={isLoading}
-                {...assinanteForm.register('cpf', {
-                  onChange: (e) => {
-                    e.target.value = formatCPF(e.target.value)
-                  }
-                })}
-              />
-              {assinanteForm.formState.errors.cpf && (
-                <p className="text-sm text-destructive">{assinanteForm.formState.errors.cpf.message}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Senha */}
-          <div className="space-y-2">
-            <Label htmlFor="password-assinante">Senha</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="password-assinante"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                className="pl-10 pr-10"
-                disabled={isLoading}
-                {...assinanteForm.register('password')}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            {assinanteForm.formState.errors.password && (
-              <p className="text-sm text-destructive">{assinanteForm.formState.errors.password.message}</p>
-            )}
-          </div>
-
-          {/* Confirmar Senha */}
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword-assinante">Confirmar senha</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="confirmPassword-assinante"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                className="pl-10"
-                disabled={isLoading}
-                {...assinanteForm.register('confirmPassword')}
-              />
-            </div>
-            {assinanteForm.formState.errors.confirmPassword && (
-              <p className="text-sm text-destructive">{assinanteForm.formState.errors.confirmPassword.message}</p>
-            )}
-          </div>
-
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Cadastrando...
-              </>
-            ) : (
-              'Criar conta'
-            )}
-          </Button>
-        </form>
-      </TabsContent>
-
-      {/* Formulário de Parceiro - Em breve */}
-      <TabsContent value="parceiro">
-        <div className="text-center py-8 space-y-4">
-          <Building2 className="h-12 w-12 mx-auto text-muted-foreground" />
-          <div>
-            <h3 className="font-semibold text-lg">Cadastro de Parceiros</h3>
-            <p className="text-muted-foreground">
-              Em breve você poderá se cadastrar como parceiro do Unica Clube de Benefícios.
-            </p>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Para se tornar um parceiro agora, entre em contato com nossa equipe.
-          </p>
-          <Button variant="outline" asChild>
-            <a href="mailto:contato@unica.club">
-              Entrar em contato
-            </a>
-          </Button>
-        </div>
-      </TabsContent>
-    </Tabs>
-  )
-}
-
-function CadastroFormSkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2 mb-6">
-        <Skeleton className="h-10" />
-        <Skeleton className="h-10" />
-      </div>
-      <Skeleton className="h-10" />
-      <Skeleton className="h-10" />
-      <div className="grid grid-cols-2 gap-4">
-        <Skeleton className="h-10" />
-        <Skeleton className="h-10" />
-      </div>
-      <Skeleton className="h-10" />
-      <Skeleton className="h-10" />
-      <Skeleton className="h-10" />
-    </div>
-  )
-}
-
-export default function CadastroPage() {
-  return (
-    <Card className="border-0 shadow-lg">
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-bold">Criar conta</CardTitle>
-        <CardDescription>
-          Escolha o tipo de conta e preencha seus dados
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent>
-        <Suspense fallback={<CadastroFormSkeleton />}>
-          <CadastroForm />
-        </Suspense>
-      </CardContent>
-
-      <CardFooter>
-        <p className="text-center text-sm text-muted-foreground w-full">
-          Já tem uma conta?{' '}
-          <Link href="/login" className="text-primary font-medium hover:underline">
-            Fazer login
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-muted/30">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <Link href="/planos" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+            <ArrowLeft className="h-4 w-4" />
+            Voltar aos Planos
           </Link>
-        </p>
-      </CardFooter>
-    </Card>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+              <Gift className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <span className="text-2xl font-bold">UNICA</span>
+          </div>
+          {planName && (
+            <p className="text-muted-foreground">
+              Criando conta para o plano <strong>{planName}</strong>
+            </p>
+          )}
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Criar Conta</CardTitle>
+            <CardDescription>
+              Preencha seus dados para continuar
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome Completo</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="name"
+                    placeholder="Seu nome completo"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">WhatsApp</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    placeholder="(00) 00000-0000"
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                    value={formData.password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Repita a senha"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full h-12" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Criando conta...
+                  </>
+                ) : (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Criar Conta e Continuar
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Já tem conta?{' '}
+              <Link href="/login" className="text-primary hover:underline">
+                Faça login
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   )
 }
