@@ -22,7 +22,23 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ parceiro })
+    if (!parceiro) {
+      return NextResponse.json({ error: 'Parceiro não encontrado' }, { status: 404 })
+    }
+
+    // Extrair dados do contact JSON se existir
+    const contact = parceiro.contact as Record<string, string> | null
+
+    return NextResponse.json({ 
+      parceiro: {
+        ...parceiro,
+        whatsapp: contact?.whatsapp ?? '',
+        phone: contact?.phone ?? '',
+        website: contact?.website ?? '',
+        instagram: contact?.instagram ?? '',
+        facebook: contact?.facebook ?? ''
+      }
+    })
 
   } catch (error) {
     console.error('Erro ao buscar parceiro:', error)
@@ -40,7 +56,7 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json()
 
-    // Buscar parceiro atual
+    // Buscar parceiro atual para pegar o contact existente
     const parceiro = await prisma.parceiro.findFirst({
       where: { userId: session.user.id }
     })
@@ -49,34 +65,28 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Parceiro não encontrado' }, { status: 404 })
     }
 
-    // Atualizar parceiro
+    // Montar objeto contact atualizado
+    const currentContact = parceiro.contact as Record<string, string> | null
+    const updatedContact = {
+      ...(currentContact || {}),
+      whatsapp: body.whatsapp ?? currentContact?.whatsapp ?? '',
+      phone: body.phone ?? currentContact?.phone ?? '',
+      website: body.website ?? currentContact?.website ?? '',
+      instagram: body.instagram ?? currentContact?.instagram ?? '',
+      facebook: body.facebook ?? currentContact?.facebook ?? ''
+    }
+
+    // Atualizar parceiro com campos que existem no schema
     await prisma.parceiro.update({
       where: { id: parceiro.id },
       data: {
-        tradeName: body.tradeName,
-        description: body.description,
-        category: body.category,
-        logo: body.logo,
-        banner: body.banner,
-        gallery: body.gallery || [],
-        whatsapp: body.whatsapp,
-        contact: {
-          ...(parceiro.contact as object || {}),
-          whatsapp: body.whatsapp,
-          phone: body.phone
-        },
-        address: {
-          ...(parceiro.address as object || {}),
-          street: body.address,
-          number: body.number,
-          complement: body.complement,
-          neighborhood: body.neighborhood,
-          zipCode: body.zipCode
-        },
-        hours: {
-          ...(parceiro.hours as object || {}),
-          weekdays: body.openingHours
-        }
+        tradeName: body.tradeName ?? parceiro.tradeName,
+        description: body.description ?? parceiro.description,
+        category: body.category ?? parceiro.category,
+        logo: body.logo ?? parceiro.logo,
+        banner: body.banner ?? parceiro.banner,
+        gallery: body.gallery ?? parceiro.gallery,
+        contact: updatedContact,
       }
     })
 
@@ -87,4 +97,3 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
-
