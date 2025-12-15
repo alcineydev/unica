@@ -168,6 +168,7 @@ interface Subscriber {
   user?: {
     email: string
     isActive: boolean
+    avatar?: string | null
   } | null
   _count?: {
     transactions: number
