@@ -71,12 +71,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               throw new Error('Perfil de assinante não encontrado. Por favor, faça sua assinatura.')
             }
             
-            if (user.assinante.status === 'CANCELLED') {
+            if (user.assinante.subscriptionStatus === 'CANCELLED') {
               console.log('[AUTH] Assinatura cancelada')
               throw new Error('Sua assinatura foi cancelada. Refaça sua assinatura para continuar.')
             }
             
-            if (user.assinante.status === 'INACTIVE') {
+            if (user.assinante.subscriptionStatus === 'INACTIVE') {
               console.log('[AUTH] Assinatura inativa')
               throw new Error('Sua assinatura está inativa. Renove para continuar.')
             }
