@@ -192,6 +192,7 @@ export default function IntegracoesPage() {
         for (const integration of data) {
           if (integration.type === 'PAYMENT') {
             setMercadoPago({
+              mode: integration.config.mode || 'sandbox',
               accessToken: integration.config.accessToken || '',
               publicKey: integration.config.publicKey || '',
               webhookUrl: integration.config.webhookUrl || '',
