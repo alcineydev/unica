@@ -51,9 +51,9 @@ export async function GET() {
           qrCode: assinante.qrCode,
           points: Number(assinante.points),
           cashback: Number(assinante.cashback),
-          plan: {
+          plan: assinante.plan ? {
             name: assinante.plan.name,
-          },
+          } : null,
         },
         transactions: transactions.map(tx => ({
           id: tx.id,
