@@ -193,7 +193,7 @@ export default function ParceiroConfiguracoesPage() {
                 value={formData.banner}
                 onChange={(url) => setFormData(prev => ({ ...prev, banner: url || '' }))}
                 folder="parceiros/banners"
-                aspectRatio="wide"
+                aspectRatio="banner"
                 className="w-full h-32 md:h-40"
               />
             </div>
