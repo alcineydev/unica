@@ -67,6 +67,13 @@ export async function POST(request: Request) {
     let discountPercentage = 0
     let cashbackPercentage = 0
 
+    if (!assinante.plan) {
+      return NextResponse.json(
+        { error: 'Assinante sem plano ativo' },
+        { status: 400 }
+      )
+    }
+
     for (const pb of assinante.plan.planBenefits) {
       const value = pb.benefit.value as { percentage?: number }
       

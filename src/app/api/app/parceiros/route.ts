@@ -127,7 +127,7 @@ export async function GET() {
     return NextResponse.json({ 
       data: parceirosFormatados,
       total: parceirosFormatados.length,
-      planName: assinante.plan.name
+      planName: assinante.plan?.name || ''
     })
 
   } catch (error) {

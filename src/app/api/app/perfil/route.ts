@@ -52,10 +52,10 @@ export async function GET() {
         cpf: assinante.cpf,
         phone: assinante.phone,
         city: assinante.city,
-        plan: {
+        plan: assinante.plan ? {
           name: assinante.plan.name,
           price: Number(assinante.plan.price),
-        },
+        } : null,
         subscriptionStatus: assinante.subscriptionStatus,
         createdAt: assinante.user.createdAt.toISOString(),
       },

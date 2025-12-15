@@ -58,7 +58,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         points: Number(assinante.points),
         cashback: Number(assinante.cashback),
         subscriptionStatus: assinante.subscriptionStatus,
-        plan: {
+        plan: assinante.plan ? {
           id: assinante.plan.id,
           name: assinante.plan.name,
           planBenefits: assinante.plan.planBenefits.map(pb => ({
@@ -69,7 +69,7 @@ export async function GET(request: Request, { params }: RouteParams) {
               value: pb.benefit.value,
             },
           })),
-        },
+        } : null,
       },
     })
   } catch (error) {
