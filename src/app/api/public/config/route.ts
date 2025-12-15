@@ -9,8 +9,8 @@ export async function GET() {
       where: { key: 'global' }
     })
 
-    // Retornar apenas campos públicos
-    const config = configRecord?.value as Record<string, unknown> || {}
+    // Retornar apenas campos públicos - cast via unknown para satisfazer TypeScript
+    const config = (configRecord?.value as unknown as Record<string, unknown>) || {}
     
     return NextResponse.json({ 
       config: {
@@ -30,4 +30,3 @@ export async function GET() {
     return NextResponse.json({ config: null })
   }
 }
-
