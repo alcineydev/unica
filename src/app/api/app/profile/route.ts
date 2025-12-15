@@ -71,7 +71,7 @@ export async function GET() {
       profileData = {
         ...profileData,
         name: user.assinante.name,
-        cpf: user.assinante.cpf,
+        cpf: user.assinante.cpf || '',
         phone: user.assinante.phone || user.phone || '',
         city: user.assinante.city,
         plan: user.assinante.plan,
