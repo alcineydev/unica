@@ -1,7 +1,9 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import { Providers } from '@/components/providers'
+import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
+import { InstallPrompt } from '@/components/pwa/install-prompt'
 import './globals.css'
 
 const geistSans = Geist({
@@ -14,18 +16,31 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 })
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#000000',
+}
+
 export const metadata: Metadata = {
   title: {
-    default: 'Unica Clube de Benefícios',
-    template: '%s | Unica',
+    default: 'UNICA - Clube de Benefícios',
+    template: '%s | UNICA',
   },
-  description: 'Clube de benefícios do Grupo Zan Norte - Descontos, cashback e muito mais',
+  description: 'Seu clube de benefícios e descontos exclusivos',
   keywords: ['clube de benefícios', 'descontos', 'cashback', 'Sinop', 'Mato Grosso'],
-  manifest: '/api/manifest',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'UNICA',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'default',
   },
   formatDetection: {
     telephone: false,
@@ -43,7 +58,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
         <Providers>
+          <ServiceWorkerRegister />
           {children}
+          <InstallPrompt />
         </Providers>
         <Toaster richColors position="top-right" />
       </body>
