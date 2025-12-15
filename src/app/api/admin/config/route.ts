@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
       await prisma.config.create({
         data: {
           key: 'global',
-          value: body
+          value: body,
+          description: 'Configurações globais do sistema',
+          category: 'SYSTEM'
         }
       })
     }
@@ -57,4 +59,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
-
