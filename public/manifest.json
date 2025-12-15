@@ -9,7 +9,15 @@
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "pt-BR",
+  "id": "/",
+  "categories": ["lifestyle", "shopping"],
   "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
@@ -22,6 +30,21 @@
       "type": "image/png",
       "purpose": "maskable any"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Minha Carteira",
+      "short_name": "Carteira",
+      "description": "Ver saldo e QR Code",
+      "url": "/app/carteira",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Parceiros",
+      "short_name": "Parceiros",
+      "description": "Ver parceiros disponíveis",
+      "url": "/app/parceiros",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+    }
   ]
 }
-

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Download, X } from 'lucide-react'
+import { Download, X, Share } from 'lucide-react'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -14,18 +14,25 @@ export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showPrompt, setShowPrompt] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
+  const [isStandalone, setIsStandalone] = useState(false)
 
   useEffect(() => {
+    // Verificar se já está instalado (standalone mode)
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+    setIsStandalone(standalone)
+    
+    if (standalone) return
+
     // Detectar iOS
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream
     setIsIOS(isIOSDevice)
 
-    // Verificar se já foi instalado ou dismissed
-    const dismissed = localStorage.getItem('pwa-install-dismissed')
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-    
-    if (dismissed || isStandalone) {
-      return
+    // Verificar se já foi dispensado recentemente
+    const dismissedAt = localStorage.getItem('pwa-install-dismissed')
+    if (dismissedAt) {
+      const daysSinceDismissed = (Date.now() - new Date(dismissedAt).getTime()) / (1000 * 60 * 60 * 24)
+      if (daysSinceDismissed < 7) return // Mostrar novamente após 7 dias
     }
 
     // Listener para o evento beforeinstallprompt (Android/Desktop)
@@ -42,7 +49,7 @@ export function InstallPrompt() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
     // Para iOS, mostrar instruções após 5 segundos
-    if (isIOSDevice && !isStandalone) {
+    if (isIOSDevice && !standalone) {
       setTimeout(() => {
         setShowPrompt(true)
       }, 5000)
@@ -68,11 +75,11 @@ export function InstallPrompt() {
   }
 
   const handleDismiss = () => {
-    localStorage.setItem('pwa-install-dismissed', 'true')
+    localStorage.setItem('pwa-install-dismissed', new Date().toISOString())
     setShowPrompt(false)
   }
 
-  if (!showPrompt) return null
+  if (!showPrompt || isStandalone) return null
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 animate-in slide-in-from-bottom-4">
@@ -86,7 +93,7 @@ export function InstallPrompt() {
               <p className="font-semibold">Instalar UNICA</p>
               {isIOS ? (
                 <p className="text-sm text-muted-foreground">
-                  Toque em <span className="inline-flex items-center"><svg className="w-4 h-4 mx-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 3a1 1 0 011 1v4h4a1 1 0 110 2h-4v4a1 1 0 11-2 0v-4H5a1 1 0 110-2h4V4a1 1 0 011-1z"/></svg></span> e depois em &quot;Adicionar à Tela Inicial&quot;
+                  Toque em <Share className="inline h-4 w-4 mx-1" /> e depois em &quot;Adicionar à Tela Inicial&quot;
                 </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
