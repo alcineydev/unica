@@ -150,7 +150,10 @@ export async function POST(
           }),
         ])
         
-        recipients.push(...assinantes1)
+        // Filtrar apenas assinantes com telefone válido
+        assinantes1
+          .filter((a): a is { phone: string } => typeof a.phone === 'string' && a.phone.length > 0)
+          .forEach(a => recipients.push(a))
         // Extrair telefone do JSON contact dos parceiros
         parceiros1.forEach(p => {
           const contact = p.contact as { whatsapp?: string; phone?: string }
@@ -168,7 +171,9 @@ export async function POST(
           },
           select: { phone: true },
         })
-        recipients.push(...assinantes2)
+        assinantes2
+          .filter((a): a is { phone: string } => typeof a.phone === 'string' && a.phone.length > 0)
+          .forEach(a => recipients.push(a))
         break
 
       case 'PLANO_ESPECIFICO':
@@ -181,7 +186,9 @@ export async function POST(
             },
             select: { phone: true },
           })
-          recipients.push(...assinantes3)
+          assinantes3
+            .filter((a): a is { phone: string } => typeof a.phone === 'string' && a.phone.length > 0)
+            .forEach(a => recipients.push(a))
         }
         break
 
