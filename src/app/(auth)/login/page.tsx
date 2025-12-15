@@ -35,22 +35,36 @@ function LoginForm() {
     setError(null)
 
     try {
+      console.log('[LOGIN] Tentando login com:', formData.email)
+      
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
         redirect: false
       })
 
+      console.log('[LOGIN] Resultado:', result)
+
       if (result?.error) {
+        console.log('[LOGIN] Erro:', result.error)
         setError('Email ou senha incorretos.')
         setIsLoading(false)
         return
       }
 
-      // Redirecionar
-      window.location.href = callbackUrl
+      if (result?.ok) {
+        console.log('[LOGIN] Sucesso! Redirecionando para:', callbackUrl)
+        // Usar window.location para garantir redirecionamento
+        window.location.href = callbackUrl || '/app'
+        return
+      }
+
+      // Se chegou aqui, algo deu errado
+      setError('Erro ao fazer login. Tente novamente.')
+      setIsLoading(false)
 
     } catch (error) {
+      console.error('[LOGIN] Exceção:', error)
       setError('Erro ao fazer login. Tente novamente.')
       setIsLoading(false)
     }
