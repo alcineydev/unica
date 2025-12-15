@@ -141,9 +141,9 @@ model Parceiro {
 model Assinante {
   id                 String             @id @default(cuid())
   userId             String             @unique
-  cpf                String             @unique @db.VarChar(11)
+  cpf                String?            @unique @db.VarChar(11)
   name               String
-  phone              String
+  phone              String?
   cityId             String?
   address            Json?
   planId             String?

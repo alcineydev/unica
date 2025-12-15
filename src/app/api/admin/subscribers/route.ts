@@ -162,11 +162,11 @@ export async function POST(request: Request) {
         assinante: {
           create: {
             name,
-            cpf: cpf || null,
-            phone: phone || null,
+            cpf: cpf || undefined,
+            phone: phone || undefined,
             qrCode,
-            cityId: cityId || null,
-            planId: planId || null,
+            cityId: cityId || undefined,
+            planId: planId || undefined,
             subscriptionStatus: subscriptionStatus || 'PENDING',
             points: 0,
             cashback: 0,
