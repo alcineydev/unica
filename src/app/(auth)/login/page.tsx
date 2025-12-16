@@ -34,38 +34,46 @@ function LoginForm() {
     setIsLoading(true)
     setError(null)
 
+    console.log('[LOGIN] Iniciando login com:', formData.email)
+
     try {
-      console.log('[LOGIN] Tentando login com:', formData.email)
-      
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
         redirect: false
       })
 
-      console.log('[LOGIN] Resultado:', result)
+      console.log('[LOGIN] Resultado completo:', JSON.stringify(result))
 
-      if (result?.error) {
-        console.log('[LOGIN] Erro:', result.error)
+      if (!result) {
+        console.log('[LOGIN] Resultado nulo')
+        setError('Erro ao conectar. Tente novamente.')
+        setIsLoading(false)
+        return
+      }
+
+      if (result.error) {
+        console.log('[LOGIN] Erro retornado:', result.error)
         setError('Email ou senha incorretos.')
         setIsLoading(false)
         return
       }
 
-      if (result?.ok) {
-        console.log('[LOGIN] Sucesso! Redirecionando para:', callbackUrl)
-        // Usar window.location para garantir redirecionamento
-        window.location.href = callbackUrl || '/app'
+      if (result.ok) {
+        console.log('[LOGIN] Sucesso! Redirecionando para:', callbackUrl || '/app')
+        // Força redirecionamento
+        window.location.replace(callbackUrl || '/app')
         return
       }
 
-      // Se chegou aqui, algo deu errado
-      setError('Erro ao fazer login. Tente novamente.')
+      // Fallback
+      console.log('[LOGIN] Estado inesperado:', result)
+      setError('Erro inesperado. Tente novamente.')
       setIsLoading(false)
 
     } catch (error) {
-      console.error('[LOGIN] Exceção:', error)
-      setError('Erro ao fazer login. Tente novamente.')
+      console.error('[LOGIN] Exceção capturada:', error)
+      setError('Erro de conexão. Verifique sua internet.')
       setIsLoading(false)
     }
   }
