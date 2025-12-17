@@ -165,16 +165,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Benefício não encontrado' }, { status: 404 })
     }
 
-    // Registrar uso (incrementar métrica do parceiro se existir)
-    if (parceiro) {
-      await prisma.parceiro.update({
-        where: { id: parceiro.id },
-        data: {
-          totalSales: { increment: 1 }
-        }
-      })
-    }
-
+    // TODO: Criar tabela Transaction para histórico de validações
     console.log('[VALIDAR] Uso registrado:', {
       assinanteId,
       assinanteNome: assinante.name,
