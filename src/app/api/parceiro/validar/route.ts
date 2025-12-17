@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const parceiro = await prisma.parceiro.findFirst({
       where: { userId: session.user.id },
       include: {
-        benefitAccesses: {
+        benefitAccess: {
           where: { isActive: true },
           include: { benefit: true }
         }
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
 
     // Filtrar benefícios que o assinante TEM (pelo plano) E que o parceiro OFERECE
     const beneficiosDoPlano = assinante.plan?.planBenefits.map(pb => pb.benefit) || []
-    const beneficiosDoParceiro = parceiro?.benefitAccesses.map(ba => ba.benefit) || []
+    const beneficiosDoParceiro = parceiro?.benefitAccess.map(ba => ba.benefit) || []
     
     // Se for admin/dev, mostrar todos os benefícios do plano
     const beneficiosDisponiveis = session.user.role === 'PARCEIRO' 
