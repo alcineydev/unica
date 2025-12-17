@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Camera, CameraOff, RefreshCw } from 'lucide-react'
+import { Camera, CameraOff, RefreshCw, Loader2 } from 'lucide-react'
 
 interface QRCodeScannerProps {
   onScan: (result: string) => void
@@ -13,10 +13,9 @@ interface QRCodeScannerProps {
 
 export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
   const [isScanning, setIsScanning] = useState(false)
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null)
+  const [isStarting, setIsStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const scannerRef = useRef<Html5Qrcode | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     return () => {
@@ -25,11 +24,23 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
   }, [])
 
   async function startScanning() {
-    if (!containerRef.current) return
-
     setError(null)
+    setIsStarting(true)
     
     try {
+      // Pequeno delay para garantir que o DOM está pronto
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Limpar scanner anterior se existir
+      if (scannerRef.current) {
+        try {
+          await scannerRef.current.stop()
+          scannerRef.current.clear()
+        } catch {
+          // Ignorar erros ao limpar
+        }
+      }
+      
       const html5QrCode = new Html5Qrcode('qr-reader')
       scannerRef.current = html5QrCode
 
@@ -42,41 +53,46 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
         },
         (decodedText) => {
           // QR Code lido com sucesso
+          console.log('[QR] Código lido:', decodedText)
           onScan(decodedText)
           stopScanning()
         },
-        (errorMessage) => {
-          // Erro durante a leitura (normal enquanto procura)
-          // Não mostrar erro para cada frame sem QR
+        () => {
+          // Ignorar erros de frame sem QR (normal)
         }
       )
 
       setIsScanning(true)
-      setHasPermission(true)
+      console.log('[QR] Scanner iniciado com sucesso')
     } catch (err) {
-      console.error('Erro ao iniciar scanner:', err)
+      console.error('[QR] Erro ao iniciar scanner:', err)
       const errorMessage = err instanceof Error ? err.message : 'Erro ao acessar câmera'
       
       if (errorMessage.includes('Permission denied') || errorMessage.includes('NotAllowedError')) {
-        setHasPermission(false)
-        setError('Permissão de câmera negada. Por favor, permita o acesso à câmera.')
+        setError('Permissão de câmera negada. Permita o acesso nas configurações do navegador.')
       } else if (errorMessage.includes('NotFoundError')) {
         setError('Nenhuma câmera encontrada no dispositivo.')
+      } else if (errorMessage.includes('NotReadableError')) {
+        setError('Câmera em uso por outro aplicativo.')
       } else {
-        setError('Erro ao iniciar o scanner. Tente novamente.')
+        setError(`Erro: ${errorMessage}`)
       }
       
       onError?.(errorMessage)
+    } finally {
+      setIsStarting(false)
     }
   }
 
   async function stopScanning() {
     if (scannerRef.current) {
       try {
-        await scannerRef.current.stop()
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop()
+        }
         scannerRef.current.clear()
       } catch (err) {
-        console.error('Erro ao parar scanner:', err)
+        console.error('[QR] Erro ao parar scanner:', err)
       }
       scannerRef.current = null
     }
@@ -87,21 +103,20 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
     <Card className="overflow-hidden">
       <CardContent className="p-0">
         <div className="relative">
-          {/* Container do Scanner */}
+          {/* Container do Scanner - sempre visível mas com altura controlada */}
           <div
             id="qr-reader"
-            ref={containerRef}
-            className={`w-full aspect-square bg-zinc-900 ${!isScanning ? 'hidden' : ''}`}
+            className={`w-full bg-zinc-900 ${isScanning || isStarting ? 'min-h-[300px]' : 'h-0 overflow-hidden'}`}
           />
 
           {/* Placeholder quando não está escaneando */}
-          {!isScanning && (
+          {!isScanning && !isStarting && (
             <div className="w-full aspect-square bg-zinc-900 flex flex-col items-center justify-center p-6">
               {error ? (
                 <>
-                  <CameraOff className="h-16 w-16 text-zinc-600 mb-4" />
-                  <p className="text-zinc-400 text-center text-sm mb-4">{error}</p>
-                  <Button onClick={startScanning} variant="outline">
+                  <CameraOff className="h-16 w-16 text-red-500/60 mb-4" />
+                  <p className="text-red-400 text-center text-sm mb-4">{error}</p>
+                  <Button onClick={startScanning} variant="outline" className="text-white border-zinc-600">
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Tentar Novamente
                   </Button>
@@ -121,7 +136,17 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
             </div>
           )}
 
-          {/* Overlay com frame de QR */}
+          {/* Loading */}
+          {isStarting && !isScanning && (
+            <div className="w-full aspect-square bg-zinc-900 flex flex-col items-center justify-center p-6">
+              <Loader2 className="h-16 w-16 text-purple-500 mb-4 animate-spin" />
+              <p className="text-zinc-400 text-center text-sm">
+                Acessando câmera...
+              </p>
+            </div>
+          )}
+
+          {/* Overlay com frame de QR quando escaneando */}
           {isScanning && (
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute inset-0 flex items-center justify-center">
@@ -146,11 +171,11 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
 
         {/* Botão de parar */}
         {isScanning && (
-          <div className="p-4 border-t bg-zinc-950">
+          <div className="p-4 border-t border-zinc-800 bg-zinc-950">
             <Button
               onClick={stopScanning}
               variant="outline"
-              className="w-full"
+              className="w-full border-zinc-600 text-white hover:bg-zinc-800"
             >
               <CameraOff className="h-4 w-4 mr-2" />
               Parar Scanner
@@ -161,4 +186,3 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
     </Card>
   )
 }
-
