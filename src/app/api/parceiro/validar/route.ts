@@ -26,7 +26,6 @@ export async function GET(request: NextRequest) {
       where: { userId: session.user.id },
       include: {
         benefitAccess: {
-          where: { isActive: true },
           include: { benefit: true }
         }
       }
