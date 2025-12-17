@@ -78,36 +78,8 @@ export default function PlanosPage() {
   const handleCheckout = async (plan: Plan) => {
     setCheckoutLoading(plan.id)
     
-    try {
-      // Se tem slug, vai para o checkout público
-      if (plan.slug) {
-        router.push(`/checkout/${plan.slug}`)
-        return
-      }
-
-      // Senão, tenta o checkout interno
-      const response = await fetch('/api/app/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId: plan.id })
-      })
-
-      const data = await response.json()
-
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl
-      } else if (data.success) {
-        toast.success('Plano ativado com sucesso!')
-        router.push('/app')
-      } else {
-        toast.error(data.error || 'Erro ao processar checkout')
-      }
-    } catch (error) {
-      console.error('Erro no checkout:', error)
-      toast.error('Erro ao processar checkout')
-    } finally {
-      setCheckoutLoading(null)
-    }
+    // Redireciona para o checkout público com o ID do plano
+    router.push(`/checkout?plano=${plan.id}`)
   }
 
   const formatPrice = (price: number) => {

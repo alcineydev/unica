@@ -282,14 +282,12 @@ export default function AppHomePage() {
                       )}
                     </div>
 
-                    {plan.slug && (
-                      <Button asChild className="w-full bg-gray-900 hover:bg-gray-800">
-                        <Link href={`/checkout/${plan.slug}`}>
-                          Assinar agora
-                          <ArrowRight className="h-4 w-4 ml-2" />
-                        </Link>
-                      </Button>
-                    )}
+                    <Button asChild className="w-full bg-gray-900 hover:bg-gray-800">
+                      <Link href={`/checkout?plano=${plan.id}`}>
+                        Assinar agora
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Link>
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
