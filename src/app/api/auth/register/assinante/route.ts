@@ -18,6 +18,7 @@ export async function POST(request: Request) {
     }
 
     const { name, email, phone, cpf, password } = validationResult.data
+    const planId = body.planId // Plano selecionado (opcional)
 
     // Verifica se o email já existe
     const existingEmail = await prisma.user.findUnique({
@@ -41,8 +42,16 @@ export async function POST(request: Request) {
       )
     }
 
-    // Busca o primeiro plano ativo (plano padrão)
-    const defaultPlan = await prisma.plan.findFirst({
+    // Busca o plano selecionado ou o primeiro plano ativo (plano padrão)
+    let selectedPlan = null
+    if (planId) {
+      selectedPlan = await prisma.plan.findUnique({
+        where: { id: planId, isActive: true },
+      })
+    }
+    
+    // Se não encontrou o plano selecionado, usa o padrão
+    const defaultPlan = selectedPlan || await prisma.plan.findFirst({
       where: { isActive: true },
       orderBy: { price: 'asc' },
     })
@@ -109,6 +118,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         message: 'Cadastro realizado com sucesso!',
+        userId: user.id,
         user: {
           id: user.id,
           email: user.email,

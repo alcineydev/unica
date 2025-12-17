@@ -34,6 +34,7 @@ function CadastroForm() {
     name: '',
     email: '',
     phone: '',
+    cpf: '',
     password: '',
     confirmPassword: ''
   })
@@ -97,7 +98,7 @@ function CadastroForm() {
       if (planId && data.checkoutUrl) {
         window.location.href = data.checkoutUrl
       } else if (planId) {
-        router.push(`/checkout/${planId}?user=${data.userId}`)
+        router.push(`/checkout?plano=${planId}&user=${data.userId}`)
       } else {
         router.push('/login?registered=true')
       }
@@ -184,8 +185,30 @@ function CadastroForm() {
                   id="phone"
                   placeholder="(00) 00000-0000"
                   value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 11)
+                    setFormData(prev => ({ ...prev, phone: value }))
+                  }}
                   className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cpf">CPF</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="cpf"
+                  placeholder="000.000.000-00"
+                  value={formData.cpf}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 11)
+                    setFormData(prev => ({ ...prev, cpf: value }))
+                  }}
+                  className="pl-10"
+                  required
                 />
               </div>
             </div>
