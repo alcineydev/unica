@@ -83,24 +83,32 @@ export const authConfig: NextAuthConfig = {
  * Verifica se o usuário tem acesso à rota baseado no role
  */
 function checkRouteAccess(pathname: string, role: string): boolean {
-  // Rotas do Developer
+  // Rotas do Developer - apenas DEVELOPER
   if (pathname.startsWith('/developer')) {
-    return role === 'DEVELOPER'
+    const hasAccess = role === 'DEVELOPER'
+    if (!hasAccess) console.log(`[AUTH] BLOQUEADO: ${role} tentou acessar ${pathname}`)
+    return hasAccess
   }
 
-  // Rotas do Admin
+  // Rotas do Admin - apenas ADMIN ou DEVELOPER
   if (pathname.startsWith('/admin')) {
-    return role === 'ADMIN' || role === 'DEVELOPER'
+    const hasAccess = role === 'ADMIN' || role === 'DEVELOPER'
+    if (!hasAccess) console.log(`[AUTH] BLOQUEADO: ${role} tentou acessar ${pathname}`)
+    return hasAccess
   }
 
-  // Rotas do Parceiro
+  // Rotas do Parceiro - apenas PARCEIRO
   if (pathname.startsWith('/parceiro')) {
-    return role === 'PARCEIRO'
+    const hasAccess = role === 'PARCEIRO'
+    if (!hasAccess) console.log(`[AUTH] BLOQUEADO: ${role} tentou acessar ${pathname}`)
+    return hasAccess
   }
 
-  // Rotas do App (Assinante)
+  // Rotas do App (Assinante) - apenas ASSINANTE
   if (pathname.startsWith('/app')) {
-    return role === 'ASSINANTE'
+    const hasAccess = role === 'ASSINANTE'
+    if (!hasAccess) console.log(`[AUTH] BLOQUEADO: ${role} tentou acessar ${pathname}`)
+    return hasAccess
   }
 
   // API routes - verificação específica será feita em cada endpoint

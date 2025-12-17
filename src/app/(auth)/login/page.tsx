@@ -39,7 +39,6 @@ function formatPhone(value: string): string {
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get('callbackUrl') || '/app'
   const tabParam = searchParams.get('tab') || 'entrar'
   
   const [activeTab, setActiveTab] = useState(tabParam)
@@ -83,7 +82,46 @@ function LoginForm() {
         return
       }
 
-      router.push(callbackUrl)
+      // Buscar sessão para obter o role
+      const session = await fetch('/api/auth/session').then(r => r.json())
+      
+      // Redirecionar baseado no role
+      let redirectUrl = '/app' // default para assinante
+      
+      if (session?.user?.role) {
+        switch (session.user.role) {
+          case 'DEVELOPER':
+            redirectUrl = '/developer'
+            break
+          case 'ADMIN':
+            redirectUrl = '/admin'
+            break
+          case 'PARCEIRO':
+            redirectUrl = '/parceiro'
+            break
+          case 'ASSINANTE':
+          default:
+            redirectUrl = '/app'
+            break
+        }
+      }
+      
+      // Se tinha callbackUrl específico E o usuário tem permissão, usa ele
+      const requestedUrl = searchParams.get('callbackUrl')
+      if (requestedUrl && session?.user?.role) {
+        const role = session.user.role
+        const canAccess = 
+          (requestedUrl.startsWith('/admin') && ['ADMIN', 'DEVELOPER'].includes(role)) ||
+          (requestedUrl.startsWith('/developer') && role === 'DEVELOPER') ||
+          (requestedUrl.startsWith('/parceiro') && role === 'PARCEIRO') ||
+          (requestedUrl.startsWith('/app') && role === 'ASSINANTE')
+        
+        if (canAccess) {
+          redirectUrl = requestedUrl
+        }
+      }
+
+      router.push(redirectUrl)
       router.refresh()
 
     } catch (err) {
