@@ -26,7 +26,8 @@ import {
   Smartphone,
   Terminal,
   Key,
-  Shield
+  Shield,
+  Handshake
 } from 'lucide-react'
 
 const menuItems = [
@@ -35,6 +36,7 @@ const menuItems = [
   { title: 'Benefícios', href: '/admin/beneficios', icon: Gift },
   { title: 'Planos', href: '/admin/planos', icon: CreditCard },
   { title: 'Parceiros', href: '/admin/parceiros', icon: Store },
+  { title: 'Interesses', href: '/admin/interesses', icon: Handshake },
   { title: 'Assinantes', href: '/admin/assinantes', icon: Users },
   { title: 'Notificações', href: '/admin/notificacoes', icon: Bell },
   { title: 'Integrações', href: '/admin/integracoes', icon: Plug },
