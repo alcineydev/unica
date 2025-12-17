@@ -20,7 +20,7 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder assets
      */
-    '/((?!api/auth|api/public|api/checkout|api/webhooks|planos|checkout|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api/auth|api/public|api/checkout|api/webhooks|api/manifest|sw\\.js|planos|checkout|_next/static|_next/image|favicon.ico|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
 
