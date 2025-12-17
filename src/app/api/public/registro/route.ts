@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
-import { v4 as uuidv4 } from 'uuid'
+import crypto from 'crypto'
 
 const registroSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(validatedData.password, 10)
     
     // Gerar QR Code único
-    const qrCode = uuidv4()
+    const qrCode = crypto.randomUUID()
     
     // Criar usuário e assinante em transação
     const result = await prisma.$transaction(async (tx) => {

@@ -14,8 +14,12 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
+    console.log('[INTERESSE] Body recebido:', body)
+    
     // Validar dados
     const validatedData = interesseSchema.parse(body)
+    
+    console.log('[INTERESSE] Dados validados:', validatedData)
     
     // Verificar se já existe interesse com este email
     const existente = await prisma.interesseParceiro.findFirst({
@@ -23,6 +27,7 @@ export async function POST(request: NextRequest) {
     })
     
     if (existente) {
+      console.log('[INTERESSE] Email já existe:', validatedData.email)
       return NextResponse.json(
         { error: 'Já recebemos seu interesse! Entraremos em contato em breve.' },
         { status: 400 }
@@ -34,6 +39,8 @@ export async function POST(request: NextRequest) {
       data: validatedData
     })
     
+    console.log('[INTERESSE] Criado com sucesso:', interesse.id)
+    
     return NextResponse.json({
       success: true,
       message: 'Interesse registrado com sucesso! Entraremos em contato em breve.',
@@ -41,10 +48,11 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Erro ao registrar interesse:', error)
+    console.error('[INTERESSE] Erro:', error)
     
     if (error instanceof z.ZodError) {
       const zodError = error as z.ZodError
+      console.log('[INTERESSE] Erro de validação:', zodError.issues)
       return NextResponse.json(
         { error: zodError.issues[0]?.message || 'Dados inválidos' },
         { status: 400 }
@@ -57,4 +65,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
