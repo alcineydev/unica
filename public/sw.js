@@ -1,97 +1,134 @@
-const CACHE_NAME = 'unica-v1';
+const CACHE_NAME = 'unica-v2'
+const OFFLINE_URL = '/offline'
 
-const urlsToCache = [
+// Arquivos para cache inicial
+const PRECACHE_ASSETS = [
   '/',
   '/login',
-  '/app',
-  '/offline'
-];
+  '/manifest.json',
+  '/icons/icon.svg'
+]
 
 // Instalação
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Cache aberto');
-        return cache.addAll(urlsToCache);
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('[SW] Cache aberto')
+      return cache.addAll(PRECACHE_ASSETS).catch((err) => {
+        console.log('[SW] Erro ao cachear:', err)
       })
-  );
-  self.skipWaiting();
-});
+    })
+  )
+  self.skipWaiting()
+})
 
-// Ativação
+// Ativação - limpa caches antigos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Cache antigo removido:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => {
+            console.log('[SW] Removendo cache antigo:', name)
+            return caches.delete(name)
+          })
+      )
     })
-  );
-  self.clients.claim();
-});
+  )
+  self.clients.claim()
+})
 
-// Fetch
+// Fetch - Network first, fallback to cache
 self.addEventListener('fetch', (event) => {
+  // Ignorar requests não-GET e APIs
+  if (event.request.method !== 'GET') return
+  if (event.request.url.includes('/api/')) return
+
+  // Para navegação, tenta rede primeiro
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cachear resposta bem-sucedida
+          const responseClone = response.clone()
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone)
+          })
+          return response
+        })
+        .catch(() => {
+          // Fallback para cache ou página offline
+          return caches.match(event.request)
+            .then((cached) => cached || caches.match('/login'))
+        })
+    )
+    return
+  }
+
+  // Para outros recursos (assets), cache first
   event.respondWith(
     caches.match(event.request)
-      .then((response) => {
-        // Retorna do cache se disponível
-        if (response) {
-          return response;
-        }
+      .then((cached) => {
+        if (cached) return cached
 
-        // Senão, busca na rede
         return fetch(event.request)
           .then((response) => {
-            // Verifica se a resposta é válida
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
+            // Só cacheia respostas válidas
+            if (response.status === 200) {
+              const responseClone = response.clone()
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseClone)
+              })
             }
-
-            // Clona a resposta para cache
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                // Só cacheia GET requests
-                if (event.request.method === 'GET') {
-                  cache.put(event.request, responseToCache);
-                }
-              });
-
-            return response;
+            return response
           })
-          .catch(() => {
-            // Se falhar, mostra página offline
-            if (event.request.mode === 'navigate') {
-              return caches.match('/offline');
-            }
-          });
+          .catch(() => null)
       })
-  );
-});
+  )
+})
 
-// Push notifications (futuro)
+// Push notifications (preparado para futuro)
 self.addEventListener('push', (event) => {
+  const data = event.data?.json() || {}
+  
   const options = {
-    body: event.data?.text() || 'Nova notificação',
+    body: data.body || 'Nova notificação da UNICA',
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
+    badge: '/icons/icon-192x192.png',
     vibrate: [100, 50, 100],
     data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    }
-  };
+      url: data.url || '/',
+      dateOfArrival: Date.now()
+    },
+    actions: data.actions || []
+  }
 
   event.waitUntil(
-    self.registration.showNotification('UNICA', options)
-  );
-});
+    self.registration.showNotification(data.title || 'UNICA', options)
+  )
+})
 
+// Ação ao clicar na notificação
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  
+  const url = event.notification.data?.url || '/'
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Se já tem uma janela aberta, foca nela
+        for (const client of clientList) {
+          if (client.url.includes(self.location.origin) && 'focus' in client) {
+            client.navigate(url)
+            return client.focus()
+          }
+        }
+        // Senão, abre nova janela
+        if (clients.openWindow) {
+          return clients.openWindow(url)
+        }
+      })
+  )
+})
