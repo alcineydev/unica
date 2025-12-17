@@ -411,3 +411,26 @@ model PWAConfig {
 
   @@map("pwa_configs")
 }
+
+/// Interesse de parceria (leads de empresas interessadas)
+model InteresseParceiro {
+  id          String   @id @default(cuid())
+  
+  // Dados do contato
+  nome        String
+  email       String
+  telefone    String
+  
+  // Dados da empresa
+  nomeEmpresa String
+  cidade      String
+  
+  // Controle
+  status      String   @default("PENDENTE") // PENDENTE, CONTATADO, CONVERTIDO, REJEITADO
+  observacoes String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("interesses_parceiros")
+}
