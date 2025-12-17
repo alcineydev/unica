@@ -75,8 +75,9 @@ export async function POST(request: NextRequest) {
     console.error('Erro ao registrar usuário:', error)
     
     if (error instanceof z.ZodError) {
+      const zodError = error as z.ZodError
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: zodError.issues[0]?.message || 'Dados inválidos' },
         { status: 400 }
       )
     }
