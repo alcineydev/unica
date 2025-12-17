@@ -24,7 +24,9 @@ import {
   CheckCircle,
   LogIn,
   UserPlus,
-  Handshake
+  Handshake,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -45,6 +47,11 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  
+  // Estados para visibilidade de senhas
+  const [showLoginPassword, setShowLoginPassword] = useState(false)
+  const [showCadastroPassword, setShowCadastroPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   
   // Form states
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
@@ -377,14 +384,22 @@ function LoginForm() {
                     <Input
                       id="login-password"
                       name="password"
-                      type="password"
+                      type={showLoginPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      className="pl-10 h-11"
+                      className="pl-10 pr-10 h-11"
                       value={loginForm.password}
                       onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                       required
                       disabled={isLoading}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
 
@@ -462,29 +477,49 @@ function LoginForm() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="cad-password">Senha</Label>
-                    <Input
-                      id="cad-password"
-                      type="password"
-                      placeholder="••••••"
-                      className="h-11"
-                      value={cadastroForm.password}
-                      onChange={(e) => setCadastroForm({ ...cadastroForm, password: e.target.value })}
-                      required
-                      disabled={isLoading}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="cad-password"
+                        type={showCadastroPassword ? 'text' : 'password'}
+                        placeholder="••••••"
+                        className="h-11 pr-10"
+                        value={cadastroForm.password}
+                        onChange={(e) => setCadastroForm({ ...cadastroForm, password: e.target.value })}
+                        required
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCadastroPassword(!showCadastroPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showCadastroPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cad-confirm">Confirmar</Label>
-                    <Input
-                      id="cad-confirm"
-                      type="password"
-                      placeholder="••••••"
-                      className="h-11"
-                      value={cadastroForm.confirmPassword}
-                      onChange={(e) => setCadastroForm({ ...cadastroForm, confirmPassword: e.target.value })}
-                      required
-                      disabled={isLoading}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="cad-confirm"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="••••••"
+                        className="h-11 pr-10"
+                        value={cadastroForm.confirmPassword}
+                        onChange={(e) => setCadastroForm({ ...cadastroForm, confirmPassword: e.target.value })}
+                        required
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
