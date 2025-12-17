@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   },
   description: 'Seu clube de benefícios e descontos exclusivos',
   keywords: ['clube de benefícios', 'descontos', 'cashback', 'Sinop', 'Mato Grosso'],
-  manifest: '/manifest.json',
+  manifest: '/api/manifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

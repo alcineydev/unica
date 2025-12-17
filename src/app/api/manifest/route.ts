@@ -36,8 +36,9 @@ export async function GET(request: NextRequest) {
       lang: 'pt-BR',
       categories: ['lifestyle', 'shopping', 'business'],
       icons: icons.length > 0 ? icons : [
-        { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-        { src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' }
+        { src: '/icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+        { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable any' },
+        { src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable any' }
       ],
       shortcuts: [
         {
