@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       assinante: {
         id: assinante.id,
-        nome: assinante.user?.name || assinante.name || 'Sem nome',
+        nome: assinante.name || assinante.user?.email?.split('@')[0] || 'Sem nome',
         email: assinante.user?.email || '',
         telefone: assinante.phone || '',
         cpf: assinante.cpf || '',
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
     // Log da transação
     console.log('[VALIDAR] Benefício validado:', {
       assinanteId,
-      assinanteNome: assinante.user?.name,
+      assinanteNome: assinante.name || 'Assinante',
       beneficioId,
       beneficioNome: beneficio.name,
       parceiroId: parceiro?.id,
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Benefício validado com sucesso!',
       registro: {
-        assinante: assinante.user?.name,
+        assinante: assinante.name || 'Assinante',
         beneficio: beneficio.name,
         parceiro: parceiro?.tradeName || 'Admin',
         pontosGanhos,

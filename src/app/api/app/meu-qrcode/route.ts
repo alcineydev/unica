@@ -42,7 +42,7 @@ export async function GET() {
       qrCode: assinante.qrCode,
       assinante: {
         id: assinante.id,
-        nome: assinante.user?.name || assinante.name || 'Assinante',
+        nome: assinante.name || assinante.user?.email?.split('@')[0] || 'Assinante',
         plano: assinante.plan?.name || 'Sem plano',
         status: assinante.subscriptionStatus
       }
