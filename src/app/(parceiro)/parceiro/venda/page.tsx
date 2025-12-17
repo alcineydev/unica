@@ -100,29 +100,30 @@ export default function ParceiroVendaPage() {
 
       if (response.ok && result.assinante) {
         // Converter formato da nova API para o formato esperado
+        const ass = result.assinante
         const assinanteData: AssinanteData = {
-          id: result.assinante.id,
-          name: result.assinante.nome,
-          cpf: result.assinante.cpf,
-          points: result.assinante.pontos || 0,
-          cashback: result.assinante.cashback || 0,
-          subscriptionStatus: result.assinante.status,
+          id: ass.id || '',
+          name: ass.nome || 'Sem nome',
+          cpf: ass.cpf || '',
+          points: ass.pontos || 0,
+          cashback: ass.cashback || 0,
+          subscriptionStatus: ass.status || 'PENDING',
           plan: {
-            id: result.assinante.plano.id,
-            name: result.assinante.plano.nome,
-            planBenefits: result.assinante.beneficiosDisponiveis.map((b: Record<string, unknown>) => ({
+            id: ass.plano?.id || '',
+            name: ass.plano?.nome || 'Sem plano',
+            planBenefits: (ass.beneficiosDisponiveis || []).map((b: Record<string, unknown>) => ({
               benefit: {
-                id: b.id,
-                name: b.nome,
-                type: b.tipo,
-                value: b.valor
+                id: b.id || '',
+                name: b.nome || '',
+                type: b.tipo || '',
+                value: b.valor || {}
               }
             }))
           }
         }
         setAssinante(assinanteData)
-        setCpf(result.assinante.cpf || '')
-        toast.success(`Assinante encontrado: ${result.assinante.nome}`)
+        setCpf(ass.cpf || '')
+        toast.success(`Assinante encontrado: ${ass.nome || 'Cliente'}`)
       } else {
         toast.error(result.error || 'Assinante não encontrado')
       }
