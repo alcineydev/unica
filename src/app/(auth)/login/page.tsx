@@ -64,15 +64,22 @@ function LoginForm() {
   })
 
   // LOGIN
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
 
+    // Pegar valores diretamente do formulário
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    console.log('[LOGIN] Tentando login com:', email)
+
     try {
       const result = await signIn('credentials', {
-        email: loginForm.email,
-        password: loginForm.password,
+        email,
+        password,
         redirect: false
       })
 
@@ -351,6 +358,7 @@ function LoginForm() {
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="login-email"
+                      name="email"
                       type="email"
                       placeholder="seu@email.com"
                       className="pl-10 h-11"
@@ -368,6 +376,7 @@ function LoginForm() {
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="login-password"
+                      name="password"
                       type="password"
                       placeholder="••••••••"
                       className="pl-10 h-11"

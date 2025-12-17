@@ -14,12 +14,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Senha', type: 'password' },
       },
       async authorize(credentials) {
+        // Debug: ver o que está chegando
+        console.log('[AUTH] Credentials recebidas:', JSON.stringify(credentials, null, 2))
+        
         // Verificar se credentials existe e tem os campos necessários
         const email = credentials?.email as string
         const password = credentials?.password as string
 
+        console.log('[AUTH] Email extraído:', email)
+        console.log('[AUTH] Password extraído:', password ? '[PRESENTE]' : '[VAZIO]')
+
         if (!email || !password) {
-          console.log('[AUTH] Credenciais não fornecidas')
+          console.log('[AUTH] Credenciais não fornecidas - email:', !!email, 'password:', !!password)
           return null
         }
 
