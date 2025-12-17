@@ -77,8 +77,8 @@ export default function ParceiroVendaPage() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [inputMethod, setInputMethod] = useState<'scanner' | 'manual'>('scanner')
 
-  // Buscar assinante por CPF
-  async function searchAssinante(cpfValue: string) {
+  // Buscar assinante por CPF (digitado manualmente)
+  async function searchAssinanteByCPF(cpfValue: string) {
     const cleanCpf = cpfValue.replace(/\D/g, '')
     
     if (cleanCpf.length !== 11) {
@@ -86,17 +86,43 @@ export default function ParceiroVendaPage() {
       return
     }
 
+    await searchAssinante(cleanCpf, 'cpf')
+  }
+
+  // Buscar assinante por QR Code ou CPF (API unificada)
+  async function searchAssinante(valor: string, tipo: 'qrcode' | 'cpf' = 'qrcode') {
     setIsSearching(true)
     setAssinante(null)
 
     try {
-      const response = await fetch(`/api/parceiro/assinante/${cleanCpf}`)
+      const response = await fetch(`/api/parceiro/validar?${tipo}=${encodeURIComponent(valor)}`)
       const result = await response.json()
 
-      if (response.ok) {
-        setAssinante(result.data)
-        setCpf(cleanCpf)
-        toast.success('Assinante encontrado!')
+      if (response.ok && result.assinante) {
+        // Converter formato da nova API para o formato esperado
+        const assinanteData: AssinanteData = {
+          id: result.assinante.id,
+          name: result.assinante.nome,
+          cpf: result.assinante.cpf,
+          points: result.assinante.pontos || 0,
+          cashback: result.assinante.cashback || 0,
+          subscriptionStatus: result.assinante.status,
+          plan: {
+            id: result.assinante.plano.id,
+            name: result.assinante.plano.nome,
+            planBenefits: result.assinante.beneficiosDisponiveis.map((b: Record<string, unknown>) => ({
+              benefit: {
+                id: b.id,
+                name: b.nome,
+                type: b.tipo,
+                value: b.valor
+              }
+            }))
+          }
+        }
+        setAssinante(assinanteData)
+        setCpf(result.assinante.cpf || '')
+        toast.success(`Assinante encontrado: ${result.assinante.nome}`)
       } else {
         toast.error(result.error || 'Assinante não encontrado')
       }
@@ -109,13 +135,9 @@ export default function ParceiroVendaPage() {
 
   // Handler para QR Code escaneado
   function handleQRCodeScan(result: string) {
-    // O QR Code contém o CPF do assinante
-    const cpfFromQR = result.replace(/\D/g, '')
-    if (cpfFromQR.length === 11) {
-      searchAssinante(cpfFromQR)
-    } else {
-      toast.error('QR Code inválido. O código deve conter um CPF válido.')
-    }
+    console.log('[SCAN] QR Code lido:', result)
+    // Enviar valor bruto - a API aceita ID, qrCode ou CPF
+    searchAssinante(result, 'qrcode')
   }
 
   // Calcular venda
@@ -311,7 +333,7 @@ export default function ParceiroVendaPage() {
                     />
                   </div>
                   <Button 
-                    onClick={() => searchAssinante(cpf)} 
+                    onClick={() => searchAssinanteByCPF(cpf)} 
                     disabled={isSearching || cpf.length !== 11}
                   >
                     {isSearching ? (
