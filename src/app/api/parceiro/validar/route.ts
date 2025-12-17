@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export const dynamic = 'force-dynamic'
-
 // GET - Buscar assinante por QR Code ou CPF
 export async function GET(request: NextRequest) {
   try {
@@ -31,71 +29,88 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    if (!parceiro && session.user.role === 'PARCEIRO') {
-      return NextResponse.json({ error: 'Parceiro não encontrado' }, { status: 404 })
-    }
+    // Buscar assinante - aceitar múltiplos formatos
+    let assinante = null
+    const valorBusca = qrcode || cpf || ''
+    const valorLimpo = valorBusca.replace(/\D/g, '') // Remove não-numéricos
 
-    // Buscar assinante
-    let assinante
-    
-    if (qrcode) {
-      // QR Code pode ser o ID do assinante ou o qrCode gerado
-      assinante = await prisma.assinante.findFirst({
-        where: {
-          OR: [
-            { id: qrcode },
-            { qrCode: qrcode },
-            { cpf: qrcode.replace(/\D/g, '') }
-          ]
-        },
-        include: {
-          user: true,
-          plan: {
-            include: {
-              planBenefits: {
-                include: { benefit: true }
-              }
+    // Tentar buscar por diferentes campos
+    assinante = await prisma.assinante.findFirst({
+      where: {
+        OR: [
+          { id: valorBusca }, // ID direto
+          { qrCode: valorBusca }, // Campo qrCode
+          { cpf: valorLimpo }, // CPF limpo
+          { userId: valorBusca }, // User ID
+        ]
+      },
+      include: {
+        user: true,
+        plan: {
+          include: {
+            planBenefits: {
+              include: { benefit: true }
             }
           }
         }
-      })
-    } else if (cpf) {
-      assinante = await prisma.assinante.findFirst({
-        where: { cpf: cpf.replace(/\D/g, '') },
-        include: {
-          user: true,
-          plan: {
+      }
+    })
+
+    // Se não encontrou e parece ser um JSON, tentar parsear
+    if (!assinante && valorBusca.startsWith('{')) {
+      try {
+        const qrData = JSON.parse(valorBusca)
+        const idFromQR = qrData.id || qrData.assinanteId || qrData.cpf
+        
+        if (idFromQR) {
+          assinante = await prisma.assinante.findFirst({
+            where: {
+              OR: [
+                { id: idFromQR },
+                { qrCode: idFromQR },
+                { cpf: idFromQR.replace(/\D/g, '') },
+                { userId: idFromQR }
+              ]
+            },
             include: {
-              planBenefits: {
-                include: { benefit: true }
+              user: true,
+              plan: {
+                include: {
+                  planBenefits: {
+                    include: { benefit: true }
+                  }
+                }
               }
             }
-          }
+          })
         }
-      })
+      } catch {
+        // Não é JSON, continua
+      }
     }
 
     if (!assinante) {
-      return NextResponse.json({ error: 'Assinante não encontrado' }, { status: 404 })
+      return NextResponse.json({ 
+        error: 'Assinante não encontrado',
+        detail: 'Verifique se o QR Code é válido ou tente buscar pelo CPF'
+      }, { status: 404 })
     }
 
     // Filtrar benefícios que o assinante TEM (pelo plano) E que o parceiro OFERECE
     const beneficiosDoPlano = assinante.plan?.planBenefits.map(pb => pb.benefit) || []
-    const beneficiosDoParceiro = parceiro?.benefitAccess.map(ba => ba.benefit) || []
+    const beneficiosDoParceiro = parceiro?.benefitAccess?.map(ba => ba.benefit) || []
     
-    // Se for admin/dev, mostrar todos os benefícios do plano
-    const beneficiosDisponiveis = session.user.role === 'PARCEIRO' 
-      ? beneficiosDoPlano.filter(bp =>
-          beneficiosDoParceiro.some(bpar => bpar.id === bp.id)
-        )
+    // Se for admin/developer, mostrar todos os benefícios do plano
+    const beneficiosDisponiveis = session.user.role === 'PARCEIRO'
+      ? beneficiosDoPlano.filter(bp => beneficiosDoParceiro.some(bpar => bpar.id === bp.id))
       : beneficiosDoPlano
 
     return NextResponse.json({
       assinante: {
         id: assinante.id,
-        nome: assinante.name,
+        nome: assinante.user?.name || assinante.name || 'Sem nome',
         email: assinante.user?.email || '',
-        telefone: assinante.phone,
+        telefone: assinante.phone || '',
         cpf: assinante.cpf || '',
         foto: assinante.user?.avatar,
         plano: {
@@ -103,8 +118,8 @@ export async function GET(request: NextRequest) {
           nome: assinante.plan?.name || 'Sem plano'
         },
         status: assinante.subscriptionStatus,
-        pontos: Number(assinante.points),
-        cashback: Number(assinante.cashback),
+        pontos: assinante.points || 0,
+        cashback: assinante.cashback || 0,
         beneficiosDisponiveis: beneficiosDisponiveis.map(b => ({
           id: b.id,
           nome: b.name,
@@ -130,7 +145,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { assinanteId, beneficioId } = body
+    const { assinanteId, beneficioId, valor } = body
 
     if (!assinanteId || !beneficioId) {
       return NextResponse.json({ error: 'Dados incompletos' }, { status: 400 })
@@ -165,24 +180,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Benefício não encontrado' }, { status: 404 })
     }
 
-    // TODO: Criar tabela Transaction para histórico de validações
-    console.log('[VALIDAR] Uso registrado:', {
+    // Calcular pontos/cashback baseado no benefício
+    let pontosGanhos = 0
+    let cashbackGanho = 0
+
+    if (beneficio.type === 'CASHBACK' && beneficio.value) {
+      const valorCompra = valor || 0
+      const percentual = (beneficio.value as Record<string, number>).percentage || 0
+      cashbackGanho = (valorCompra * percentual) / 100
+    }
+
+    // Atualizar pontos/cashback do assinante
+    if (pontosGanhos > 0 || cashbackGanho > 0) {
+      await prisma.assinante.update({
+        where: { id: assinanteId },
+        data: {
+          points: { increment: pontosGanhos },
+          cashback: { increment: cashbackGanho }
+        }
+      })
+    }
+
+    // Log da transação
+    console.log('[VALIDAR] Benefício validado:', {
       assinanteId,
-      assinanteNome: assinante.name,
+      assinanteNome: assinante.user?.name,
       beneficioId,
       beneficioNome: beneficio.name,
       parceiroId: parceiro?.id,
       parceiroNome: parceiro?.tradeName,
+      pontosGanhos,
+      cashbackGanho,
       data: new Date().toISOString()
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Benefício validado com sucesso',
+      message: 'Benefício validado com sucesso!',
       registro: {
-        assinante: assinante.name,
+        assinante: assinante.user?.name,
         beneficio: beneficio.name,
         parceiro: parceiro?.tradeName || 'Admin',
+        pontosGanhos,
+        cashbackGanho,
         data: new Date().toISOString()
       }
     })
@@ -192,4 +232,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Erro ao validar benefício' }, { status: 500 })
   }
 }
-
