@@ -51,6 +51,7 @@ export async function GET() {
           qrCode: assinante.qrCode,
           points: Number(assinante.points),
           cashback: Number(assinante.cashback),
+          status: assinante.subscriptionStatus,
           plan: assinante.plan ? {
             name: assinante.plan.name,
           } : null,

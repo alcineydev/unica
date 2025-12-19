@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Home, Store, QrCode, User, Crown } from 'lucide-react'
+import { Home, Gift, QrCode, User } from 'lucide-react'
 
 const navItems = [
   {
@@ -12,14 +12,9 @@ const navItems = [
     icon: Home,
   },
   {
-    title: 'Parceiros',
+    title: 'Benefícios',
     href: '/app/parceiros',
-    icon: Store,
-  },
-  {
-    title: 'Planos',
-    href: '/app/planos',
-    icon: Crown,
+    icon: Gift,
   },
   {
     title: 'Carteira',
