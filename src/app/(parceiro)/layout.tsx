@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { ParceiroSidebar } from '@/components/parceiro'
+import { ParceiroHeader, ParceiroSidebar, ParceiroBottomNav } from '@/components/parceiro'
 import { Loader2 } from 'lucide-react'
 
 export default function ParceiroLayout({
@@ -35,15 +35,17 @@ export default function ParceiroLayout({
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <ParceiroSidebar />
-      
-      {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0">
-        <div className="p-4 md:p-6">
-          {children}
-        </div>
-      </main>
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <ParceiroHeader />
+      <div className="flex">
+        <ParceiroSidebar />
+        <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6">
+          <div className="max-w-6xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
+      <ParceiroBottomNav />
     </div>
   )
 }
