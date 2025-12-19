@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import prisma from '@/lib/prisma'
 
-export const dynamic = 'force-dynamic'
-
-export async function GET(request: NextRequest) {
+// GET - Buscar dados do perfil
+export async function GET() {
   try {
     const session = await auth()
 
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
@@ -16,7 +15,6 @@ export async function GET(request: NextRequest) {
       where: { userId: session.user.id },
       include: {
         user: true,
-        city: true,
         plan: true
       }
     })
@@ -26,54 +24,81 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      id: assinante.id,
-      name: assinante.name,
-      cpf: assinante.cpf ?? '',
-      phone: assinante.phone ?? '',
-      email: assinante.user?.email ?? '',
-      avatar: assinante.user?.avatar,
-      city: assinante.city,
-      plan: assinante.plan ? {
-        name: assinante.plan.name,
-        price: Number(assinante.plan.price)
-      } : null,
-      subscriptionStatus: assinante.subscriptionStatus,
-      createdAt: assinante.createdAt.toISOString()
+      perfil: {
+        id: assinante.id,
+        nome: assinante.name,
+        email: assinante.user.email,
+        telefone: assinante.phone || assinante.user.phone,
+        cpf: assinante.cpf,
+        avatar: assinante.user.avatar,
+        dataNascimento: assinante.birthDate?.toISOString().split('T')[0] || null,
+        endereco: assinante.address || null,
+        plano: assinante.plan ? {
+          id: assinante.plan.id,
+          nome: assinante.plan.name
+        } : null,
+        status: assinante.subscriptionStatus,
+        pontos: assinante.points || 0,
+        cashback: assinante.cashback || 0,
+        qrCode: assinante.qrCode,
+        membroDesde: assinante.createdAt.toISOString()
+      }
     })
 
   } catch (error) {
-    console.error('Erro ao buscar perfil:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    console.error('[PERFIL GET] Erro:', error)
+    return NextResponse.json({ error: 'Erro ao buscar perfil' }, { status: 500 })
   }
 }
 
+// PUT - Atualizar dados do perfil
 export async function PUT(request: NextRequest) {
   try {
     const session = await auth()
 
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
-    const { name, phone, avatar } = body
+    const { nome, telefone, dataNascimento, endereco, avatar } = body
 
-    // Atualiza o usuário
+    // Buscar assinante
+    const assinanteExistente = await prisma.assinante.findFirst({
+      where: { userId: session.user.id }
+    })
+
+    if (!assinanteExistente) {
+      return NextResponse.json({ error: 'Assinante não encontrado' }, { status: 404 })
+    }
+
+    // Atualizar assinante
+    await prisma.assinante.update({
+      where: { id: assinanteExistente.id },
+      data: {
+        name: nome,
+        phone: telefone?.replace(/\D/g, ''),
+        birthDate: dataNascimento ? new Date(dataNascimento) : undefined,
+        address: endereco || undefined
+      }
+    })
+
+    // Atualizar avatar e telefone no User
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { phone, avatar }
+      data: {
+        phone: telefone?.replace(/\D/g, ''),
+        avatar: avatar || undefined
+      }
     })
 
-    // Atualiza o assinante
-    await prisma.assinante.updateMany({
-      where: { userId: session.user.id },
-      data: { name, phone }
+    return NextResponse.json({
+      success: true,
+      message: 'Perfil atualizado com sucesso!'
     })
-
-    return NextResponse.json({ success: true })
 
   } catch (error) {
-    console.error('Erro ao atualizar perfil:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    console.error('[PERFIL PUT] Erro:', error)
+    return NextResponse.json({ error: 'Erro ao atualizar perfil' }, { status: 500 })
   }
 }

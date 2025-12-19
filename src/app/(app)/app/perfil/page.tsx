@@ -1,456 +1,615 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { toast } from 'sonner'
-import {
-  Mail,
-  Phone,
-  MapPin,
-  CreditCard,
-  LogOut,
-  ChevronRight,
-  Shield,
-  Bell,
-  HelpCircle,
-  Loader2,
-  Camera,
-  Pencil,
-  Save,
-  X,
-} from 'lucide-react'
-
-import { Card, CardContent } from '@/components/ui/card'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Card, CardContent } from '@/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
-import { UserAvatar } from '@/components/ui/user-avatar'
-import { ImageUpload } from '@/components/ui/image-upload'
-import { useAuth } from '@/hooks'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  ArrowLeft,
+  Save,
+  User,
+  Mail,
+  Phone,
+  CreditCard,
+  Calendar,
+  MapPin,
+  Crown,
+  Camera,
+  Loader2,
+  Star,
+  Wallet,
+  QrCode,
+  Clock,
+  CheckCircle
+} from 'lucide-react'
+import { toast } from 'sonner'
 
-interface PerfilData {
-  name: string
+interface Perfil {
+  id: string
+  nome: string
   email: string
+  telefone: string
   cpf: string
-  phone: string
-  avatar: string | null
-  city: {
-    name: string
-    state: string
-  } | null
-  plan: {
-    name: string
-    price: number
-  } | null
-  subscriptionStatus: string
-  createdAt: string
+  avatar?: string
+  dataNascimento?: string
+  endereco?: {
+    cep?: string
+    logradouro?: string
+    numero?: string
+    complemento?: string
+    bairro?: string
+    cidade?: string
+    estado?: string
+  }
+  plano?: {
+    id: string
+    nome: string
+  }
+  status: string
+  pontos: number
+  cashback: number
+  qrCode?: string
+  membroDesde: string
 }
 
 export default function PerfilPage() {
   const router = useRouter()
-  const { data: session, update: updateSession } = useSession()
-  const { logout, isLoading: isLoggingOut } = useAuth()
-  const [data, setData] = useState<PerfilData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isEditing, setIsEditing] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [showAvatarUpload, setShowAvatarUpload] = useState(false)
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    avatar: ''
-  })
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const fetchPerfil = useCallback(async () => {
-    try {
-      const response = await fetch('/api/app/profile')
-      const result = await response.json()
-      if (response.ok && result.user) {
-        setData(result.user)
-        setFormData({
-          name: result.user.name || '',
-          phone: result.user.phone || '',
-          avatar: result.user.avatar || ''
-        })
-      }
-    } catch (error) {
-      console.error('Erro ao carregar perfil:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+  const [perfil, setPerfil] = useState<Perfil | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [formData, setFormData] = useState<Partial<Perfil>>({})
 
   useEffect(() => {
     fetchPerfil()
-  }, [fetchPerfil])
+  }, [])
 
-  function formatCPF(cpf: string): string {
-    return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
-  }
+  const fetchPerfil = async () => {
+    try {
+      const response = await fetch('/api/app/perfil')
+      const data = await response.json()
 
-  function formatCurrency(value: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
-  }
+      if (data.error) {
+        toast.error(data.error)
+        return
+      }
 
-  function formatPhone(value: string) {
-    const numbers = value.replace(/\D/g, '')
-    if (numbers.length <= 11) {
-      return numbers.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3')
+      setPerfil(data.perfil)
+      setFormData(data.perfil)
+    } catch (error) {
+      console.error('Erro ao buscar perfil:', error)
+      toast.error('Erro ao carregar perfil')
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  const updateField = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const updateEndereco = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      endereco: { ...prev.endereco, [field]: value }
+    }))
+  }
+
+  // Máscaras
+  const maskPhone = (value: string) => {
     return value
+      .replace(/\D/g, '')
+      .slice(0, 11)
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{5})(\d)/, '$1-$2')
   }
 
-  async function handleLogout() {
-    try {
-      await logout()
-      router.push('/login')
-    } catch {
-      toast.error('Erro ao sair')
-    }
+  const maskCEP = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .slice(0, 8)
+      .replace(/(\d{5})(\d)/, '$1-$2')
   }
 
-  async function handleSave() {
-    setIsSaving(true)
-    
-    try {
-      const response = await fetch('/api/app/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
+  const maskCPF = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .slice(0, 11)
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+  }
 
-      if (response.ok) {
-        toast.success('Perfil atualizado com sucesso!')
-        // Atualizar dados locais
-        setData(prev => prev ? { ...prev, name: formData.name, phone: formData.phone, avatar: formData.avatar } : null)
-        // Atualizar sessão para refletir mudanças
-        await updateSession({
-          ...session,
-          user: {
-            ...session?.user,
-            name: formData.name,
-            avatar: formData.avatar
+  // Buscar CEP
+  const buscarCEP = async (cep: string) => {
+    const cepLimpo = cep.replace(/\D/g, '')
+    if (cepLimpo.length !== 8) return
+
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const data = await response.json()
+
+      if (!data.erro) {
+        setFormData(prev => ({
+          ...prev,
+          endereco: {
+            ...prev.endereco,
+            cep: cepLimpo,
+            logradouro: data.logradouro || '',
+            bairro: data.bairro || '',
+            cidade: data.localidade || '',
+            estado: data.uf || ''
           }
-        })
-        setIsEditing(false)
-        setShowAvatarUpload(false)
-      } else {
-        toast.error('Erro ao atualizar perfil')
+        }))
+        toast.success('Endereço encontrado!')
       }
     } catch (error) {
-      console.error('Erro:', error)
-      toast.error('Erro ao atualizar perfil')
+      console.error('Erro ao buscar CEP:', error)
+    }
+  }
+
+  // Upload de avatar
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo
+    if (!file.type.startsWith('image/')) {
+      toast.error('Selecione uma imagem válida')
+      return
+    }
+
+    // Validar tamanho (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Imagem deve ter no máximo 5MB')
+      return
+    }
+
+    setIsUploadingAvatar(true)
+
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append('file', file)
+      formDataUpload.append('folder', 'avatars')
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formDataUpload
+      })
+
+      const data = await response.json()
+
+      if (data.url) {
+        setFormData(prev => ({ ...prev, avatar: data.url }))
+        toast.success('Foto atualizada!')
+      } else {
+        toast.error('Erro ao fazer upload')
+      }
+    } catch (error) {
+      console.error('Erro no upload:', error)
+      toast.error('Erro ao fazer upload da foto')
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
+  const handleSave = async () => {
+    setIsSaving(true)
+
+    try {
+      const response = await fetch('/api/app/perfil', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: formData.nome,
+          telefone: formData.telefone?.replace(/\D/g, ''),
+          dataNascimento: formData.dataNascimento,
+          endereco: formData.endereco,
+          avatar: formData.avatar
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast.error(data.error || 'Erro ao salvar')
+        return
+      }
+
+      toast.success('Perfil atualizado com sucesso!')
+      fetchPerfil()
+
+    } catch (error) {
+      console.error('Erro ao salvar:', error)
+      toast.error('Erro ao salvar alterações')
     } finally {
       setIsSaving(false)
     }
   }
 
-  function handleAvatarChange(url: string | null) {
-    setFormData(prev => ({ ...prev, avatar: url || '' }))
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return <Badge className="bg-green-100 text-green-800">Ativo</Badge>
+      case 'PENDING':
+        return <Badge className="bg-yellow-100 text-yellow-800">Pendente</Badge>
+      case 'INACTIVE':
+        return <Badge className="bg-gray-100 text-gray-800">Inativo</Badge>
+      case 'CANCELLED':
+        return <Badge className="bg-red-100 text-red-800">Cancelado</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
   }
 
-  function handleCancel() {
-    setFormData({
-      name: data?.name || '',
-      phone: data?.phone || '',
-      avatar: data?.avatar || ''
-    })
-    setIsEditing(false)
-    setShowAvatarUpload(false)
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid lg:grid-cols-3 gap-6">
+          <Skeleton className="h-64" />
+          <Skeleton className="h-96 lg:col-span-2" />
+        </div>
+      </div>
+    )
   }
 
-  const menuItems = [
-    {
-      icon: Bell,
-      label: 'Notificações',
-      onClick: () => toast.info('Em breve!'),
-    },
-    {
-      icon: Shield,
-      label: 'Privacidade',
-      onClick: () => toast.info('Em breve!'),
-    },
-    {
-      icon: HelpCircle,
-      label: 'Ajuda',
-      onClick: () => toast.info('Em breve!'),
-    },
-  ]
+  if (!perfil) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Perfil não encontrado</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header com Avatar */}
-      <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground px-4 pt-8 pb-20">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold">Meu Perfil</h1>
-          {!isEditing ? (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-primary-foreground hover:bg-white/20"
-              onClick={() => setIsEditing(true)}
-            >
-              <Pencil className="h-4 w-4 mr-2" />
-              Editar
-            </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-primary-foreground hover:bg-white/20"
-                onClick={handleCancel}
-                disabled={isSaving}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-primary-foreground hover:bg-white/20"
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Salvar
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-        </div>
-        
+    <div className="space-y-6 pb-20">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {isLoading ? (
-            <Skeleton className="h-16 w-16 rounded-full bg-white/20" />
-          ) : (
-            <div className="relative">
-              <UserAvatar 
-                src={isEditing ? formData.avatar : data?.avatar} 
-                name={isEditing ? formData.name : data?.name} 
-                size="xl"
-                className="border-2 border-white/30"
-              />
-              {isEditing && (
-                <button
-                  type="button"
-                  onClick={() => setShowAvatarUpload(!showAvatarUpload)}
-                  className="absolute -bottom-1 -right-1 p-2 rounded-full bg-white text-primary shadow-lg hover:bg-gray-100 transition-colors"
-                >
-                  <Camera className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          )}
-          <div className="flex-1">
-            {isLoading ? (
-              <>
-                <Skeleton className="h-6 w-32 bg-white/20 mb-2" />
-                <Skeleton className="h-4 w-48 bg-white/20" />
-              </>
-            ) : isEditing ? (
-              <div className="space-y-2">
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Seu nome"
-                  className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
-                />
-                <p className="text-sm opacity-80">{data?.email}</p>
-              </div>
-            ) : (
-              <>
-                <p className="text-lg font-bold">{data?.name}</p>
-                <p className="text-sm opacity-80">{data?.email}</p>
-              </>
-            )}
+          <Link href="/app">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold">Meu Perfil</h1>
+            <p className="text-muted-foreground">Gerencie suas informações pessoais</p>
           </div>
         </div>
-
-        {/* Upload de Avatar (expansível) */}
-        {isEditing && showAvatarUpload && (
-          <div className="mt-4 p-4 rounded-lg bg-white/10 backdrop-blur">
-            <p className="text-sm mb-3 text-white/80">
-              Escolha uma nova foto de perfil
-            </p>
-            <ImageUpload
-              value={formData.avatar}
-              onChange={handleAvatarChange}
-              folder="avatars"
-              aspectRatio="square"
-              className="w-32 h-32 mx-auto"
-              enableCrop={true}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Card de Plano */}
-      <div className="px-4 -mt-12 mb-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-primary/10 p-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Seu plano</p>
-                  {isLoading ? (
-                    <Skeleton className="h-5 w-24 mt-1" />
-                  ) : data?.plan ? (
-                    <p className="font-semibold">{data.plan.name}</p>
-                  ) : (
-                    <p className="font-semibold text-muted-foreground">Sem plano</p>
-                  )}
-                </div>
-              </div>
-              {isLoading ? (
-                <Skeleton className="h-6 w-20" />
-              ) : (
-                <Badge 
-                  variant="outline"
-                  className={
-                    data?.subscriptionStatus === 'ACTIVE'
-                      ? 'bg-green-500/10 text-green-600 border-green-500/20'
-                      : 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
-                  }
-                >
-                  {data?.subscriptionStatus === 'ACTIVE' ? 'Ativo' : 'Pendente'}
-                </Badge>
-              )}
-            </div>
-            {!isLoading && data?.plan && (
-              <p className="text-sm text-muted-foreground mt-2">
-                {formatCurrency(data.plan.price)}/mês
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Informações Pessoais */}
-      <div className="px-4 mb-4">
-        <Card>
-          <CardContent className="p-4 space-y-4">
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-              Informações Pessoais
-            </h3>
-            
-            <div className="flex items-center gap-3">
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">CPF</p>
-                {isLoading ? (
-                  <Skeleton className="h-5 w-32" />
-                ) : (
-                  <p className="font-medium">{formatCPF(data?.cpf || '')}</p>
-                )}
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="flex items-center gap-3">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Email</p>
-                {isLoading ? (
-                  <Skeleton className="h-5 w-48" />
-                ) : (
-                  <p className="font-medium">{data?.email}</p>
-                )}
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="flex items-center gap-3">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground">Telefone</p>
-                {isLoading ? (
-                  <Skeleton className="h-5 w-28" />
-                ) : isEditing ? (
-                  <Input
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: formatPhone(e.target.value) }))}
-                    placeholder="(00) 00000-0000"
-                    className="mt-1 h-8"
-                  />
-                ) : (
-                  <p className="font-medium">{data?.phone || 'Não informado'}</p>
-                )}
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="flex items-center gap-3">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Cidade</p>
-                {isLoading ? (
-                  <Skeleton className="h-5 w-36" />
-                ) : data?.city ? (
-                  <p className="font-medium">{data.city.name} - {data.city.state}</p>
-                ) : (
-                  <p className="font-medium text-muted-foreground">Não informado</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Menu */}
-      <div className="px-4 mb-4">
-        <Card>
-          <CardContent className="p-0">
-            {menuItems.map((item) => (
-              <button
-                key={item.label}
-                onClick={item.onClick}
-                className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <item.icon className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">{item.label}</span>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </button>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Botão Sair */}
-      <div className="px-4">
-        <Button 
-          variant="outline" 
-          className="w-full text-destructive hover:text-destructive"
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-        >
-          {isLoggingOut ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        <Button onClick={handleSave} disabled={isSaving}>
+          {isSaving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Salvando...
+            </>
           ) : (
-            <LogOut className="mr-2 h-4 w-4" />
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Salvar
+            </>
           )}
-          Sair da conta
         </Button>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Coluna Esquerda - Resumo */}
+        <div className="space-y-6">
+          {/* Card do Perfil */}
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="relative inline-block mb-4">
+                <Avatar className="h-28 w-28">
+                  <AvatarImage src={formData.avatar} />
+                  <AvatarFallback className="text-3xl bg-primary/10">
+                    {perfil.nome?.charAt(0)?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <button
+                  onClick={handleAvatarClick}
+                  disabled={isUploadingAvatar}
+                  className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isUploadingAvatar ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4" />
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
+              </div>
+              <h2 className="text-xl font-semibold">{perfil.nome}</h2>
+              <p className="text-muted-foreground">{perfil.email}</p>
+              <div className="mt-3">
+                {getStatusBadge(perfil.status)}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card do Plano */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Crown className="h-4 w-4 text-primary" />
+                <span className="font-medium text-sm">Meu Plano</span>
+              </div>
+              {perfil.plano ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-semibold">{perfil.plano.nome}</span>
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                </div>
+              ) : (
+                <div>
+                  <p className="text-muted-foreground mb-3">Você ainda não tem um plano</p>
+                  <Link href="/planos">
+                    <Button size="sm" className="w-full">Ver Planos</Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card de Saldo */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Wallet className="h-4 w-4 text-green-600" />
+                <span className="font-medium text-sm">Meu Saldo</span>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Star className="h-5 w-5 text-yellow-500" />
+                    <span>Pontos</span>
+                  </div>
+                  <span className="text-xl font-bold">{perfil.pontos}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="h-5 w-5 text-green-500" />
+                    <span>Cashback</span>
+                  </div>
+                  <span className="text-xl font-bold">R$ {Number(perfil.cashback).toFixed(2)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Membro desde */}
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <Clock className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm text-muted-foreground">Membro desde</p>
+                <p className="font-medium">
+                  {new Date(perfil.membroDesde).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Coluna Direita - Formulário */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardContent className="p-6">
+              <Tabs defaultValue="dados" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="dados">Dados Pessoais</TabsTrigger>
+                  <TabsTrigger value="endereco">Endereço</TabsTrigger>
+                </TabsList>
+
+                {/* Tab Dados Pessoais */}
+                <TabsContent value="dados" className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nome">Nome Completo</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="nome"
+                          className="pl-10"
+                          value={formData.nome || ''}
+                          onChange={(e) => updateField('nome', e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="email"
+                          className="pl-10 bg-muted"
+                          value={perfil.email || ''}
+                          disabled
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Email não pode ser alterado</p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cpf">CPF</Label>
+                      <div className="relative">
+                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="cpf"
+                          className="pl-10 bg-muted"
+                          value={perfil.cpf ? maskCPF(perfil.cpf) : ''}
+                          disabled
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">CPF não pode ser alterado</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="telefone">Telefone</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="telefone"
+                          className="pl-10"
+                          value={formData.telefone ? maskPhone(formData.telefone) : ''}
+                          onChange={(e) => updateField('telefone', e.target.value.replace(/\D/g, ''))}
+                          placeholder="(00) 00000-0000"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="dataNascimento">Data de Nascimento</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="dataNascimento"
+                        type="date"
+                        className="pl-10"
+                        value={formData.dataNascimento || ''}
+                        onChange={(e) => updateField('dataNascimento', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Tab Endereço */}
+                <TabsContent value="endereco" className="space-y-4">
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cep">CEP</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="cep"
+                          className="pl-10"
+                          value={formData.endereco?.cep ? maskCEP(formData.endereco.cep) : ''}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '')
+                            updateEndereco('cep', value)
+                            if (value.length === 8) {
+                              buscarCEP(value)
+                            }
+                          }}
+                          placeholder="00000-000"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <Label htmlFor="logradouro">Logradouro</Label>
+                      <Input
+                        id="logradouro"
+                        value={formData.endereco?.logradouro || ''}
+                        onChange={(e) => updateEndereco('logradouro', e.target.value)}
+                        placeholder="Rua, Avenida..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="numero">Número</Label>
+                      <Input
+                        id="numero"
+                        value={formData.endereco?.numero || ''}
+                        onChange={(e) => updateEndereco('numero', e.target.value)}
+                        placeholder="123"
+                      />
+                    </div>
+
+                    <div className="md:col-span-3 space-y-2">
+                      <Label htmlFor="complemento">Complemento</Label>
+                      <Input
+                        id="complemento"
+                        value={formData.endereco?.complemento || ''}
+                        onChange={(e) => updateEndereco('complemento', e.target.value)}
+                        placeholder="Apto, Bloco..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="bairro">Bairro</Label>
+                      <Input
+                        id="bairro"
+                        value={formData.endereco?.bairro || ''}
+                        onChange={(e) => updateEndereco('bairro', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="cidade">Cidade</Label>
+                      <Input
+                        id="cidade"
+                        value={formData.endereco?.cidade || ''}
+                        onChange={(e) => updateEndereco('cidade', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="estado">Estado</Label>
+                      <Input
+                        id="estado"
+                        value={formData.endereco?.estado || ''}
+                        onChange={(e) => updateEndereco('estado', e.target.value.toUpperCase())}
+                        maxLength={2}
+                        placeholder="UF"
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          {/* Link para Carteirinha */}
+          <Card className="mt-6">
+            <CardContent className="p-4">
+              <Link href="/app/carteira" className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                    <QrCode className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Minha Carteirinha</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Ver QR Code para usar nos parceiros
+                    </p>
+                  </div>
+                </div>
+                <ArrowLeft className="h-5 w-5 text-muted-foreground rotate-180" />
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
