@@ -25,7 +25,8 @@ import {
   History,
   QrCode,
   Wallet,
-  Crown
+  Crown,
+  Star
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -91,9 +92,18 @@ export default function AssinanteDetalhesPage({ params }: { params: Promise<{ id
       setAssinante(assinanteData.assinante)
       setFormData(assinanteData.assinante)
 
-      const plansRes = await fetch('/api/admin/plans')
+      // Buscar planos - usando API publica que nao requer auth
+      const plansRes = await fetch('/api/public/plans')
       const plansData = await plansRes.json()
-      setPlans(plansData.plans || [])
+
+      // A resposta e { plans: [...] }
+      if (Array.isArray(plansData)) {
+        setPlans(plansData)
+      } else if (plansData.plans) {
+        setPlans(plansData.plans)
+      } else {
+        setPlans([])
+      }
 
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
@@ -175,12 +185,10 @@ export default function AssinanteDetalhesPage({ params }: { params: Promise<{ id
           name: formData.name,
           phone: formData.phone?.replace(/\D/g, ''),
           cpf: formData.cpf?.replace(/\D/g, ''),
-          dataNascimento: formData.dataNascimento,
           endereco: formData.endereco,
           subscriptionStatus: formData.subscriptionStatus,
-          planId: formData.plan?.id || null,
-          points: formData.points,
-          cashback: formData.cashback
+          planId: formData.plan?.id || null
+          // Pontos e cashback nao sao editaveis manualmente
         })
       })
 
@@ -571,24 +579,28 @@ export default function AssinanteDetalhesPage({ params }: { params: Promise<{ id
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="points">Pontos</Label>
-                      <Input
-                        id="points"
-                        type="number"
-                        value={formData.points || 0}
-                        onChange={(e) => updateField('points', parseInt(e.target.value) || 0)}
-                      />
+                      <Label>Pontos Acumulados</Label>
+                      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                        <Star className="h-5 w-5 text-yellow-500" />
+                        <span className="text-2xl font-bold">{assinante?.points || 0}</span>
+                        <span className="text-muted-foreground">pontos</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Pontos sao acumulados automaticamente nas validacoes
+                      </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="cashback">Cashback (R$)</Label>
-                      <Input
-                        id="cashback"
-                        type="number"
-                        step="0.01"
-                        value={formData.cashback || 0}
-                        onChange={(e) => updateField('cashback', parseFloat(e.target.value) || 0)}
-                      />
+                      <Label>Cashback Disponivel</Label>
+                      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                        <Wallet className="h-5 w-5 text-green-500" />
+                        <span className="text-2xl font-bold">
+                          R$ {Number(assinante?.cashback || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Cashback e creditado automaticamente nas compras
+                      </p>
                     </div>
                   </div>
 

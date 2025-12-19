@@ -78,9 +78,7 @@ export async function PUT(
       cpf,
       endereco,
       subscriptionStatus,
-      planId,
-      points,
-      cashback
+      planId
     } = body
 
     // Verificar se assinante existe
@@ -92,7 +90,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Assinante nao encontrado' }, { status: 404 })
     }
 
-    // Atualizar assinante
+    // Atualizar assinante - pontos e cashback nao sao editaveis manualmente
     const assinante = await prisma.assinante.update({
       where: { id },
       data: {
@@ -101,9 +99,7 @@ export async function PUT(
         cpf,
         address: endereco,
         subscriptionStatus,
-        planId: planId || null,
-        points: points || 0,
-        cashback: cashback || 0
+        planId: planId || null
       },
       include: {
         user: true,
