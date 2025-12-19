@@ -1,89 +1,46 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import {
-  Loader2,
   Mail,
   Lock,
-  AlertCircle,
-  User,
-  Phone,
-  Building2,
-  MapPin,
-  Sparkles,
-  Gift,
-  TrendingUp,
-  CheckCircle,
-  LogIn,
-  UserPlus,
-  Handshake,
   Eye,
   EyeOff,
-  CreditCard
+  Loader2,
+  ArrowRight,
+  User,
+  Store,
+  Shield,
+  Gift,
+  TrendingUp
 } from 'lucide-react'
 import { toast } from 'sonner'
-
-// Função para formatar telefone
-function formatPhone(value: string): string {
-  const numbers = value.replace(/\D/g, '').slice(0, 11)
-  if (numbers.length <= 2) return numbers
-  if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`
-  return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`
-}
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const tabParam = searchParams.get('tab') || 'entrar'
-  
-  const [activeTab, setActiveTab] = useState(tabParam)
+  const callbackUrl = searchParams.get('callbackUrl')
+
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  
-  // Estados para visibilidade de senhas
-  const [showLoginPassword, setShowLoginPassword] = useState(false)
-  const [showCadastroPassword, setShowCadastroPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  
-  // Form states
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' })
-  const [cadastroForm, setCadastroForm] = useState({
-    nome: '',
-    email: '',
-    telefone: '',
-    cpf: '',
-    password: '',
-    confirmPassword: ''
-  })
-  const [parceiroForm, setParceiroForm] = useState({
-    nome: '',
-    email: '',
-    telefone: '',
-    nomeEmpresa: '',
-    cidade: ''
-  })
+  const [showPassword, setShowPassword] = useState(false)
 
-  // LOGIN
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
 
-    // Pegar valores diretamente do formulário
     const formData = new FormData(e.currentTarget)
     const email = formData.get('email') as string
     const password = formData.get('password') as string
-
-    console.log('[LOGIN] Tentando login com:', email)
 
     try {
       const result = await signIn('credentials', {
@@ -93,17 +50,17 @@ function LoginForm() {
       })
 
       if (result?.error) {
-        setError('Email ou senha incorretos.')
+        setError('Email ou senha incorretos')
         setIsLoading(false)
         return
       }
 
-      // Buscar sessão para obter o role
+      // Buscar sessao para obter role
       const session = await fetch('/api/auth/session').then(r => r.json())
-      
+
       // Redirecionar baseado no role
-      let redirectUrl = '/app' // default para assinante
-      
+      let redirectUrl = '/app'
+
       if (session?.user?.role) {
         switch (session.user.role) {
           case 'DEVELOPER':
@@ -121,22 +78,21 @@ function LoginForm() {
             break
         }
       }
-      
-      // Se tinha callbackUrl específico E o usuário tem permissão, usa ele
-      const requestedUrl = searchParams.get('callbackUrl')
-      if (requestedUrl && session?.user?.role) {
-        const role = session.user.role
-        const canAccess = 
-          (requestedUrl.startsWith('/admin') && ['ADMIN', 'DEVELOPER'].includes(role)) ||
-          (requestedUrl.startsWith('/developer') && role === 'DEVELOPER') ||
-          (requestedUrl.startsWith('/parceiro') && role === 'PARCEIRO') ||
-          (requestedUrl.startsWith('/app') && role === 'ASSINANTE')
-        
+
+      // Verificar callbackUrl se existir e usuario tiver permissao
+      if (callbackUrl) {
+        const canAccess =
+          (callbackUrl.startsWith('/admin') && ['ADMIN', 'DEVELOPER'].includes(session?.user?.role)) ||
+          (callbackUrl.startsWith('/developer') && session?.user?.role === 'DEVELOPER') ||
+          (callbackUrl.startsWith('/parceiro') && ['PARCEIRO', 'DEVELOPER'].includes(session?.user?.role)) ||
+          (callbackUrl.startsWith('/app'))
+
         if (canAccess) {
-          redirectUrl = requestedUrl
+          redirectUrl = callbackUrl
         }
       }
 
+      toast.success('Login realizado com sucesso!')
       router.push(redirectUrl)
       router.refresh()
 
@@ -146,242 +102,84 @@ function LoginForm() {
     }
   }
 
-  // CADASTRO ASSINANTE
-  const handleCadastro = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError(null)
-
-    if (cadastroForm.password !== cadastroForm.confirmPassword) {
-      setError('As senhas não coincidem.')
-      setIsLoading(false)
-      return
-    }
-
-    if (cadastroForm.password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres.')
-      setIsLoading(false)
-      return
-    }
-
-    // Validar CPF
-    const cpfLimpo = cadastroForm.cpf.replace(/\D/g, '')
-    if (cpfLimpo.length !== 11) {
-      setError('CPF inválido. Digite os 11 dígitos.')
-      setIsLoading(false)
-      return
-    }
-
-    try {
-      const response = await fetch('/api/public/registro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: cadastroForm.nome,
-          email: cadastroForm.email,
-          phone: cadastroForm.telefone.replace(/\D/g, ''),
-          cpf: cpfLimpo,
-          password: cadastroForm.password
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || 'Erro ao criar conta.')
-        setIsLoading(false)
-        return
-      }
-
-      toast.success('Conta criada com sucesso!')
-      
-      // Fazer login automático
-      const result = await signIn('credentials', {
-        email: cadastroForm.email,
-        password: cadastroForm.password,
-        redirect: false
-      })
-
-      if (result?.ok) {
-        router.push('/planos')
-      } else {
-        setActiveTab('entrar')
-        setSuccess('Conta criada! Faça login para continuar.')
-      }
-
-    } catch (err) {
-      setError('Erro ao criar conta. Tente novamente.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // INTERESSE PARCEIRO
-  const handleParceiro = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/public/interesse-parceiro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome: parceiroForm.nome,
-          email: parceiroForm.email,
-          telefone: parceiroForm.telefone.replace(/\D/g, ''),
-          nomeEmpresa: parceiroForm.nomeEmpresa,
-          cidade: parceiroForm.cidade
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || 'Erro ao enviar interesse.')
-        setIsLoading(false)
-        return
-      }
-
-      toast.success('Interesse enviado com sucesso!')
-      setSuccess('Recebemos seu interesse! Entraremos em contato em breve.')
-      setParceiroForm({ nome: '', email: '', telefone: '', nomeEmpresa: '', cidade: '' })
-
-    } catch (err) {
-      setError('Erro ao enviar. Tente novamente.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
     <div className="min-h-screen flex">
-      {/* Lado Esquerdo - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5" />
-        <div className="absolute top-1/4 -left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        
-        <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20">
-          <div className="mb-8">
-            <h1 className="text-5xl font-bold text-white tracking-tight">UNICA</h1>
-            <p className="text-primary text-lg font-medium mt-1">Clube de Benefícios</p>
+      {/* Lado Esquerdo - Branding (apenas desktop) */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 text-white p-12 flex-col justify-between">
+        <div>
+          <Link href="/" className="inline-flex items-center gap-2">
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+              <span className="text-zinc-900 font-bold text-xl">U</span>
+            </div>
+            <span className="text-2xl font-bold">UNICA</span>
+          </Link>
+        </div>
+
+        <div className="space-y-8">
+          <div>
+            <h1 className="text-4xl font-bold mb-4">
+              Bem-vindo de volta!
+            </h1>
+            <p className="text-xl text-zinc-400">
+              Acesse sua conta e aproveite todos os beneficios exclusivos.
+            </p>
           </div>
 
-          <p className="text-zinc-400 text-lg mb-10 max-w-md leading-relaxed">
-            Economize em cada compra com descontos exclusivos nos melhores estabelecimentos da cidade.
-          </p>
-
-          <div className="space-y-5">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Gift className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-white font-medium">Descontos Exclusivos</h3>
-                <p className="text-zinc-500 text-sm">Até 50% off em parceiros selecionados</p>
-              </div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-white/5 backdrop-blur rounded-2xl p-6">
+              <Gift className="h-8 w-8 text-primary mb-3" />
+              <h3 className="font-semibold mb-1">Descontos</h3>
+              <p className="text-sm text-zinc-400">Ate 50% em parceiros</p>
             </div>
-
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-emerald-500" />
-              </div>
-              <div>
-                <h3 className="text-white font-medium">Cashback</h3>
-                <p className="text-zinc-500 text-sm">Ganhe dinheiro de volta nas compras</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-amber-500" />
-              </div>
-              <div>
-                <h3 className="text-white font-medium">Benefícios Premium</h3>
-                <p className="text-zinc-500 text-sm">Acesso a ofertas especiais todo mês</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-8 mt-12 pt-8 border-t border-zinc-800">
-            <div>
-              <p className="text-3xl font-bold text-white">500+</p>
-              <p className="text-zinc-500 text-sm">Parceiros</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-white">10k+</p>
-              <p className="text-zinc-500 text-sm">Assinantes</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-white">R$2M+</p>
-              <p className="text-zinc-500 text-sm">Economia</p>
+            <div className="bg-white/5 backdrop-blur rounded-2xl p-6">
+              <TrendingUp className="h-8 w-8 text-green-400 mb-3" />
+              <h3 className="font-semibold mb-1">Cashback</h3>
+              <p className="text-sm text-zinc-400">Dinheiro de volta</p>
             </div>
           </div>
         </div>
+
+        <div className="flex items-center gap-4 text-sm text-zinc-500">
+          <Shield className="h-4 w-4" />
+          <span>Seus dados estao protegidos</span>
+        </div>
       </div>
 
-      {/* Lado Direito - Formulário */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 bg-background">
-        <div className="w-full max-w-md space-y-6">
-          {/* Header Mobile */}
-          <div className="text-center lg:hidden mb-4">
-            <h1 className="text-3xl font-bold tracking-tight">UNICA</h1>
-            <p className="text-primary text-sm font-medium">Clube de Benefícios</p>
+      {/* Lado Direito - Formulario */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
+        <div className="w-full max-w-md">
+          {/* Logo Mobile */}
+          <div className="lg:hidden text-center mb-8">
+            <Link href="/" className="inline-flex items-center gap-2">
+              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-2xl">U</span>
+              </div>
+            </Link>
+            <h1 className="text-2xl font-bold mt-4">UNICA</h1>
+            <p className="text-muted-foreground">Clube de Beneficios</p>
           </div>
 
-          {/* Alertas */}
-          {error && (
-            <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          {success && (
-            <Alert className="border-green-500 bg-green-50 dark:bg-green-950 animate-in fade-in slide-in-from-top-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-700 dark:text-green-300">{success}</AlertDescription>
-            </Alert>
-          )}
+          {/* Card de Login */}
+          <Card className="shadow-xl border-0">
+            <CardHeader className="text-center pb-2">
+              <CardTitle className="text-2xl">Entrar</CardTitle>
+              <CardDescription>
+                Acesse sua conta para continuar
+              </CardDescription>
+            </CardHeader>
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setError(null); setSuccess(null); }} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 h-12">
-              <TabsTrigger value="entrar" className="text-sm">
-                <LogIn className="w-4 h-4 mr-1.5 hidden sm:inline" />
-                Entrar
-              </TabsTrigger>
-              <TabsTrigger value="cadastro" className="text-sm">
-                <UserPlus className="w-4 h-4 mr-1.5 hidden sm:inline" />
-                Cadastre-se
-              </TabsTrigger>
-              <TabsTrigger value="parceiro" className="text-sm">
-                <Handshake className="w-4 h-4 mr-1.5 hidden sm:inline" />
-                Parceiro
-              </TabsTrigger>
-            </TabsList>
-
-            {/* TAB ENTRAR */}
-            <TabsContent value="entrar" className="mt-6">
-              <div className="mb-4">
-                <h2 className="text-xl font-semibold">Bem-vindo de volta</h2>
-                <p className="text-muted-foreground text-sm">Entre com suas credenciais</p>
-              </div>
-
-              <form onSubmit={handleLogin} className="space-y-4">
+            <CardContent className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
+                  <Label htmlFor="email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="login-email"
+                      id="email"
                       name="email"
                       type="email"
                       placeholder="seu@email.com"
-                      className="pl-10 h-11"
-                      value={loginForm.email}
-                      onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                      className="pl-10 h-12"
                       required
                       disabled={isLoading}
                     />
@@ -389,289 +187,108 @@ function LoginForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="login-password">Senha</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Senha</Label>
+                    <Link href="/recuperar-senha" className="text-xs text-primary hover:underline">
+                      Esqueci minha senha
+                    </Link>
+                  </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="login-password"
+                      id="password"
                       name="password"
-                      type={showLoginPassword ? 'text' : 'password'}
+                      type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      className="pl-10 pr-10 h-11"
-                      value={loginForm.password}
-                      onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                      className="pl-10 pr-10 h-12"
                       required
                       disabled={isLoading}
                     />
                     <button
                       type="button"
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       tabIndex={-1}
                     >
-                      {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
 
-                <div className="flex justify-end">
-                  <Link href="/esqueci-senha" className="text-sm text-primary hover:underline">
-                    Esqueci minha senha
-                  </Link>
-                </div>
+                {error && (
+                  <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-lg text-center">
+                    {error}
+                  </div>
+                )}
 
-                <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Entrar
+                <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Entrando...
+                    </>
+                  ) : (
+                    <>
+                      Entrar
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </>
+                  )}
                 </Button>
               </form>
-            </TabsContent>
 
-            {/* TAB CADASTRO */}
-            <TabsContent value="cadastro" className="mt-6">
-              <div className="mb-4">
-                <h2 className="text-xl font-semibold">Criar conta</h2>
-                <p className="text-muted-foreground text-sm">Comece a economizar hoje mesmo</p>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    Ainda nao tem conta?
+                  </span>
+                </div>
               </div>
 
-              <form onSubmit={handleCadastro} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cad-nome">Nome completo</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="cad-nome"
-                      placeholder="Seu nome"
-                      className="pl-10 h-11"
-                      value={cadastroForm.nome}
-                      onChange={(e) => setCadastroForm({ ...cadastroForm, nome: e.target.value })}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cad-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="cad-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      className="pl-10 h-11"
-                      value={cadastroForm.email}
-                      onChange={(e) => setCadastroForm({ ...cadastroForm, email: e.target.value })}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cad-telefone">Telefone</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="cad-telefone"
-                      placeholder="(00) 00000-0000"
-                      className="pl-10 h-11"
-                      value={cadastroForm.telefone}
-                      onChange={(e) => setCadastroForm({ ...cadastroForm, telefone: formatPhone(e.target.value) })}
-                      maxLength={15}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cad-cpf">CPF</Label>
-                  <div className="relative">
-                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="cad-cpf"
-                      placeholder="000.000.000-00"
-                      className="pl-10 h-11"
-                      value={cadastroForm.cpf}
-                      onChange={(e) => {
-                        let value = e.target.value.replace(/\D/g, '')
-                        if (value.length > 11) value = value.slice(0, 11)
-                        value = value.replace(/(\d{3})(\d)/, '$1.$2')
-                        value = value.replace(/(\d{3})(\d)/, '$1.$2')
-                        value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2')
-                        setCadastroForm({ ...cadastroForm, cpf: value })
-                      }}
-                      maxLength={14}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="cad-password">Senha</Label>
-                    <div className="relative">
-                      <Input
-                        id="cad-password"
-                        type={showCadastroPassword ? 'text' : 'password'}
-                        placeholder="••••••"
-                        className="h-11 pr-10"
-                        value={cadastroForm.password}
-                        onChange={(e) => setCadastroForm({ ...cadastroForm, password: e.target.value })}
-                        required
-                        disabled={isLoading}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCadastroPassword(!showCadastroPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        tabIndex={-1}
-                      >
-                        {showCadastroPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
+              {/* Botoes de Cadastro */}
+              <div className="space-y-3">
+                <Link href="/cadastro" className="block">
+                  <Button variant="outline" className="w-full h-12 justify-between group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <User className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium">Seja um Assinante</div>
+                        <div className="text-xs text-muted-foreground">Economize com descontos exclusivos</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cad-confirm">Confirmar</Label>
-                    <div className="relative">
-                      <Input
-                        id="cad-confirm"
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder="••••••"
-                        className="h-11 pr-10"
-                        value={cadastroForm.confirmPassword}
-                        onChange={(e) => setCadastroForm({ ...cadastroForm, confirmPassword: e.target.value })}
-                        required
-                        disabled={isLoading}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        tabIndex={-1}
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </Button>
+                </Link>
+
+                <Link href="/interesse-parceiro" className="block">
+                  <Button variant="outline" className="w-full h-12 justify-between group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
+                        <Store className="h-4 w-4 text-orange-600" />
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium">Seja um Parceiro</div>
+                        <div className="text-xs text-muted-foreground">Aumente suas vendas conosco</div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Criar minha conta
-                </Button>
-
-                <p className="text-xs text-muted-foreground text-center">
-                  Ao criar conta, você concorda com nossos{' '}
-                  <Link href="/termos" className="text-primary hover:underline">Termos</Link>
-                </p>
-              </form>
-            </TabsContent>
-
-            {/* TAB PARCEIRO */}
-            <TabsContent value="parceiro" className="mt-6">
-              <div className="mb-4">
-                <h2 className="text-xl font-semibold">Seja um Parceiro</h2>
-                <p className="text-muted-foreground text-sm">Aumente suas vendas com a UNICA</p>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-orange-600 transition-colors" />
+                  </Button>
+                </Link>
               </div>
+            </CardContent>
+          </Card>
 
-              <form onSubmit={handleParceiro} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="parc-nome">Seu nome</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="parc-nome"
-                        placeholder="Nome"
-                        className="pl-10 h-11"
-                        value={parceiroForm.nome}
-                        onChange={(e) => setParceiroForm({ ...parceiroForm, nome: e.target.value })}
-                        required
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="parc-telefone">Telefone</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="parc-telefone"
-                        placeholder="(00) 00000-0000"
-                        className="pl-10 h-11"
-                        value={parceiroForm.telefone}
-                        onChange={(e) => setParceiroForm({ ...parceiroForm, telefone: formatPhone(e.target.value) })}
-                        maxLength={15}
-                        required
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="parc-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="parc-email"
-                      type="email"
-                      placeholder="contato@empresa.com"
-                      className="pl-10 h-11"
-                      value={parceiroForm.email}
-                      onChange={(e) => setParceiroForm({ ...parceiroForm, email: e.target.value })}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="parc-empresa">Nome da Empresa</Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="parc-empresa"
-                      placeholder="Nome da sua empresa"
-                      className="pl-10 h-11"
-                      value={parceiroForm.nomeEmpresa}
-                      onChange={(e) => setParceiroForm({ ...parceiroForm, nomeEmpresa: e.target.value })}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="parc-cidade">Cidade</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="parc-cidade"
-                      placeholder="Sua cidade"
-                      className="pl-10 h-11"
-                      value={parceiroForm.cidade}
-                      onChange={(e) => setParceiroForm({ ...parceiroForm, cidade: e.target.value })}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Enviar interesse
-                </Button>
-
-                <p className="text-xs text-muted-foreground text-center">
-                  Nossa equipe entrará em contato em até 48h
-                </p>
-              </form>
-            </TabsContent>
-          </Tabs>
+          {/* Footer */}
+          <p className="text-center text-xs text-muted-foreground mt-6">
+            Ao entrar, voce concorda com nossos{' '}
+            <Link href="/termos" className="text-primary hover:underline">Termos</Link>
+            {' '}e{' '}
+            <Link href="/privacidade" className="text-primary hover:underline">Privacidade</Link>
+          </p>
         </div>
       </div>
     </div>
@@ -680,8 +297,8 @@ function LoginForm() {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
     </div>
   )
 }
