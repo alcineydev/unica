@@ -14,22 +14,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Senha', type: 'password' },
       },
       async authorize(credentials) {
-        // Debug: ver o que está chegando
-        console.log('[AUTH] Credentials recebidas:', JSON.stringify(credentials, null, 2))
-        
-        // Verificar se credentials existe e tem os campos necessários
+        console.log('========== [AUTH] INÍCIO AUTHORIZE ==========')
+        console.log('[AUTH] Credentials recebidas:', {
+          email: credentials?.email,
+          passwordLength: (credentials?.password as string)?.length
+        })
+
         const email = credentials?.email as string
         const password = credentials?.password as string
 
-        console.log('[AUTH] Email extraído:', email)
-        console.log('[AUTH] Password extraído:', password ? '[PRESENTE]' : '[VAZIO]')
-
         if (!email || !password) {
-          console.log('[AUTH] Credenciais não fornecidas - email:', !!email, 'password:', !!password)
+          console.log('[AUTH] ERRO: Credenciais faltando - email:', !!email, 'password:', !!password)
           return null
         }
 
         try {
+          console.log('[AUTH] Buscando usuário no banco:', email)
+
           const user = await prisma.user.findUnique({
             where: { email },
             include: {
@@ -39,20 +40,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
           })
 
+          console.log('[AUTH] Usuário encontrado:', user ? {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            isActive: user.isActive,
+            hasPassword: !!user.password,
+            passwordHash: user.password?.substring(0, 20) + '...'
+          } : 'NÃO ENCONTRADO')
+
           if (!user) {
-            console.log('[AUTH] Usuário não encontrado:', email)
+            console.log('[AUTH] ERRO: Usuário não existe no banco')
             return null
           }
 
+          if (!user.password) {
+            console.log('[AUTH] ERRO: Usuário sem senha cadastrada')
+            return null
+          }
+
+          console.log('[AUTH] Comparando senhas...')
           const isPasswordValid = await bcrypt.compare(password, user.password)
+          console.log('[AUTH] Resultado bcrypt.compare:', isPasswordValid)
 
           if (!isPasswordValid) {
-            console.log('[AUTH] Senha incorreta para:', email)
+            console.log('[AUTH] ERRO: Senha incorreta para:', email)
             return null
           }
 
           if (!user.isActive) {
-            console.log('[AUTH] Usuário desativado:', email)
+            console.log('[AUTH] ERRO: Usuário desativado:', email)
             return null
           }
 
@@ -66,7 +83,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name = user.assinante.name
           }
 
-          console.log('[AUTH] Login bem-sucedido:', email, 'Role:', user.role)
+          console.log('[AUTH] ✅ LOGIN BEM-SUCEDIDO:', email, 'Role:', user.role)
+          console.log('========== [AUTH] FIM AUTHORIZE ==========')
 
           return {
             id: user.id,
@@ -76,7 +94,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             avatar: user.avatar
           }
         } catch (error) {
-          console.error('[AUTH] Erro no authorize:', error)
+          console.error('[AUTH] ERRO CRÍTICO no authorize:', error)
           return null
         }
       },
