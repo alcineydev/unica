@@ -35,7 +35,7 @@ import {
 
 // Import dinâmico do scanner (desabilita SSR para evitar erros com APIs do browser)
 const QRCodeScanner = dynamic(
-  () => import('@/components/qrcode/scanner').then(mod => mod.QRCodeScanner),
+  () => import('@/components/qrcode/scanner').then(mod => mod.QRCodeScanner || mod.default),
   {
     ssr: false,
     loading: () => (
