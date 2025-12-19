@@ -286,7 +286,7 @@ export default function ParceiroVendaPage() {
 
   // Obter desconto do plano
   function getDiscount(): number {
-    if (!assinante) return 0
+    if (!assinante?.plan?.planBenefits) return 0
     const discountBenefit = assinante.plan.planBenefits.find(
       pb => pb.benefit.type === 'DESCONTO'
     )
@@ -299,7 +299,7 @@ export default function ParceiroVendaPage() {
 
   // Obter cashback do plano
   function getCashback(): number {
-    if (!assinante) return 0
+    if (!assinante?.plan?.planBenefits) return 0
     const cashbackBenefit = assinante.plan.planBenefits.find(
       pb => pb.benefit.type === 'CASHBACK'
     )
@@ -422,11 +422,11 @@ export default function ParceiroVendaPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    <span>Plano: <strong>{assinante.plan.name}</strong></span>
+                    <span>Plano: <strong>{assinante.plan?.name || 'Sem plano'}</strong></span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Coins className="h-4 w-4 text-yellow-500" />
-                    <span>Pontos: <strong>{assinante.points.toFixed(0)}</strong></span>
+                    <span>Pontos: <strong>{(assinante.points || 0).toFixed(0)}</strong></span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Percent className="h-4 w-4 text-blue-500" />
