@@ -42,6 +42,8 @@ function LoginForm() {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
+    console.log('[LOGIN] Tentando login com:', { email, passwordLength: password?.length })
+
     try {
       const result = await signIn('credentials', {
         email,
@@ -49,7 +51,10 @@ function LoginForm() {
         redirect: false
       })
 
+      console.log('[LOGIN] Resultado do signIn:', result)
+
       if (result?.error) {
+        console.log('[LOGIN] Erro retornado:', result.error)
         setError('Email ou senha incorretos')
         setIsLoading(false)
         return
