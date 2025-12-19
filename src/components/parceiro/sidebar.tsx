@@ -22,7 +22,7 @@ const menuItems = [
   },
   {
     title: 'Registrar Venda',
-    href: '/parceiro/venda',
+    href: '/parceiro/vendas',
     icon: QrCode,
   },
   {

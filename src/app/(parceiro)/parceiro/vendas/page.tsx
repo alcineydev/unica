@@ -91,44 +91,61 @@ export default function ParceiroVendaPage() {
 
   // Buscar assinante por QR Code ou CPF (API unificada)
   async function searchAssinante(valor: string, tipo: 'qrcode' | 'cpf' = 'qrcode') {
+    // Validar entrada
+    if (!valor || valor.trim() === '') {
+      toast.error('Código inválido')
+      return
+    }
+
     setIsSearching(true)
     setAssinante(null)
 
     try {
-      const response = await fetch(`/api/parceiro/validar?${tipo}=${encodeURIComponent(valor)}`)
+      const response = await fetch(`/api/parceiro/validar?${tipo}=${encodeURIComponent(valor.trim())}`)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        toast.error(errorData.error || 'Erro ao buscar cliente')
+        return
+      }
+
       const result = await response.json()
 
-      if (response.ok && result.assinante) {
-        // Converter formato da nova API para o formato esperado
-        const ass = result.assinante
-        const assinanteData: AssinanteData = {
-          id: ass.id || '',
-          name: ass.nome || 'Sem nome',
-          cpf: ass.cpf || '',
-          points: ass.pontos || 0,
-          cashback: ass.cashback || 0,
-          subscriptionStatus: ass.status || 'PENDING',
-          plan: {
-            id: ass.plano?.id || '',
-            name: ass.plano?.nome || 'Sem plano',
-            planBenefits: (ass.beneficiosDisponiveis || []).map((b: Record<string, unknown>) => ({
-              benefit: {
-                id: b.id || '',
-                name: b.nome || '',
-                type: b.tipo || '',
-                value: b.valor || {}
-              }
-            }))
-          }
-        }
-        setAssinante(assinanteData)
-        setCpf(ass.cpf || '')
-        toast.success(`Assinante encontrado: ${ass.nome || 'Cliente'}`)
-      } else {
-        toast.error(result.error || 'Assinante não encontrado')
+      if (!result.assinante) {
+        toast.error('Cliente não encontrado')
+        return
       }
-    } catch {
-      toast.error('Erro ao buscar assinante')
+
+      // Converter formato da nova API para o formato esperado
+      const ass = result.assinante
+      const assinanteData: AssinanteData = {
+        id: ass.id || '',
+        name: ass.nome || 'Sem nome',
+        cpf: ass.cpf || '',
+        points: ass.pontos || 0,
+        cashback: ass.cashback || 0,
+        subscriptionStatus: ass.status || 'PENDING',
+        plan: {
+          id: ass.plano?.id || '',
+          name: ass.plano?.nome || 'Sem plano',
+          planBenefits: Array.isArray(ass.beneficiosDisponiveis)
+            ? ass.beneficiosDisponiveis.map((b: Record<string, unknown>) => ({
+                benefit: {
+                  id: (b.id as string) || '',
+                  name: (b.nome as string) || '',
+                  type: (b.tipo as string) || '',
+                  value: (b.valor as Record<string, unknown>) || {}
+                }
+              }))
+            : []
+        }
+      }
+      setAssinante(assinanteData)
+      setCpf(ass.cpf || '')
+      toast.success(`Cliente encontrado: ${ass.nome || 'Cliente'}`)
+    } catch (error) {
+      console.error('[VENDAS] Erro ao buscar cliente:', error)
+      toast.error('Erro de conexão. Tente novamente.')
     } finally {
       setIsSearching(false)
     }
@@ -136,9 +153,21 @@ export default function ParceiroVendaPage() {
 
   // Handler para QR Code escaneado
   function handleQRCodeScan(result: string) {
-    console.log('[SCAN] QR Code lido:', result)
-    // Enviar valor bruto - a API aceita ID, qrCode ou CPF
-    searchAssinante(result, 'qrcode')
+    try {
+      console.log('[SCAN] QR Code lido:', result)
+
+      // Validar resultado
+      if (!result || result.trim() === '') {
+        toast.error('QR Code inválido ou vazio')
+        return
+      }
+
+      // Enviar valor bruto - a API aceita ID, qrCode ou CPF
+      searchAssinante(result.trim(), 'qrcode')
+    } catch (error) {
+      console.error('[SCAN] Erro ao processar QR Code:', error)
+      toast.error('Erro ao processar QR Code')
+    }
   }
 
   // Calcular venda
