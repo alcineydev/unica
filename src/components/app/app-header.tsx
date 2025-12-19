@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Bell, Settings, LogOut, User, ChevronDown } from 'lucide-react'
+import { Bell, LogOut, User, ChevronDown, QrCode, Crown } from 'lucide-react'
 
 interface AppHeaderProps {
   userName?: string
@@ -104,9 +104,15 @@ export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/app/configuracoes" className="flex items-center cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Configurações
+                <Link href="/app/carteira" className="flex items-center cursor-pointer">
+                  <QrCode className="mr-2 h-4 w-4" />
+                  Carteira
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/planos" className="flex items-center cursor-pointer">
+                  <Crown className="mr-2 h-4 w-4" />
+                  Planos
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
