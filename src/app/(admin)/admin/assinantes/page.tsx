@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import Link from 'next/link'
 import {
   Plus,
   Users,
@@ -629,9 +630,11 @@ function AssinantesContent() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(subscriber)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/assinantes/${subscriber.id}`}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => toast.info(`QR Code: ${subscriber.qrCode}`)}>
                           <QrCode className="mr-2 h-4 w-4" />
@@ -726,16 +729,18 @@ function AssinantesContent() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(subscriber)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/assinantes/${subscriber.id}`}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => toast.info(`QR Code: ${subscriber.qrCode}`)}>
                             <QrCode className="mr-2 h-4 w-4" />
                             Ver QR Code
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleChangeStatus(subscriber, 'ACTIVE')}
                             disabled={(subscriber.subscriptionStatus || 'PENDING') === 'ACTIVE'}
                           >
