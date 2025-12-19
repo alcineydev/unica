@@ -9,11 +9,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Loader2, 
-  Mail, 
-  Lock, 
-  AlertCircle, 
+import {
+  Loader2,
+  Mail,
+  Lock,
+  AlertCircle,
   User,
   Phone,
   Building2,
@@ -26,7 +26,8 @@ import {
   UserPlus,
   Handshake,
   Eye,
-  EyeOff
+  EyeOff,
+  CreditCard
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -59,6 +60,7 @@ function LoginForm() {
     nome: '',
     email: '',
     telefone: '',
+    cpf: '',
     password: '',
     confirmPassword: ''
   })
@@ -162,6 +164,14 @@ function LoginForm() {
       return
     }
 
+    // Validar CPF
+    const cpfLimpo = cadastroForm.cpf.replace(/\D/g, '')
+    if (cpfLimpo.length !== 11) {
+      setError('CPF inválido. Digite os 11 dígitos.')
+      setIsLoading(false)
+      return
+    }
+
     try {
       const response = await fetch('/api/public/registro', {
         method: 'POST',
@@ -170,6 +180,7 @@ function LoginForm() {
           name: cadastroForm.nome,
           email: cadastroForm.email,
           phone: cadastroForm.telefone.replace(/\D/g, ''),
+          cpf: cpfLimpo,
           password: cadastroForm.password
         })
       })
@@ -468,6 +479,30 @@ function LoginForm() {
                       value={cadastroForm.telefone}
                       onChange={(e) => setCadastroForm({ ...cadastroForm, telefone: formatPhone(e.target.value) })}
                       maxLength={15}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cad-cpf">CPF</Label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="cad-cpf"
+                      placeholder="000.000.000-00"
+                      className="pl-10 h-11"
+                      value={cadastroForm.cpf}
+                      onChange={(e) => {
+                        let value = e.target.value.replace(/\D/g, '')
+                        if (value.length > 11) value = value.slice(0, 11)
+                        value = value.replace(/(\d{3})(\d)/, '$1.$2')
+                        value = value.replace(/(\d{3})(\d)/, '$1.$2')
+                        value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+                        setCadastroForm({ ...cadastroForm, cpf: value })
+                      }}
+                      maxLength={14}
                       required
                       disabled={isLoading}
                     />
