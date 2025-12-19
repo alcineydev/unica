@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Camera, CameraOff, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
@@ -15,18 +14,26 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
   const [isScanning, setIsScanning] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const scannerRef = useRef<Html5Qrcode | null>(null)
-  const mountedRef = useRef(true)
+  const scannerRef = useRef<any>(null)
   const containerIdRef = useRef(`qr-reader-${Date.now()}`)
+  const mountedRef = useRef(true)
 
-  const stopScanner = useCallback(async () => {
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      stopScanner()
+    }
+  }, [])
+
+  const stopScanner = async () => {
     if (scannerRef.current) {
       try {
-        const state = scannerRef.current.getState()
-        if (state === Html5QrcodeScannerState.SCANNING) {
+        const state = scannerRef.current.getState?.()
+        if (state === 2) { // SCANNING state
           await scannerRef.current.stop()
         }
-        scannerRef.current.clear()
+        scannerRef.current.clear?.()
       } catch (err) {
         console.error('[SCANNER] Erro ao parar:', err)
       }
@@ -36,34 +43,36 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
       setIsScanning(false)
       setIsLoading(false)
     }
-  }, [])
-
-  useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-      stopScanner()
-    }
-  }, [stopScanner])
+  }
 
   const startScanner = async () => {
     setError(null)
     setIsLoading(true)
 
     try {
+      // Import dinâmico da biblioteca (evita problemas de SSR)
+      const { Html5Qrcode } = await import('html5-qrcode')
+
       // Limpar scanner anterior se existir
-      await stopScanner()
-
-      // Pequeno delay para garantir cleanup e DOM ready
-      await new Promise(resolve => setTimeout(resolve, 200))
-
-      // Verificar se o elemento existe
-      const element = document.getElementById(containerIdRef.current)
-      if (!element) {
-        throw new Error('Elemento do scanner não encontrado')
+      if (scannerRef.current) {
+        try {
+          await scannerRef.current.stop()
+          scannerRef.current.clear()
+        } catch (e) {
+          // Ignorar erros de cleanup
+        }
+        scannerRef.current = null
       }
 
-      // Criar nova instância
+      // Aguardar elemento estar pronto no DOM
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      const element = document.getElementById(containerIdRef.current)
+      if (!element) {
+        throw new Error('Container do scanner não encontrado')
+      }
+
+      // Criar nova instância do scanner
       scannerRef.current = new Html5Qrcode(containerIdRef.current)
 
       const config = {
@@ -75,18 +84,17 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
       await scannerRef.current.start(
         { facingMode: 'environment' },
         config,
-        (decodedText) => {
+        (decodedText: string) => {
           console.log('[SCANNER] QR Code detectado:', decodedText)
 
-          // Chamar callback
+          // Chamar callback com resultado
           onScan(decodedText)
 
           // Parar scanner após leitura bem-sucedida
           stopScanner()
         },
         () => {
-          // Ignorar erros de frame sem QR code
-          // Esses são normais durante o escaneamento
+          // Ignorar erros de frame sem QR code (normal)
         }
       )
 
@@ -99,13 +107,14 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
       console.error('[SCANNER] Erro ao iniciar:', err)
 
       let errorMessage = 'Erro ao acessar a câmera'
+      const errorName = (err as any)?.name || ''
       const errorStr = err instanceof Error ? err.message : String(err)
 
-      if (errorStr.includes('NotAllowed') || errorStr.includes('Permission')) {
+      if (errorName === 'NotAllowedError' || errorStr.includes('Permission')) {
         errorMessage = 'Permissão de câmera negada. Por favor, permita o acesso nas configurações do navegador.'
-      } else if (errorStr.includes('NotFound') || errorStr.includes('No camera')) {
+      } else if (errorName === 'NotFoundError' || errorStr.includes('No camera')) {
         errorMessage = 'Nenhuma câmera encontrada no dispositivo.'
-      } else if (errorStr.includes('NotReadable') || errorStr.includes('already in use')) {
+      } else if (errorName === 'NotReadableError' || errorStr.includes('already in use')) {
         errorMessage = 'Câmera em uso por outro aplicativo.'
       } else if (errorStr.includes('OverconstrainedError')) {
         errorMessage = 'Configuração de câmera não suportada.'
@@ -125,11 +134,14 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
     <Card className="overflow-hidden">
       <CardContent className="p-0">
         <div className="relative">
-          {/* Container do Scanner - sempre com altura mínima para o DOM existir */}
+          {/* Container do Scanner */}
           <div
             id={containerIdRef.current}
             className="w-full bg-zinc-900 rounded-t-lg overflow-hidden"
-            style={{ minHeight: isScanning || isLoading ? '300px' : '0px', height: isScanning || isLoading ? 'auto' : '0px' }}
+            style={{
+              minHeight: isScanning || isLoading ? '300px' : '0px',
+              height: isScanning || isLoading ? 'auto' : '0px'
+            }}
           />
 
           {/* Placeholder quando não está escaneando */}

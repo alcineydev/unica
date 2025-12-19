@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 import {
   QrCode,
@@ -31,7 +32,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { QRCodeScanner } from '@/components/qrcode'
+
+// Import dinâmico do scanner (desabilita SSR para evitar erros com APIs do browser)
+const QRCodeScanner = dynamic(
+  () => import('@/components/qrcode/scanner').then(mod => mod.QRCodeScanner),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full aspect-square bg-zinc-900 rounded-lg flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-zinc-400">Carregando scanner...</p>
+        </div>
+      </div>
+    )
+  }
+)
 
 interface AssinanteData {
   id: string
