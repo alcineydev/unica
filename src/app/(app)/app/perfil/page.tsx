@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +12,6 @@ import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  ArrowLeft,
   Save,
   User,
   Mail,
@@ -28,7 +26,8 @@ import {
   Wallet,
   QrCode,
   Clock,
-  CheckCircle
+  CheckCircle,
+  ChevronRight
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -61,7 +60,6 @@ interface Perfil {
 }
 
 export default function PerfilPage() {
-  const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [perfil, setPerfil] = useState<Perfil | null>(null)
@@ -277,19 +275,12 @@ export default function PerfilPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/app">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">Meu Perfil</h1>
-            <p className="text-muted-foreground">Gerencie suas informações pessoais</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold">Meu Perfil</h1>
+          <p className="text-muted-foreground">Gerencie suas informações pessoais</p>
         </div>
         <Button onClick={handleSave} disabled={isSaving}>
           {isSaving ? (
@@ -605,7 +596,7 @@ export default function PerfilPage() {
                     </p>
                   </div>
                 </div>
-                <ArrowLeft className="h-5 w-5 text-muted-foreground rotate-180" />
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </Link>
             </CardContent>
           </Card>

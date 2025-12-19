@@ -1,46 +1,126 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { useState, useEffect } from 'react'
+import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { Sparkles, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { UserAvatar } from '@/components/ui/user-avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Bell, Settings, LogOut, User, ChevronDown } from 'lucide-react'
 
-export function AppHeader() {
+interface AppHeaderProps {
+  userName?: string
+  userEmail?: string
+  userAvatar?: string
+}
+
+export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
   const { data: session } = useSession()
+  const [notificationCount, setNotificationCount] = useState(0)
 
-  const user = session?.user
-  const firstName = user?.name?.split(' ')[0] || 'Usuário'
+  const displayName = userName || session?.user?.name || session?.user?.email?.split('@')[0] || 'Usuário'
+  const displayEmail = userEmail || session?.user?.email || ''
+  const displayAvatar = userAvatar || (session?.user as any)?.avatar || ''
+
+  useEffect(() => {
+    fetchNotificationCount()
+  }, [])
+
+  const fetchNotificationCount = async () => {
+    try {
+      const response = await fetch('/api/app/notifications/count')
+      const data = await response.json()
+      setNotificationCount(data.count || 0)
+    } catch (error) {
+      // Silently fail - notifications are not critical
+    }
+  }
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/login' })
+  }
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-14 items-center justify-between px-4">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex h-14 items-center justify-between px-4 max-w-3xl mx-auto">
+        {/* Logo */}
         <Link href="/app" className="flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-primary" />
-          <span className="font-bold text-lg">Unica</span>
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">U</span>
+          </div>
+          <span className="font-semibold text-lg hidden sm:inline">UNICA</span>
         </Link>
 
+        {/* Ações */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
-              2
-            </span>
-          </Button>
-          <Link href="/app/perfil">
-            <UserAvatar 
-              src={user?.avatar} 
-              name={user?.name} 
-              size="sm"
-            />
+          {/* Notificações */}
+          <Link href="/app/notificacoes">
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              {notificationCount > 0 && (
+                <Badge
+                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  variant="destructive"
+                >
+                  {notificationCount > 9 ? '9+' : notificationCount}
+                </Badge>
+              )}
+            </Button>
           </Link>
+
+          {/* Menu do Usuário */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-2 px-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={displayAvatar} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                    {displayName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium">{displayName}</p>
+                  <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/app/perfil" className="flex items-center cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  Meu Perfil
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/app/configuracoes" className="flex items-center cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Configurações
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-destructive focus:text-destructive cursor-pointer"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </div>
-      <div className="px-4 pb-3">
-        <p className="text-sm text-muted-foreground">Olá,</p>
-        <p className="text-lg font-semibold">{firstName}!</p>
       </div>
     </header>
   )
 }
-
