@@ -144,6 +144,7 @@ model Assinante {
   cpf                String?            @unique @db.VarChar(11)
   name               String
   phone              String?
+  birthDate          DateTime?
   cityId             String?
   address            Json?
   planId             String?

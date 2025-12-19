@@ -8,7 +8,18 @@ const registroSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
   email: z.string().email('Email inválido'),
   phone: z.string().optional(),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres')
+  cpf: z.string().length(11, 'CPF deve ter 11 dígitos'),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  dataNascimento: z.string().optional().nullable(),
+  endereco: z.object({
+    cep: z.string().optional(),
+    logradouro: z.string().optional(),
+    numero: z.string().optional(),
+    complemento: z.string().optional(),
+    bairro: z.string().optional(),
+    cidade: z.string().optional(),
+    estado: z.string().optional()
+  }).optional().nullable()
 })
 
 export async function POST(request: NextRequest) {
@@ -22,14 +33,26 @@ export async function POST(request: NextRequest) {
     const existingUser = await prisma.user.findUnique({
       where: { email: validatedData.email }
     })
-    
+
     if (existingUser) {
       return NextResponse.json(
         { error: 'Este email já está cadastrado.' },
         { status: 400 }
       )
     }
-    
+
+    // Verificar se CPF já existe
+    const existingCpf = await prisma.assinante.findFirst({
+      where: { cpf: validatedData.cpf }
+    })
+
+    if (existingCpf) {
+      return NextResponse.json(
+        { error: 'Este CPF já está cadastrado.' },
+        { status: 400 }
+      )
+    }
+
     // Hash da senha
     const hashedPassword = await bcrypt.hash(validatedData.password, 10)
     
@@ -54,7 +77,10 @@ export async function POST(request: NextRequest) {
         data: {
           userId: user.id,
           name: validatedData.name,
+          cpf: validatedData.cpf,
           phone: validatedData.phone || null,
+          birthDate: validatedData.dataNascimento ? new Date(validatedData.dataNascimento) : null,
+          address: validatedData.endereco || undefined,
           qrCode,
           subscriptionStatus: 'PENDING',
           points: 0,
