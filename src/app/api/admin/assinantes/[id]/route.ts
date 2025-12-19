@@ -36,7 +36,7 @@ export async function GET(
         phone: assinante.phone || assinante.user.phone,
         cpf: assinante.cpf,
         avatar: assinante.user.avatar,
-        dataNascimento: null, // Campo birthDate nao existe no schema ainda
+        dataNascimento: assinante.birthDate?.toISOString().split('T')[0] || null,
         endereco: assinante.address as any,
         subscriptionStatus: assinante.subscriptionStatus,
         points: assinante.points,
@@ -76,6 +76,7 @@ export async function PUT(
       name,
       phone,
       cpf,
+      dataNascimento,
       endereco,
       subscriptionStatus,
       planId
@@ -97,6 +98,7 @@ export async function PUT(
         name,
         phone,
         cpf,
+        birthDate: dataNascimento ? new Date(dataNascimento) : null,
         address: endereco,
         subscriptionStatus,
         planId: planId || null

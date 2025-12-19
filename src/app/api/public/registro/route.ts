@@ -9,7 +9,17 @@ const registroSchema = z.object({
   email: z.string().email('Email inválido'),
   phone: z.string().optional(),
   cpf: z.string().length(11, 'CPF deve ter 11 dígitos'),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres')
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  dataNascimento: z.string().optional().nullable(),
+  endereco: z.object({
+    cep: z.string().optional(),
+    logradouro: z.string().optional(),
+    numero: z.string().optional(),
+    complemento: z.string().optional(),
+    bairro: z.string().optional(),
+    cidade: z.string().optional(),
+    estado: z.string().optional()
+  }).optional().nullable()
 })
 
 export async function POST(request: NextRequest) {
@@ -69,6 +79,8 @@ export async function POST(request: NextRequest) {
           name: validatedData.name,
           cpf: validatedData.cpf,
           phone: validatedData.phone || null,
+          birthDate: validatedData.dataNascimento ? new Date(validatedData.dataNascimento) : null,
+          address: validatedData.endereco || null,
           qrCode,
           subscriptionStatus: 'PENDING',
           points: 0,
