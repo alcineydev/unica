@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
           cpf: validatedData.cpf,
           phone: validatedData.phone || null,
           birthDate: validatedData.dataNascimento ? new Date(validatedData.dataNascimento) : null,
-          address: validatedData.endereco || null,
+          address: validatedData.endereco || undefined,
           qrCode,
           subscriptionStatus: 'PENDING',
           points: 0,

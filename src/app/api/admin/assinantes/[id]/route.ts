@@ -99,7 +99,7 @@ export async function PUT(
         phone,
         cpf,
         birthDate: dataNascimento ? new Date(dataNascimento) : null,
-        address: endereco,
+        address: endereco || undefined,
         subscriptionStatus,
         planId: planId || null
       },
