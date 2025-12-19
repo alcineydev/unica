@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Gift,
-  QrCode,
+  ShoppingCart,
   Users,
   BarChart3,
   Settings,
@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 
 const menuItems = [
   { href: '/parceiro', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/parceiro/validacoes', label: 'Validar QR Code', icon: QrCode },
+  { href: '/parceiro/vendas', label: 'Vendas', icon: ShoppingCart },
   { href: '/parceiro/beneficios', label: 'Meus Benefícios', icon: Gift },
   { href: '/parceiro/clientes', label: 'Clientes', icon: Users },
   { href: '/parceiro/avaliacoes', label: 'Avaliações', icon: Star },

@@ -2,12 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, QrCode, BarChart3, Store } from 'lucide-react'
+import { Home, ShoppingCart, BarChart3, Store } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/parceiro', label: 'Início', icon: Home },
-  { href: '/parceiro/validacoes', label: 'Validar', icon: QrCode },
+  { href: '/parceiro/vendas', label: 'Vendas', icon: ShoppingCart },
   { href: '/parceiro/relatorios', label: 'Relatórios', icon: BarChart3 },
   { href: '/parceiro/perfil', label: 'Perfil', icon: Store },
 ]
