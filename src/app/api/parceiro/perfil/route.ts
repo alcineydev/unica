@@ -5,10 +5,10 @@ import { auth } from '@/lib/auth'
 export async function GET() {
   try {
     const session = await auth()
-    
+
     if (!session || session.user.role !== 'PARCEIRO') {
       return NextResponse.json(
-        { error: 'Nao autorizado' },
+        { error: 'Não autorizado' },
         { status: 401 }
       )
     }
@@ -27,15 +27,29 @@ export async function GET() {
             email: true,
           },
         },
+        benefitAccess: {
+          include: {
+            benefit: true,
+          },
+        },
       },
     })
 
     if (!parceiro) {
       return NextResponse.json(
-        { error: 'Parceiro nao encontrado' },
+        { error: 'Parceiro não encontrado' },
         { status: 404 }
       )
     }
+
+    // Mapear benefícios
+    const beneficios = parceiro.benefitAccess.map((ba) => ({
+      id: ba.benefit.id,
+      name: ba.benefit.name,
+      description: ba.benefit.description,
+      type: ba.benefit.type,
+      value: Number(ba.benefit.value || 0),
+    }))
 
     return NextResponse.json({
       data: {
@@ -45,11 +59,15 @@ export async function GET() {
         cnpj: parceiro.cnpj,
         category: parceiro.category,
         description: parceiro.description,
+        logo: parceiro.logo,
+        banner: parceiro.banner,
         city: parceiro.city,
         contact: parceiro.contact,
         hours: parceiro.hours,
+        address: parceiro.address,
         user: parceiro.user,
       },
+      beneficios,
     })
   } catch (error) {
     console.error('Erro ao carregar perfil:', error)
@@ -63,10 +81,10 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const session = await auth()
-    
+
     if (!session || session.user.role !== 'PARCEIRO') {
       return NextResponse.json(
-        { error: 'Nao autorizado' },
+        { error: 'Não autorizado' },
         { status: 401 }
       )
     }
@@ -77,13 +95,17 @@ export async function PATCH(request: Request) {
 
     if (!parceiro) {
       return NextResponse.json(
-        { error: 'Parceiro nao encontrado' },
+        { error: 'Parceiro não encontrado' },
         { status: 404 }
       )
     }
 
     const body = await request.json()
     const { tradeName, description, whatsapp, phone, weekdays, saturday, sunday } = body
+
+    // Limpar formatação dos telefones
+    const cleanPhone = phone?.replace(/\D/g, '') || ''
+    const cleanWhatsapp = whatsapp?.replace(/\D/g, '') || ''
 
     // Atualiza o parceiro
     const updated = await prisma.parceiro.update({
@@ -93,14 +115,14 @@ export async function PATCH(request: Request) {
         description: description || parceiro.description,
         contact: {
           ...(parceiro.contact as object),
-          whatsapp: whatsapp || (parceiro.contact as { whatsapp?: string }).whatsapp,
-          phone: phone || (parceiro.contact as { phone?: string }).phone,
+          whatsapp: cleanWhatsapp || (parceiro.contact as { whatsapp?: string }).whatsapp,
+          phone: cleanPhone || (parceiro.contact as { phone?: string }).phone,
         },
         hours: {
           ...(parceiro.hours as object),
-          weekdays: weekdays || (parceiro.hours as { weekdays?: string }).weekdays,
-          saturday: saturday || (parceiro.hours as { saturday?: string }).saturday,
-          sunday: sunday || (parceiro.hours as { sunday?: string }).sunday,
+          weekdays: weekdays !== undefined ? weekdays : (parceiro.hours as { weekdays?: string }).weekdays,
+          saturday: saturday !== undefined ? saturday : (parceiro.hours as { saturday?: string }).saturday,
+          sunday: sunday !== undefined ? sunday : (parceiro.hours as { sunday?: string }).sunday,
         },
       },
     })
@@ -117,4 +139,3 @@ export async function PATCH(request: Request) {
     )
   }
 }
-

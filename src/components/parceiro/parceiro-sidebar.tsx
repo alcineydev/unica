@@ -2,36 +2,37 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import {
-  LayoutDashboard,
-  Gift,
+  Home,
   ShoppingCart,
   Users,
-  BarChart3,
-  Settings,
   Star,
-  Store,
-  MessageCircle
+  BarChart3,
+  Building2,
+  LogOut
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 
 const menuItems = [
-  { href: '/parceiro', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/parceiro', label: 'Dashboard', icon: Home },
   { href: '/parceiro/vendas', label: 'Vendas', icon: ShoppingCart },
-  { href: '/parceiro/beneficios', label: 'Meus Benefícios', icon: Gift },
   { href: '/parceiro/clientes', label: 'Clientes', icon: Users },
   { href: '/parceiro/avaliacoes', label: 'Avaliações', icon: Star },
   { href: '/parceiro/relatorios', label: 'Relatórios', icon: BarChart3 },
-  { href: '/parceiro/perfil', label: 'Perfil da Empresa', icon: Store },
-  { href: '/parceiro/configuracoes', label: 'Configurações', icon: Settings },
+  { href: '/parceiro/perfil', label: 'Perfil da Empresa', icon: Building2 },
 ]
 
 export function ParceiroSidebar() {
   const pathname = usePathname()
 
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/login' })
+  }
+
   return (
-    <aside className="hidden md:flex w-64 flex-col border-r bg-zinc-50/50 dark:bg-zinc-900/50 h-[calc(100vh-56px)]">
+    <aside className="hidden md:flex w-64 flex-col h-[calc(100vh-56px)] sticky top-14 border-r bg-zinc-50/50 dark:bg-zinc-900/50">
+      {/* Menu Items */}
       <div className="flex-1 py-4 overflow-y-auto">
         <nav className="space-y-1 px-3">
           {menuItems.map((item) => {
@@ -57,18 +58,15 @@ export function ParceiroSidebar() {
         </nav>
       </div>
 
-      {/* Suporte WhatsApp */}
-      <div className="p-4 border-t">
-        <a
-          href="https://wa.me/5566999999999?text=Olá, preciso de ajuda com o painel parceiro"
-          target="_blank"
-          rel="noopener noreferrer"
+      {/* Botão Sair - Fixo na parte inferior */}
+      <div className="p-3 border-t mt-auto">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
         >
-          <Button variant="outline" className="w-full justify-start" size="sm">
-            <MessageCircle className="mr-2 h-4 w-4 text-green-500" />
-            Suporte via WhatsApp
-          </Button>
-        </a>
+          <LogOut className="h-5 w-5" />
+          Sair
+        </button>
       </div>
     </aside>
   )
