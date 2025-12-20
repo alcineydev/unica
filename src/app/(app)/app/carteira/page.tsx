@@ -205,7 +205,7 @@ export default function CarteiraPage() {
   const StatusIcon = statusInfo.icon
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="text-center">
         <h1 className="text-2xl font-bold">Minha Carteirinha</h1>
@@ -215,11 +215,11 @@ export default function CarteiraPage() {
       </div>
 
       {/* Cartão Digital */}
-      <div className="relative">
+      <div className="relative overflow-hidden rounded-xl">
         <Card className="overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 text-white border-0 shadow-2xl">
-          {/* Decoração */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+          {/* Decoração - contida no overflow */}
+          <div className="absolute top-0 right-0 w-48 h-48 bg-primary/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-primary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4 pointer-events-none" />
 
           <CardContent className="relative p-6 space-y-6">
             {/* Header do cartão */}
@@ -241,13 +241,14 @@ export default function CarteiraPage() {
 
             {/* QR Code */}
             <div className="flex justify-center py-4">
-              <div className="bg-white p-4 rounded-2xl shadow-lg">
+              <div className="bg-white p-3 sm:p-4 rounded-2xl shadow-lg">
                 <QRCodeSVG
                   id="qr-code-svg"
                   value={assinante.qrCode || 'UNICA'}
-                  size={200}
+                  size={160}
                   level="H"
                   includeMargin={false}
+                  className="w-full max-w-[160px] sm:max-w-[180px] h-auto"
                 />
               </div>
             </div>
@@ -336,7 +337,7 @@ export default function CarteiraPage() {
       <div className="grid grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-3xl font-bold text-primary">{assinante.points?.toFixed(0) || 0}</p>
+            <p className="text-3xl font-bold text-primary">{Number(assinante.points || 0).toFixed(0)}</p>
             <p className="text-sm text-muted-foreground">Pontos</p>
           </CardContent>
         </Card>
@@ -393,7 +394,7 @@ export default function CarteiraPage() {
                     </p>
                     {tx.pointsUsed > 0 && (
                       <p className="text-xs text-yellow-600">
-                        -{tx.pointsUsed.toFixed(0)} pts
+                        -{Number(tx.pointsUsed || 0).toFixed(0)} pts
                       </p>
                     )}
                     {tx.cashbackGenerated > 0 && (
