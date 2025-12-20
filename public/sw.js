@@ -88,47 +88,74 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
-// Push notifications (preparado para futuro)
+// Push notifications
 self.addEventListener('push', (event) => {
-  const data = event.data?.json() || {}
-  
-  const options = {
-    body: data.body || 'Nova notificação da UNICA',
+  console.log('[SW] Push recebido:', event)
+
+  let data = {
+    title: 'UNICA',
+    body: 'Voce tem uma nova notificacao',
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
+    badge: '/icons/icon-72x72.png',
+    data: { url: '/' }
+  }
+
+  if (event.data) {
+    try {
+      data = { ...data, ...event.data.json() }
+    } catch (e) {
+      console.error('[SW] Erro ao parsear dados:', e)
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon,
+    badge: data.badge,
     vibrate: [100, 50, 100],
-    data: {
-      url: data.url || '/',
-      dateOfArrival: Date.now()
-    },
-    actions: data.actions || []
+    data: data.data || { url: '/' },
+    tag: data.tag || 'default',
+    renotify: true,
+    requireInteraction: false,
+    actions: [
+      { action: 'open', title: 'Abrir' },
+      { action: 'close', title: 'Fechar' }
+    ]
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'UNICA', options)
+    self.registration.showNotification(data.title, options)
   )
 })
 
 // Ação ao clicar na notificação
 self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notificacao clicada:', event.action)
   event.notification.close()
-  
-  const url = event.notification.data?.url || '/'
-  
+
+  if (event.action === 'close') {
+    return
+  }
+
+  const urlToOpen = event.notification.data?.url || '/'
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Se já tem uma janela aberta, foca nela
+        // Se ja tem uma janela aberta, focar nela
         for (const client of clientList) {
           if (client.url.includes(self.location.origin) && 'focus' in client) {
-            client.navigate(url)
+            client.navigate(urlToOpen)
             return client.focus()
           }
         }
-        // Senão, abre nova janela
-        if (clients.openWindow) {
-          return clients.openWindow(url)
-        }
+        // Senao, abrir nova janela
+        return clients.openWindow(urlToOpen)
       })
   )
+})
+
+// Fechar notificacao
+self.addEventListener('notificationclose', (event) => {
+  console.log('[SW] Notificacao fechada')
 })
