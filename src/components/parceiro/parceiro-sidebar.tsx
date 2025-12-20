@@ -31,8 +31,9 @@ export function ParceiroSidebar() {
   }
 
   return (
-    <aside className="hidden md:flex w-64 flex-col border-r bg-zinc-50/50 dark:bg-zinc-900/50">
-      <div className="flex-1 py-4">
+    <aside className="hidden md:flex w-64 flex-col h-[calc(100vh-56px)] sticky top-14 border-r bg-zinc-50/50 dark:bg-zinc-900/50">
+      {/* Menu Items */}
+      <div className="flex-1 py-4 overflow-y-auto">
         <nav className="space-y-1 px-3">
           {menuItems.map((item) => {
             const isActive = pathname === item.href ||
@@ -57,8 +58,8 @@ export function ParceiroSidebar() {
         </nav>
       </div>
 
-      {/* Botão Sair */}
-      <div className="p-3 border-t">
+      {/* Botão Sair - Fixo na parte inferior */}
+      <div className="p-3 border-t mt-auto">
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
