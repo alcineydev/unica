@@ -82,7 +82,7 @@ export default function AvaliarPage({ params }: { params: Promise<{ parceiroId: 
       }
 
       setSuccess(true)
-      toast.success('Avaliação enviada! +5 pontos')
+      toast.success('Avaliação enviada! +1 ponto')
     } catch (error) {
       console.error('Erro ao enviar avaliação:', error)
       toast.error('Erro ao enviar avaliação')
@@ -106,7 +106,7 @@ export default function AvaliarPage({ params }: { params: Promise<{ parceiroId: 
             </p>
             <div className="flex items-center justify-center gap-2 text-primary mb-6">
               <Gift className="h-5 w-5" />
-              <span className="font-semibold">+5 pontos adicionados!</span>
+              <span className="font-semibold">+1 ponto adicionado!</span>
             </div>
             <Button onClick={() => router.push('/app')} className="w-full">
               Voltar ao Início
@@ -213,7 +213,7 @@ export default function AvaliarPage({ params }: { params: Promise<{ parceiroId: 
       {/* Bonificação */}
       <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-primary/5 p-3 rounded-lg">
         <Gift className="h-4 w-4 text-primary" />
-        <span>Ganhe <strong className="text-primary">+5 pontos</strong> ao avaliar!</span>
+        <span>Ganhe <strong className="text-primary">+1 ponto</strong> ao avaliar!</span>
       </div>
 
       {/* Botão Enviar */}

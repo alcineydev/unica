@@ -131,7 +131,7 @@ export async function POST(request: Request) {
             assinanteId,
             tipo: 'AVALIACAO',
             titulo: 'Avalie sua experiência',
-            mensagem: `Como foi sua compra em ${parceiro.tradeName || parceiro.companyName}? Avalie e ganhe +5 pontos!`,
+            mensagem: `Como foi sua compra em ${parceiro.tradeName || parceiro.companyName}? Avalie e ganhe +1 ponto!`,
             dados: {
               parceiroId: parceiro.id,
               link: `/app/avaliar/${parceiro.id}`
