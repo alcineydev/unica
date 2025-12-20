@@ -37,6 +37,8 @@ model User {
   admin     Admin?
   assinante Assinante?
   parceiro  Parceiro?
+  pushSubscriptions      PushSubscription[]
+  adminPushNotifications AdminPushNotification[]
 
   @@map("users")
 }
@@ -502,4 +504,43 @@ model Avaliacao {
   @@index([assinanteId])
   @@index([parceiroId])
   @@map("avaliacoes")
+}
+
+/// Subscription de Push Notification por dispositivo
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+
+  deviceInfo String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+/// Histórico de Push Notifications enviadas pelo admin
+model AdminPushNotification {
+  id          String   @id @default(uuid())
+
+  title       String
+  message     String
+  icon        String?
+  link        String?
+
+  targetType  String   // ALL, ASSINANTES, PARCEIROS
+
+  sentCount   Int      @default(0)
+  failedCount Int      @default(0)
+
+  createdBy   String
+  admin       User     @relation(fields: [createdBy], references: [id])
+
+  createdAt   DateTime @default(now())
+
+  @@map("admin_push_notifications")
 }
