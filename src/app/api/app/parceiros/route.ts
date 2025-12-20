@@ -66,11 +66,15 @@ export async function GET() {
         description: true,
         contact: true,
         city: {
-          select: { 
+          select: {
             id: true,
-            name: true, 
-            state: true 
+            name: true,
+            state: true
           }
+        },
+        avaliacoes: {
+          where: { publicada: true },
+          select: { nota: true }
         },
         benefitAccess: {
           where: {
@@ -99,6 +103,11 @@ export async function GET() {
     // Formatar resposta
     const parceirosFormatados = parceiros.map(p => {
       const contact = p.contact as Record<string, string> || {}
+      const avaliacoes = p.avaliacoes || []
+      const mediaAvaliacoes = avaliacoes.length > 0
+        ? avaliacoes.reduce((sum, a) => sum + a.nota, 0) / avaliacoes.length
+        : 0
+
       return {
         id: p.id,
         companyName: p.companyName,
@@ -112,6 +121,10 @@ export async function GET() {
           phone: contact.phone
         },
         city: p.city,
+        avaliacoes: {
+          media: Math.round(mediaAvaliacoes * 10) / 10,
+          total: avaliacoes.length
+        },
         benefits: p.benefitAccess.map(ba => {
           const value = ba.benefit.value as Record<string, number>
           return {

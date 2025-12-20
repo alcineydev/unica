@@ -65,9 +65,10 @@ export async function GET() {
     firstDayOfMonth.setDate(1)
     firstDayOfMonth.setHours(0, 0, 0, 0)
 
-    let monthlyStats = { _count: 0, _sum: { amount: null as number | null } }
+    let vendasMes = 0
+    let faturamentoMes = 0
     try {
-      monthlyStats = await prisma.transaction.aggregate({
+      const monthlyStats = await prisma.transaction.aggregate({
         where: {
           parceiroId: parceiro.id,
           createdAt: { gte: firstDayOfMonth },
@@ -78,6 +79,10 @@ export async function GET() {
           amount: true,
         },
       })
+      vendasMes = monthlyStats._count || 0
+      faturamentoMes = monthlyStats._sum.amount
+        ? parseFloat(monthlyStats._sum.amount.toString())
+        : 0
     } catch (e) {
       console.error('[DASHBOARD] Erro ao agregar transações:', e)
     }
@@ -99,8 +104,8 @@ export async function GET() {
 
     return NextResponse.json({
       data: {
-        totalSales: monthlyStats._count || 0,
-        salesAmount: Number(monthlyStats._sum?.amount || 0),
+        totalSales: vendasMes,
+        salesAmount: faturamentoMes,
         pageViews: metrics.pageViews || 0,
         whatsappClicks: metrics.whatsappClicks || 0,
         avaliacoes: {
@@ -109,7 +114,7 @@ export async function GET() {
         },
         recentTransactions: recentTransactions.map(tx => ({
           id: tx.id,
-          amount: Number(tx.amount),
+          amount: parseFloat(tx.amount?.toString() || '0'),
           createdAt: tx.createdAt.toISOString(),
           assinante: tx.assinante,
         })),

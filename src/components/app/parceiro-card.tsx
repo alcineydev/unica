@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { Building2, MapPin, MessageCircle } from 'lucide-react'
+import { Building2, MapPin, MessageCircle, Star } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -28,6 +28,10 @@ interface ParceiroCardProps {
       name: string
       state?: string
     } | null
+    avaliacoes?: {
+      media: number
+      total: number
+    }
     benefits?: Benefit[]
   }
   variant?: 'default' | 'compact'
@@ -96,6 +100,12 @@ export function ParceiroCard({ parceiro, variant = 'default', className }: Parce
               <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
                 {displayName}
               </h3>
+              {parceiro.avaliacoes && parceiro.avaliacoes.total > 0 && (
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                  <span className="text-sm font-medium">{parceiro.avaliacoes.media.toFixed(1)}</span>
+                </div>
+              )}
               {parceiro.benefits && parceiro.benefits[0] && (
                 <Badge variant="secondary" className="bg-green-100 text-green-700 border-0 text-xs font-medium">
                   {getBenefitLabel(parceiro.benefits[0])}
@@ -165,9 +175,18 @@ export function ParceiroCard({ parceiro, variant = 'default', className }: Parce
         {/* Info */}
         <div className="space-y-2">
           <div>
-            <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
-              {displayName}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
+                {displayName}
+              </h3>
+              {parceiro.avaliacoes && parceiro.avaliacoes.total > 0 && (
+                <div className="flex items-center gap-1">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <span className="text-sm font-medium">{parceiro.avaliacoes.media.toFixed(1)}</span>
+                  <span className="text-xs text-muted-foreground">({parceiro.avaliacoes.total})</span>
+                </div>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">{parceiro.category}</p>
           </div>
 

@@ -1,26 +1,46 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Input } from '@/components/ui/input'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import {
-  QrCode,
-  Gift,
   Store,
-  Wallet,
-  TrendingUp,
   ChevronRight,
   Crown,
   Star,
-  Sparkles,
   Zap,
-  ArrowRight
+  ArrowRight,
+  Search,
+  Utensils,
+  ShoppingBag,
+  Car,
+  Dumbbell,
+  Scissors,
+  Heart,
+  GraduationCap,
+  LayoutGrid
 } from 'lucide-react'
 import { toast } from 'sonner'
+
+// Mapa de ícones por categoria
+const categoryIcons: Record<string, React.ReactNode> = {
+  'Alimentação': <Utensils className="h-5 w-5" />,
+  'Restaurante': <Utensils className="h-5 w-5" />,
+  'Loja': <ShoppingBag className="h-5 w-5" />,
+  'Varejo': <ShoppingBag className="h-5 w-5" />,
+  'Automotivo': <Car className="h-5 w-5" />,
+  'Academia': <Dumbbell className="h-5 w-5" />,
+  'Fitness': <Dumbbell className="h-5 w-5" />,
+  'Beleza': <Scissors className="h-5 w-5" />,
+  'Saúde': <Heart className="h-5 w-5" />,
+  'Educação': <GraduationCap className="h-5 w-5" />,
+}
 
 interface Parceiro {
   id: string
@@ -30,6 +50,10 @@ interface Parceiro {
   description: string | null
   logo: string | null
   city: { name: string } | null
+  avaliacoes?: {
+    media: number
+    total: number
+  }
   benefits?: Array<{
     id: string
     name: string
@@ -76,12 +100,15 @@ interface HomeData {
   }
   parceiros: Parceiro[]
   totalBeneficios: number
+  categorias: string[]
   planosDisponiveis?: Plan[]
 }
 
 export default function AssinanteDashboard() {
   const [data, setData] = useState<HomeData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   useEffect(() => {
     fetchDashboardData()
@@ -91,12 +118,12 @@ export default function AssinanteDashboard() {
     try {
       const response = await fetch('/api/app/home')
       const result = await response.json()
-      
+
       if (result.error) {
         toast.error(result.error)
         return
       }
-      
+
       setData(result.data)
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error)
@@ -113,27 +140,40 @@ export default function AssinanteDashboard() {
     }).format(value)
   }
 
+  // Filtrar parceiros
+  const filteredParceiros = useMemo(() => {
+    if (!data?.parceiros) return []
+
+    let filtered = data.parceiros
+
+    // Filtro por categoria
+    if (selectedCategory) {
+      filtered = filtered.filter(p => p.category === selectedCategory)
+    }
+
+    // Filtro por busca
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(p =>
+        (p.tradeName || p.companyName).toLowerCase().includes(query) ||
+        p.category?.toLowerCase().includes(query) ||
+        p.description?.toLowerCase().includes(query)
+      )
+    }
+
+    return filtered
+  }, [data?.parceiros, selectedCategory, searchQuery])
+
   // Loading State
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-primary to-primary/80 rounded-2xl p-6">
-          <div className="flex items-center gap-4 mb-6">
-            <Skeleton className="h-16 w-16 rounded-full bg-white/20" />
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-40 bg-white/20" />
-              <Skeleton className="h-4 w-24 bg-white/20" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Skeleton className="h-20 rounded-xl bg-white/10" />
-            <Skeleton className="h-20 rounded-xl bg-white/10" />
-          </div>
-        </div>
-        <Skeleton className="h-20 rounded-xl" />
-        <div className="grid grid-cols-2 gap-4">
-          <Skeleton className="h-24 rounded-xl" />
-          <Skeleton className="h-24 rounded-xl" />
+      <div className="space-y-4">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-12 rounded-xl" />
+        <div className="flex gap-3">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="h-16 w-16 rounded-xl flex-shrink-0" />
+          ))}
         </div>
         <Skeleton className="h-64 rounded-xl" />
       </div>
@@ -227,165 +267,136 @@ export default function AssinanteDashboard() {
     )
   }
 
-  const { assinante, parceiros, totalBeneficios } = data!
+  const { assinante, categorias } = data!
 
   return (
-    <div className="space-y-6">
-      {/* Header com perfil */}
-      <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-6 rounded-2xl">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16 border-2 border-white/20">
-            <AvatarFallback className="bg-white/20 text-white text-xl">
-              {assinante.name?.charAt(0)?.toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold">Olá, {assinante.name?.split(' ')[0] || 'Assinante'}!</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="secondary" className="bg-white/20 text-white border-0">
-                <Crown className="h-3 w-3 mr-1" />
-                {assinante.plan?.name || 'Plano Ativo'}
-              </Badge>
-            </div>
-          </div>
-          <Link href="/app/perfil">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </Link>
-        </div>
-
-        {/* Cards de resumo */}
-        <div className="grid grid-cols-2 gap-3 mt-6">
-          <div className="bg-white/10 backdrop-blur rounded-xl p-4">
-            <div className="flex items-center gap-2 text-white/70 text-sm mb-1">
-              <Star className="h-4 w-4" />
-              Pontos
-            </div>
-            <div className="text-2xl font-bold">{assinante.points || 0}</div>
-          </div>
-          <div className="bg-white/10 backdrop-blur rounded-xl p-4">
-            <div className="flex items-center gap-2 text-white/70 text-sm mb-1">
-              <Wallet className="h-4 w-4" />
-              Cashback
-            </div>
-            <div className="text-2xl font-bold">
-              {formatCurrency(assinante.cashback || 0)}
-            </div>
-          </div>
-        </div>
+    <div className="space-y-4">
+      {/* Header Simples */}
+      <div className="flex items-center justify-between">
+        <p className="text-muted-foreground text-sm">
+          Olá, <span className="font-medium text-foreground">{assinante.name?.split(' ')[0] || 'Assinante'}</span> 👋
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {filteredParceiros.length} parceiro{filteredParceiros.length !== 1 ? 's' : ''}
+        </p>
       </div>
 
-      {/* QR Code Card */}
-      <Card className="border-2 border-dashed">
-        <CardContent className="p-4">
-          <Link href="/app/carteira" className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center">
-                <QrCode className="h-7 w-7 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Minha Carteirinha</h3>
-                <p className="text-sm text-muted-foreground">
-                  Apresente seu QR Code nos parceiros
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </Link>
-        </CardContent>
-      </Card>
-
-      {/* Stats rápidas */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-              <Gift className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{totalBeneficios}</div>
-              <div className="text-xs text-muted-foreground">Benefícios</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{parceiros.length}</div>
-              <div className="text-xs text-muted-foreground">Parceiros</div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Barra de busca */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar parceiros, categorias..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 h-12 rounded-xl bg-background"
+        />
       </div>
 
-      {/* Benefícios do plano */}
-      {assinante.plan?.planBenefits && assinante.plan.planBenefits.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Seus Benefícios
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {assinante.plan.planBenefits.slice(0, 5).map((pb) => (
-                <Badge key={pb.benefit.id} variant="secondary">
-                  {pb.benefit.name}
-                </Badge>
+      {/* Categorias com scroll horizontal */}
+      {categorias && categorias.length > 0 && (
+        <div className="-mx-4">
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-3 px-4 pb-2">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`flex flex-col items-center gap-2 p-3 rounded-xl min-w-[72px] transition-all ${
+                  selectedCategory === null
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted hover:bg-muted/80'
+                }`}
+              >
+                <LayoutGrid className="h-5 w-5" />
+                <span className="text-xs font-medium">Todos</span>
+              </button>
+              {categorias.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl min-w-[72px] transition-all ${
+                    selectedCategory === cat
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted hover:bg-muted/80'
+                  }`}
+                >
+                  {categoryIcons[cat] || <Store className="h-5 w-5" />}
+                  <span className="text-xs font-medium truncate max-w-[60px]">{cat}</span>
+                </button>
               ))}
-              {assinante.plan.planBenefits.length > 5 && (
-                <Badge variant="outline">
-                  +{assinante.plan.planBenefits.length - 5} mais
-                </Badge>
-              )}
             </div>
-          </CardContent>
-        </Card>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </div>
       )}
 
-      {/* Parceiros em destaque */}
+      {/* Lista de Parceiros */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Parceiros em Destaque</h2>
+          <h2 className="text-lg font-semibold">
+            {selectedCategory ? selectedCategory : 'Parceiros Disponíveis'}
+          </h2>
           <Link href="/app/parceiros" className="text-sm text-primary flex items-center">
             Ver todos
             <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
 
-        {parceiros.length === 0 ? (
+        {filteredParceiros.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
               <Store className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">Nenhum parceiro disponível ainda</p>
+              <p className="text-muted-foreground">
+                {searchQuery || selectedCategory
+                  ? 'Nenhum parceiro encontrado'
+                  : 'Nenhum parceiro disponível ainda'
+                }
+              </p>
+              {(searchQuery || selectedCategory) && (
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    setSearchQuery('')
+                    setSelectedCategory(null)
+                  }}
+                >
+                  Limpar filtros
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-3">
-            {parceiros.slice(0, 5).map((parceiro) => (
+            {filteredParceiros.map((parceiro) => (
               <Link key={parceiro.id} href={`/app/parceiros/${parceiro.id}`}>
-                <Card className="hover:shadow-md transition-shadow">
+                <Card className="hover:shadow-md transition-all hover:border-primary/30">
                   <CardContent className="p-4 flex items-center gap-4">
-                    <Avatar className="h-12 w-12 rounded-xl">
+                    <Avatar className="h-14 w-14 rounded-xl">
                       <AvatarImage src={parceiro.logo || undefined} />
-                      <AvatarFallback className="rounded-xl bg-primary/10">
+                      <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-semibold">
                         {(parceiro.tradeName || parceiro.companyName)?.charAt(0)?.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium truncate">
-                        {parceiro.tradeName || parceiro.companyName}
-                      </h3>
-                      {parceiro.category && (
-                        <p className="text-sm text-muted-foreground">{parceiro.category}</p>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold truncate">
+                          {parceiro.tradeName || parceiro.companyName}
+                        </h3>
+                        {parceiro.avaliacoes && parceiro.avaliacoes.total > 0 && (
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-medium">{parceiro.avaliacoes.media.toFixed(1)}</span>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {parceiro.category}
+                        {parceiro.city?.name && ` • ${parceiro.city.name}`}
+                      </p>
                     </div>
-                    <Badge variant="secondary">
-                      {parceiro.benefits?.length || 0} {(parceiro.benefits?.length || 0) === 1 ? 'benefício' : 'benefícios'}
-                    </Badge>
+                    <div className="text-right">
+                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                        {parceiro.benefits?.length || 0} {(parceiro.benefits?.length || 0) === 1 ? 'oferta' : 'ofertas'}
+                      </Badge>
+                    </div>
                   </CardContent>
                 </Card>
               </Link>

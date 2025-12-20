@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
-import { BottomNav, AppHeader } from '@/components/app'
+import { BottomNav, AppHeader, AppSidebar } from '@/components/app'
+import { Toaster } from 'sonner'
 
 export default async function AppLayout({
   children,
@@ -9,18 +10,38 @@ export default async function AppLayout({
 }) {
   const session = await auth()
 
-  if (!session || session.user.role !== 'ASSINANTE') {
+  if (!session?.user) {
+    redirect('/login')
+  }
+
+  // Verificar se é assinante ou roles permitidas
+  const allowedRoles = ['ASSINANTE', 'DEVELOPER', 'ADMIN']
+  if (!allowedRoles.includes(session.user.role as string)) {
     redirect('/login')
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 overflow-x-hidden">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <Toaster position="top-center" richColors />
+
+      {/* Header */}
       <AppHeader />
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-24 overflow-x-hidden">
-        {children}
-      </main>
+
+      {/* Container com Sidebar + Conteúdo */}
+      <div className="flex">
+        {/* Sidebar - apenas desktop (lg+) */}
+        <AppSidebar />
+
+        {/* Conteúdo Principal */}
+        <main className="flex-1 w-full">
+          <div className="max-w-4xl mx-auto px-4 py-6 pb-24 lg:pb-6">
+            {children}
+          </div>
+        </main>
+      </div>
+
+      {/* Bottom Nav - apenas mobile/tablet (< lg) */}
       <BottomNav />
     </div>
   )
 }
-

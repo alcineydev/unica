@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Bell, LogOut, User, ChevronDown, QrCode, Crown, Star } from 'lucide-react'
+import { Bell, LogOut, User, ChevronDown, CreditCard, Star } from 'lucide-react'
 import { NotificationModal } from './notification-modal'
 
 interface AppHeaderProps {
@@ -114,13 +114,14 @@ export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-4 max-w-3xl mx-auto">
+        <div className="flex h-14 items-center justify-between px-4 lg:px-6">
           {/* Logo */}
           <Link href="/app" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">U</span>
             </div>
-            <span className="font-semibold text-lg hidden sm:inline">UNICA</span>
+            <span className="font-semibold">UNICA</span>
+            <Badge variant="secondary" className="text-xs hidden sm:inline-flex">Assinante</Badge>
           </Link>
 
           {/* Ações */}
@@ -150,7 +151,10 @@ export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
                       {displayName.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                  <span className="hidden sm:inline text-sm font-medium max-w-[120px] truncate">
+                    {displayName}
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -169,7 +173,7 @@ export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/app/carteira" className="flex items-center cursor-pointer">
-                    <QrCode className="mr-2 h-4 w-4" />
+                    <CreditCard className="mr-2 h-4 w-4" />
                     Carteira
                   </Link>
                 </DropdownMenuItem>
@@ -177,12 +181,6 @@ export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
                   <Link href="/app/minhas-avaliacoes" className="flex items-center cursor-pointer">
                     <Star className="mr-2 h-4 w-4" />
                     Minhas Avaliações
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/planos" className="flex items-center cursor-pointer">
-                    <Crown className="mr-2 h-4 w-4" />
-                    Planos
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

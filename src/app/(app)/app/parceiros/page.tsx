@@ -29,6 +29,10 @@ interface Parceiro {
     name: string
     state?: string
   } | null
+  avaliacoes?: {
+    media: number
+    total: number
+  }
   benefits?: Benefit[]
 }
 
@@ -106,6 +110,7 @@ export default function ParceirosPage() {
     banner: p.banner,
     whatsapp: p.contact?.whatsapp,
     city: p.city,
+    avaliacoes: p.avaliacoes,
     benefits: p.benefits
   })
 
