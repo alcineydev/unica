@@ -70,12 +70,25 @@ export async function GET() {
       },
     })
 
+    // Buscar estatísticas de avaliações
+    const avaliacoes = await prisma.avaliacao.findMany({
+      where: { parceiroId: parceiro.id }
+    })
+
+    const mediaAvaliacoes = avaliacoes.length > 0
+      ? avaliacoes.reduce((sum, a) => sum + a.nota, 0) / avaliacoes.length
+      : 0
+
     return NextResponse.json({
       data: {
         totalSales: monthlyStats._count || 0,
         salesAmount: Number(monthlyStats._sum.amount || 0),
         pageViews: metrics.pageViews || 0,
         whatsappClicks: metrics.whatsappClicks || 0,
+        avaliacoes: {
+          total: avaliacoes.length,
+          media: Math.round(mediaAvaliacoes * 10) / 10
+        },
         recentTransactions: recentTransactions.map(tx => ({
           id: tx.id,
           amount: Number(tx.amount),

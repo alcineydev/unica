@@ -488,6 +488,10 @@ model Avaliacao {
   nota        Int       // 1-5 estrelas
   comentario  String?   // Opcional
 
+  // Resposta do parceiro
+  resposta     String?
+  respondidoEm DateTime?
+
   // Controle de publicação
   publicada   Boolean   @default(false)
 

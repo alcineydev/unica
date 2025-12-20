@@ -16,12 +16,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Bell, LogOut, User, ChevronDown, QrCode, Crown, Star } from 'lucide-react'
-import { toast } from 'sonner'
+import { NotificationModal } from './notification-modal'
 
 interface AppHeaderProps {
   userName?: string
   userEmail?: string
   userAvatar?: string
+}
+
+interface NewNotification {
+  title: string
+  message: string
+  type: string
+  link?: string
 }
 
 export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
@@ -30,6 +37,10 @@ export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
   const [notificationCount, setNotificationCount] = useState(0)
   const [lastCount, setLastCount] = useState(0)
   const isFirstRender = useRef(true)
+
+  // Modal state
+  const [showModal, setShowModal] = useState(false)
+  const [newNotification, setNewNotification] = useState<NewNotification | null>(null)
 
   const displayName = userName || session?.user?.name || session?.user?.email?.split('@')[0] || 'Usuário'
   const displayEmail = userEmail || session?.user?.email || ''
@@ -45,14 +56,38 @@ export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
 
         // Se não é a primeira renderização e tem novas notificações
         if (!isFirstRender.current && newCount > lastCount) {
-          toast.info('📬 Você tem uma nova notificação!', {
-            description: 'Clique no sino para ver',
-            action: {
-              label: 'Ver',
-              onClick: () => router.push('/app/notificacoes')
-            },
-            duration: 5000
-          })
+          // Buscar a última notificação para mostrar no modal
+          try {
+            const notifResponse = await fetch('/api/app/notifications?limit=1')
+            const notifData = await notifResponse.json()
+
+            if (notifData.notifications && notifData.notifications.length > 0) {
+              const lastNotif = notifData.notifications[0]
+              let link = undefined
+
+              // Tentar extrair link dos dados
+              if (lastNotif.dados) {
+                try {
+                  const parsedData = typeof lastNotif.dados === 'string'
+                    ? JSON.parse(lastNotif.dados)
+                    : lastNotif.dados
+                  link = parsedData.link || (parsedData.parceiroId ? `/app/avaliar/${parsedData.parceiroId}` : undefined)
+                } catch (e) {
+                  // Ignore parsing errors
+                }
+              }
+
+              setNewNotification({
+                title: lastNotif.titulo,
+                message: lastNotif.mensagem,
+                type: lastNotif.tipo,
+                link
+              })
+              setShowModal(true)
+            }
+          } catch (e) {
+            console.error('Erro ao buscar notificação:', e)
+          }
         }
 
         setLastCount(newCount)
@@ -70,97 +105,106 @@ export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
     const interval = setInterval(fetchNotifications, 30000)
 
     return () => clearInterval(interval)
-  }, [lastCount, router])
+  }, [lastCount])
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/login' })
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-14 items-center justify-between px-4 max-w-3xl mx-auto">
-        {/* Logo */}
-        <Link href="/app" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">U</span>
-          </div>
-          <span className="font-semibold text-lg hidden sm:inline">UNICA</span>
-        </Link>
-
-        {/* Ações */}
-        <div className="flex items-center gap-2">
-          {/* Notificações */}
-          <Link href="/app/notificacoes">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              {notificationCount > 0 && (
-                <Badge
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                  variant="destructive"
-                >
-                  {notificationCount > 9 ? '9+' : notificationCount}
-                </Badge>
-              )}
-            </Button>
+    <>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex h-14 items-center justify-between px-4 max-w-3xl mx-auto">
+          {/* Logo */}
+          <Link href="/app" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">U</span>
+            </div>
+            <span className="font-semibold text-lg hidden sm:inline">UNICA</span>
           </Link>
 
-          {/* Menu do Usuário */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2 px-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={displayAvatar} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                    {displayName.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+          {/* Ações */}
+          <div className="flex items-center gap-2">
+            {/* Notificações */}
+            <Link href="/app/notificacoes">
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                {notificationCount > 0 && (
+                  <Badge
+                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs animate-pulse"
+                    variant="destructive"
+                  >
+                    {notificationCount > 9 ? '9+' : notificationCount}
+                  </Badge>
+                )}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{displayName}</p>
-                  <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/app/perfil" className="flex items-center cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  Meu Perfil
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/app/carteira" className="flex items-center cursor-pointer">
-                  <QrCode className="mr-2 h-4 w-4" />
-                  Carteira
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/app/minhas-avaliacoes" className="flex items-center cursor-pointer">
-                  <Star className="mr-2 h-4 w-4" />
-                  Minhas Avaliações
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/planos" className="flex items-center cursor-pointer">
-                  <Crown className="mr-2 h-4 w-4" />
-                  Planos
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="text-destructive focus:text-destructive cursor-pointer"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </Link>
+
+            {/* Menu do Usuário */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center gap-2 px-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={displayAvatar} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                      {displayName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{displayName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/app/perfil" className="flex items-center cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    Meu Perfil
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/app/carteira" className="flex items-center cursor-pointer">
+                    <QrCode className="mr-2 h-4 w-4" />
+                    Carteira
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/app/minhas-avaliacoes" className="flex items-center cursor-pointer">
+                    <Star className="mr-2 h-4 w-4" />
+                    Minhas Avaliações
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/planos" className="flex items-center cursor-pointer">
+                    <Crown className="mr-2 h-4 w-4" />
+                    Planos
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-destructive focus:text-destructive cursor-pointer"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Modal de Notificação */}
+      <NotificationModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        notification={newNotification}
+      />
+    </>
   )
 }

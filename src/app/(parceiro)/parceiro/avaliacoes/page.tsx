@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Switch } from '@/components/ui/switch'
 import { Progress } from '@/components/ui/progress'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -20,7 +22,8 @@ import {
   Eye,
   EyeOff,
   TrendingUp,
-  Filter
+  Filter,
+  Reply
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
@@ -30,6 +33,8 @@ interface Avaliacao {
   id: string
   nota: number
   comentario?: string
+  resposta?: string
+  respondidoEm?: string
   publicada: boolean
   createdAt: string
   assinante: {
@@ -58,6 +63,11 @@ export default function AvaliacoesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [filtro, setFiltro] = useState('todas')
   const [ordenar, setOrdenar] = useState('recente')
+
+  // Estados para resposta
+  const [respondendo, setRespondendo] = useState<string | null>(null)
+  const [textoResposta, setTextoResposta] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     fetchAvaliacoes()
@@ -96,6 +106,35 @@ export default function AvaliacoesPage() {
       }
     } catch (error) {
       toast.error('Erro ao atualizar avaliação')
+    }
+  }
+
+  const responderAvaliacao = async (id: string) => {
+    if (!textoResposta.trim()) {
+      toast.error('Digite uma resposta')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const response = await fetch(`/api/parceiro/avaliacoes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resposta: textoResposta.trim() })
+      })
+
+      if (response.ok) {
+        setAvaliacoes(prev => prev.map(a =>
+          a.id === id ? { ...a, resposta: textoResposta.trim(), respondidoEm: new Date().toISOString() } : a
+        ))
+        toast.success('Resposta enviada!')
+        setRespondendo(null)
+        setTextoResposta('')
+      }
+    } catch (error) {
+      toast.error('Erro ao enviar resposta')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -328,6 +367,55 @@ export default function AvaliacoesPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Resposta ou botão de responder */}
+                {avaliacao.resposta ? (
+                  <div className="mt-3 pt-3 border-t bg-zinc-50 dark:bg-zinc-900 rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground mb-1">Sua resposta:</p>
+                    <p className="text-sm">{avaliacao.resposta}</p>
+                    {avaliacao.respondidoEm && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatDate(avaliacao.respondidoEm)}
+                      </p>
+                    )}
+                  </div>
+                ) : respondendo === avaliacao.id ? (
+                  <div className="mt-3 pt-3 border-t space-y-2">
+                    <Textarea
+                      placeholder="Digite sua resposta..."
+                      value={textoResposta}
+                      onChange={(e) => setTextoResposta(e.target.value)}
+                      rows={3}
+                      maxLength={500}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => { setRespondendo(null); setTextoResposta('') }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => responderAvaliacao(avaliacao.id)}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar Resposta'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => setRespondendo(avaliacao.id)}
+                  >
+                    <Reply className="h-4 w-4 mr-1" />
+                    Responder
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}
