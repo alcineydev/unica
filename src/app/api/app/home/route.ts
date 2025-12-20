@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const session = await auth()
@@ -150,6 +152,20 @@ export async function GET() {
       }
     }
 
+    // Buscar categorias disponíveis
+    let categorias: string[] = []
+    if (temPlanoAtivo) {
+      const categoriasDb = await prisma.parceiro.findMany({
+        where: {
+          isActive: true,
+          user: { isActive: true }
+        },
+        select: { category: true },
+        distinct: ['category']
+      })
+      categorias = categoriasDb.map(c => c.category).filter(Boolean).sort()
+    }
+
     // Se não tem plano ativo, busca planos disponíveis
     let planosDisponiveis = null
     if (!temPlanoAtivo) {
@@ -199,6 +215,7 @@ export async function GET() {
         },
         parceiros,
         totalBeneficios: temPlanoAtivo ? (assinante.plan?.planBenefits.length || 0) : 0,
+        categorias,
         planosDisponiveis,
       },
     })
