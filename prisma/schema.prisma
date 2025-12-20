@@ -134,6 +134,7 @@ model Parceiro {
   user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions  Transaction[]
   notificacoes  ParceiroNotificacao[]
+  avaliacoes    Avaliacao[]
 
   @@map("parceiros")
 }
@@ -179,6 +180,7 @@ model Assinante {
   plan               Plan?              @relation(fields: [planId], references: [id])
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions       Transaction[]
+  avaliacoes         Avaliacao[]
 
   @@map("assinantes")
 }
@@ -433,22 +435,49 @@ model PWAConfig {
 /// Interesse de parceria (leads de empresas interessadas)
 model InteresseParceiro {
   id          String   @id @default(cuid())
-  
+
   // Dados do contato
   nome        String
   email       String
   telefone    String
-  
+
   // Dados da empresa
   nomeEmpresa String
   cidade      String
-  
+
   // Controle
   status      String   @default("PENDENTE") // PENDENTE, CONTATADO, CONVERTIDO, REJEITADO
   observacoes String?
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("interesses_parceiros")
+}
+
+/// Avaliação do parceiro feita por assinantes
+model Avaliacao {
+  id          String    @id @default(uuid())
+
+  // Relacionamentos
+  assinanteId String
+  assinante   Assinante @relation(fields: [assinanteId], references: [id], onDelete: Cascade)
+
+  parceiroId  String
+  parceiro    Parceiro  @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  // Dados da avaliação
+  nota        Int       // 1-5 estrelas
+  comentario  String?   // Opcional
+
+  // Controle de publicação
+  publicada   Boolean   @default(false)
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([assinanteId])
+  @@index([parceiroId])
+  @@map("avaliacoes")
 }
