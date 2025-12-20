@@ -5,9 +5,7 @@ import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import {
   Home,
-  Gift,
   CreditCard,
-  Store,
   Star,
   User,
   LogOut
@@ -16,9 +14,7 @@ import { cn } from '@/lib/utils'
 
 const menuItems = [
   { href: '/app', label: 'Início', icon: Home },
-  { href: '/app/beneficios', label: 'Benefícios', icon: Gift },
   { href: '/app/carteira', label: 'Carteira', icon: CreditCard },
-  { href: '/app/parceiros', label: 'Parceiros', icon: Store },
   { href: '/app/minhas-avaliacoes', label: 'Minhas Avaliações', icon: Star },
   { href: '/app/perfil', label: 'Meu Perfil', icon: User },
 ]
