@@ -173,64 +173,64 @@ export default function ClientesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <Users className="h-5 w-5 text-blue-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-900 rounded-lg flex-shrink-0">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{clientes.length}</p>
-                <p className="text-xs text-muted-foreground">Total de Clientes</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold truncate">{clientes.length}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Total Clientes</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <DollarSign className="h-5 w-5 text-green-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-green-100 dark:bg-green-900 rounded-lg flex-shrink-0">
+                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">
+              <div className="min-w-0">
+                <p className="text-sm sm:text-2xl font-bold truncate">
                   {formatCurrency(clientes.reduce((sum, c) => sum + c.valorTotal, 0))}
                 </p>
-                <p className="text-xs text-muted-foreground">Total em Vendas</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Total Vendas</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                <ShoppingCart className="h-5 w-5 text-purple-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-purple-100 dark:bg-purple-900 rounded-lg flex-shrink-0">
+                <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold truncate">
                   {clientes.reduce((sum, c) => sum + c.totalCompras, 0)}
                 </p>
-                <p className="text-xs text-muted-foreground">Total de Compras</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Total Compras</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                <MessageCircle className="h-5 w-5 text-orange-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-orange-100 dark:bg-orange-900 rounded-lg flex-shrink-0">
+                <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold truncate">
                   {clientes.filter(c => c.phone).length}
                 </p>
-                <p className="text-xs text-muted-foreground">Com WhatsApp</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Com WhatsApp</p>
               </div>
             </div>
           </CardContent>
@@ -297,56 +297,55 @@ export default function ClientesPage() {
         <div className="grid gap-4">
           {filteredClientes.map((cliente) => (
             <Card key={cliente.id} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex flex-col gap-3">
                   {/* Avatar e Info Principal */}
-                  <div className="flex items-center gap-3 flex-1">
-                    <Avatar className="h-12 w-12">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
                       <AvatarImage src={cliente.avatar} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm">
                         {cliente.nome.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold truncate">{cliente.nome}</h3>
-                      <p className="text-sm text-muted-foreground truncate">{cliente.email}</p>
+                      <h3 className="font-semibold truncate text-sm sm:text-base">{cliente.nome}</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">{cliente.email}</p>
                       {cliente.phone && (
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {cliente.phone}
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Phone className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{cliente.phone}</span>
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {/* Stats */}
-                  <div className="flex flex-wrap gap-4 sm:gap-6">
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-primary">{cliente.totalCompras}</p>
-                      <p className="text-xs text-muted-foreground">Compras</p>
+                  {/* Stats e Ações */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                    <div className="flex gap-3 sm:gap-4 text-center">
+                      <div>
+                        <p className="text-sm sm:text-lg font-bold text-primary">{cliente.totalCompras}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Compras</p>
+                      </div>
+                      <div>
+                        <p className="text-sm sm:text-lg font-bold text-green-600 truncate max-w-[80px] sm:max-w-none">
+                          {formatCurrency(cliente.valorTotal)}
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Total</p>
+                      </div>
+                      <div className="hidden sm:block">
+                        <p className="text-sm font-medium">{formatDate(cliente.ultimaCompra)}</p>
+                        <p className="text-xs text-muted-foreground">Última</p>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-green-600">
-                        {formatCurrency(cliente.valorTotal)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Total</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium">{formatDate(cliente.ultimaCompra)}</p>
-                      <p className="text-xs text-muted-foreground">Última Compra</p>
-                    </div>
-                  </div>
 
-                  {/* Ações */}
-                  <div className="flex gap-2 sm:flex-col">
                     <Button
                       onClick={() => enviarMensagem(cliente)}
-                      className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700"
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 flex-shrink-0"
                       disabled={!cliente.phone}
                     >
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      <span className="sm:hidden md:inline">Enviar Mensagem</span>
-                      <span className="hidden sm:inline md:hidden">WhatsApp</span>
+                      <MessageCircle className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">WhatsApp</span>
                     </Button>
                   </div>
                 </div>
