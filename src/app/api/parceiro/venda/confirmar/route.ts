@@ -124,6 +124,25 @@ export async function POST(request: Request) {
         },
       })
 
+      // Criar notificação para assinante avaliar
+      try {
+        await tx.assinanteNotificacao.create({
+          data: {
+            assinanteId,
+            tipo: 'AVALIACAO',
+            titulo: 'Avalie sua experiência',
+            mensagem: `Como foi sua compra em ${parceiro.tradeName || parceiro.companyName}? Avalie e ganhe +5 pontos!`,
+            dados: {
+              parceiroId: parceiro.id,
+              link: `/app/avaliar/${parceiro.id}`
+            },
+            lida: false
+          }
+        })
+      } catch (e) {
+        console.log('Erro ao criar notificação de avaliação:', e)
+      }
+
       return newTransaction
     })
 

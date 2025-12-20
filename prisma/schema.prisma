@@ -181,8 +181,26 @@ model Assinante {
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions       Transaction[]
   avaliacoes         Avaliacao[]
+  notificacoes       AssinanteNotificacao[]
 
   @@map("assinantes")
+}
+
+/// Notificação do assinante (compras, avaliações, pontos, etc)
+model AssinanteNotificacao {
+  id          String    @id @default(cuid())
+  assinanteId String
+  tipo        String    // AVALIACAO, COMPRA, PONTOS, CASHBACK, INFO
+  titulo      String
+  mensagem    String
+  dados       Json?     // { parceiroId, link, etc }
+  lida        Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  assinante   Assinante @relation(fields: [assinanteId], references: [id], onDelete: Cascade)
+
+  @@index([assinanteId])
+  @@index([createdAt])
+  @@map("assinante_notificacoes")
 }
 
 /// Pivot: Benefício <-> Parceiro (quais benefícios o parceiro aceita)

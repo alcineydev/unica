@@ -1,23 +1,36 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Bell, CheckCircle, Gift, Crown, Megaphone } from 'lucide-react'
+import {
+  Bell,
+  CheckCheck,
+  Star,
+  ShoppingCart,
+  Gift,
+  Info,
+  ChevronRight
+} from 'lucide-react'
 import { toast } from 'sonner'
+import { formatDistanceToNow } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 interface Notificacao {
   id: string
-  titulo: string
-  mensagem: string
-  tipo: 'INFO' | 'PROMOCAO' | 'SISTEMA' | 'BENEFICIO'
-  lida: boolean
-  criadoEm: string
-  linkUrl?: string
+  title: string
+  message: string
+  type: string
+  read: boolean
+  data?: string
+  createdAt: string
 }
 
 export default function NotificacoesPage() {
+  const router = useRouter()
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -30,50 +43,96 @@ export default function NotificacoesPage() {
       const response = await fetch('/api/app/notifications')
       const data = await response.json()
 
-      if (data.error) {
-        toast.error(data.error)
-        return
+      if (data.notifications) {
+        setNotificacoes(data.notifications)
       }
-
-      setNotificacoes(data.notificacoes || [])
     } catch (error) {
-      console.error('Erro ao buscar notificações:', error)
-      // Not showing error toast for now since the API might not exist yet
+      console.error('Erro ao carregar notificações:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const getIcon = (tipo: string) => {
-    switch (tipo) {
-      case 'PROMOCAO':
-        return <Gift className="h-5 w-5 text-green-500" />
-      case 'BENEFICIO':
-        return <Crown className="h-5 w-5 text-yellow-500" />
-      case 'SISTEMA':
-        return <Megaphone className="h-5 w-5 text-blue-500" />
-      default:
-        return <Bell className="h-5 w-5 text-primary" />
+  const marcarComoLida = async (id: string) => {
+    try {
+      await fetch(`/api/app/notifications/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ read: true })
+      })
+      setNotificacoes(prev => prev.map(n =>
+        n.id === id ? { ...n, read: true } : n
+      ))
+    } catch (error) {
+      console.error('Erro ao marcar como lida:', error)
     }
   }
 
-  const formatDate = (date: string) => {
-    const d = new Date(date)
-    const now = new Date()
-    const diff = now.getTime() - d.getTime()
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    const minutes = Math.floor(diff / (1000 * 60))
-
-    if (minutes < 60) return `${minutes}min atrás`
-    if (hours < 24) return `${hours}h atrás`
-    if (days < 7) return `${days}d atrás`
-    return d.toLocaleDateString('pt-BR')
+  const marcarTodasComoLidas = async () => {
+    try {
+      await fetch('/api/app/notifications/read-all', { method: 'POST' })
+      setNotificacoes(prev => prev.map(n => ({ ...n, read: true })))
+      toast.success('Todas marcadas como lidas')
+    } catch (error) {
+      toast.error('Erro ao marcar notificações')
+    }
   }
+
+  const handleNotificacaoClick = (notificacao: Notificacao) => {
+    // Marcar como lida
+    if (!notificacao.read) {
+      marcarComoLida(notificacao.id)
+    }
+
+    // Se tem dados com link, navegar
+    if (notificacao.data) {
+      try {
+        const data = JSON.parse(notificacao.data)
+        if (data.link) {
+          router.push(data.link)
+          return
+        }
+        if (data.parceiroId && notificacao.type === 'AVALIACAO') {
+          router.push(`/app/avaliar/${data.parceiroId}`)
+          return
+        }
+      } catch (e) {
+        console.log('Erro ao parsear data:', e)
+      }
+    }
+  }
+
+  const getIcone = (type: string) => {
+    switch (type) {
+      case 'AVALIACAO':
+        return <Star className="h-5 w-5 text-yellow-500" />
+      case 'VENDA':
+      case 'COMPRA':
+        return <ShoppingCart className="h-5 w-5 text-green-600" />
+      case 'PONTOS':
+      case 'CASHBACK':
+        return <Gift className="h-5 w-5 text-purple-600" />
+      default:
+        return <Info className="h-5 w-5 text-blue-600" />
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), {
+        addSuffix: true,
+        locale: ptBR
+      })
+    } catch {
+      return ''
+    }
+  }
+
+  const naoLidas = notificacoes.filter(n => !n.read).length
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="p-4 space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Notificações</h1>
           <p className="text-muted-foreground">Suas atualizações e avisos</p>
@@ -88,51 +147,66 @@ export default function NotificacoesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Notificações</h1>
-        <p className="text-muted-foreground">Suas atualizações e avisos</p>
+    <div className="p-4 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Notificações</h1>
+          <p className="text-muted-foreground">
+            {naoLidas > 0 ? `${naoLidas} não lida${naoLidas > 1 ? 's' : ''}` : 'Todas lidas'}
+          </p>
+        </div>
+        {naoLidas > 0 && (
+          <Button variant="outline" size="sm" onClick={marcarTodasComoLidas}>
+            <CheckCheck className="h-4 w-4 mr-2" />
+            Marcar todas
+          </Button>
+        )}
       </div>
 
+      {/* Lista */}
       {notificacoes.length === 0 ? (
         <Card>
-          <CardContent className="py-16 text-center">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Bell className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="font-semibold text-lg mb-2">Nenhuma notificação</h3>
-            <p className="text-muted-foreground max-w-sm mx-auto">
-              Você ainda não tem notificações. Quando houver novidades, elas aparecerão aqui.
+          <CardContent className="p-8 text-center">
+            <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="font-semibold mb-2">Nenhuma notificação</h3>
+            <p className="text-muted-foreground">
+              Você será notificado sobre compras, pontos e promoções
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
-          {notificacoes.map((notif) => (
+          {notificacoes.map((notificacao) => (
             <Card
-              key={notif.id}
-              className={`transition-all ${!notif.lida ? 'border-primary/50 bg-primary/5' : ''}`}
+              key={notificacao.id}
+              className={`cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900 ${
+                !notificacao.read ? 'border-primary/30 bg-primary/5' : 'opacity-70'
+              }`}
+              onClick={() => handleNotificacaoClick(notificacao)}
             >
               <CardContent className="p-4">
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                   <div className="flex-shrink-0 mt-1">
-                    {getIcon(notif.tipo)}
+                    {getIcone(notificacao.type)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold">{notif.titulo}</h3>
-                      {!notif.lida && (
-                        <Badge variant="default" className="text-xs">Nova</Badge>
+                      <h3 className="font-medium">{notificacao.title}</h3>
+                      {!notificacao.read && (
+                        <Badge variant="default" className="flex-shrink-0 text-xs">
+                          Nova
+                        </Badge>
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {notif.mensagem}
+                      {notificacao.message}
                     </p>
-                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      {notif.lida && <CheckCircle className="h-3 w-3" />}
-                      <span>{formatDate(notif.criadoEm)}</span>
-                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {formatDate(notificacao.createdAt)}
+                    </p>
                   </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 self-center" />
                 </div>
               </CardContent>
             </Card>
