@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 import {
   QrCode,
@@ -31,7 +32,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { QRCodeScanner } from '@/components/qrcode'
+
+// Import dinâmico do scanner (desabilita SSR para evitar erros com APIs do browser)
+const QRCodeScanner = dynamic(
+  () => import('@/components/qrcode/scanner').then(mod => mod.QRCodeScanner || mod.default),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full aspect-square bg-zinc-900 rounded-lg flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-zinc-400">Carregando scanner...</p>
+        </div>
+      </div>
+    )
+  }
+)
 
 interface AssinanteData {
   id: string
@@ -91,44 +107,61 @@ export default function ParceiroVendaPage() {
 
   // Buscar assinante por QR Code ou CPF (API unificada)
   async function searchAssinante(valor: string, tipo: 'qrcode' | 'cpf' = 'qrcode') {
+    // Validar entrada
+    if (!valor || valor.trim() === '') {
+      toast.error('Código inválido')
+      return
+    }
+
     setIsSearching(true)
     setAssinante(null)
 
     try {
-      const response = await fetch(`/api/parceiro/validar?${tipo}=${encodeURIComponent(valor)}`)
+      const response = await fetch(`/api/parceiro/validar?${tipo}=${encodeURIComponent(valor.trim())}`)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        toast.error(errorData.error || 'Erro ao buscar cliente')
+        return
+      }
+
       const result = await response.json()
 
-      if (response.ok && result.assinante) {
-        // Converter formato da nova API para o formato esperado
-        const ass = result.assinante
-        const assinanteData: AssinanteData = {
-          id: ass.id || '',
-          name: ass.nome || 'Sem nome',
-          cpf: ass.cpf || '',
-          points: ass.pontos || 0,
-          cashback: ass.cashback || 0,
-          subscriptionStatus: ass.status || 'PENDING',
-          plan: {
-            id: ass.plano?.id || '',
-            name: ass.plano?.nome || 'Sem plano',
-            planBenefits: (ass.beneficiosDisponiveis || []).map((b: Record<string, unknown>) => ({
-              benefit: {
-                id: b.id || '',
-                name: b.nome || '',
-                type: b.tipo || '',
-                value: b.valor || {}
-              }
-            }))
-          }
-        }
-        setAssinante(assinanteData)
-        setCpf(ass.cpf || '')
-        toast.success(`Assinante encontrado: ${ass.nome || 'Cliente'}`)
-      } else {
-        toast.error(result.error || 'Assinante não encontrado')
+      if (!result.assinante) {
+        toast.error('Cliente não encontrado')
+        return
       }
-    } catch {
-      toast.error('Erro ao buscar assinante')
+
+      // Converter formato da nova API para o formato esperado
+      const ass = result.assinante
+      const assinanteData: AssinanteData = {
+        id: ass.id || '',
+        name: ass.nome || 'Sem nome',
+        cpf: ass.cpf || '',
+        points: ass.pontos || 0,
+        cashback: ass.cashback || 0,
+        subscriptionStatus: ass.status || 'PENDING',
+        plan: {
+          id: ass.plano?.id || '',
+          name: ass.plano?.nome || 'Sem plano',
+          planBenefits: Array.isArray(ass.beneficiosDisponiveis)
+            ? ass.beneficiosDisponiveis.map((b: Record<string, unknown>) => ({
+                benefit: {
+                  id: (b.id as string) || '',
+                  name: (b.nome as string) || '',
+                  type: (b.tipo as string) || '',
+                  value: (b.valor as Record<string, unknown>) || {}
+                }
+              }))
+            : []
+        }
+      }
+      setAssinante(assinanteData)
+      setCpf(ass.cpf || '')
+      toast.success(`Cliente encontrado: ${ass.nome || 'Cliente'}`)
+    } catch (error) {
+      console.error('[VENDAS] Erro ao buscar cliente:', error)
+      toast.error('Erro de conexão. Tente novamente.')
     } finally {
       setIsSearching(false)
     }
@@ -136,9 +169,21 @@ export default function ParceiroVendaPage() {
 
   // Handler para QR Code escaneado
   function handleQRCodeScan(result: string) {
-    console.log('[SCAN] QR Code lido:', result)
-    // Enviar valor bruto - a API aceita ID, qrCode ou CPF
-    searchAssinante(result, 'qrcode')
+    try {
+      console.log('[SCAN] QR Code lido:', result)
+
+      // Validar resultado
+      if (!result || result.trim() === '') {
+        toast.error('QR Code inválido ou vazio')
+        return
+      }
+
+      // Enviar valor bruto - a API aceita ID, qrCode ou CPF
+      searchAssinante(result.trim(), 'qrcode')
+    } catch (error) {
+      console.error('[SCAN] Erro ao processar QR Code:', error)
+      toast.error('Erro ao processar QR Code')
+    }
   }
 
   // Calcular venda
@@ -241,7 +286,7 @@ export default function ParceiroVendaPage() {
 
   // Obter desconto do plano
   function getDiscount(): number {
-    if (!assinante) return 0
+    if (!assinante?.plan?.planBenefits) return 0
     const discountBenefit = assinante.plan.planBenefits.find(
       pb => pb.benefit.type === 'DESCONTO'
     )
@@ -254,7 +299,7 @@ export default function ParceiroVendaPage() {
 
   // Obter cashback do plano
   function getCashback(): number {
-    if (!assinante) return 0
+    if (!assinante?.plan?.planBenefits) return 0
     const cashbackBenefit = assinante.plan.planBenefits.find(
       pb => pb.benefit.type === 'CASHBACK'
     )
@@ -377,11 +422,11 @@ export default function ParceiroVendaPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    <span>Plano: <strong>{assinante.plan.name}</strong></span>
+                    <span>Plano: <strong>{assinante.plan?.name || 'Sem plano'}</strong></span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Coins className="h-4 w-4 text-yellow-500" />
-                    <span>Pontos: <strong>{assinante.points.toFixed(0)}</strong></span>
+                    <span>Pontos: <strong>{Number(assinante.points || 0).toFixed(0)}</strong></span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Percent className="h-4 w-4 text-blue-500" />
@@ -423,7 +468,7 @@ export default function ParceiroVendaPage() {
               />
             </div>
 
-            {assinante && assinante.points > 0 && (
+            {assinante && Number(assinante.points || 0) > 0 && (
               <div className="rounded-lg border p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -436,7 +481,7 @@ export default function ParceiroVendaPage() {
                     onClick={() => {
                       setUsePoints(!usePoints)
                       if (!usePoints) {
-                        setPointsToUse(assinante.points.toString())
+                        setPointsToUse(String(assinante.points || 0))
                       } else {
                         setPointsToUse('')
                       }
@@ -448,15 +493,15 @@ export default function ParceiroVendaPage() {
 
                 {usePoints && (
                   <div className="space-y-2">
-                    <Label>Pontos a utilizar (máx: {assinante.points.toFixed(0)})</Label>
+                    <Label>Pontos a utilizar (máx: {Number(assinante.points || 0).toFixed(0)})</Label>
                     <Input
                       type="number"
                       min="0"
-                      max={assinante.points}
+                      max={Number(assinante.points || 0)}
                       value={pointsToUse}
                       onChange={(e) => {
                         const val = parseFloat(e.target.value) || 0
-                        setPointsToUse(Math.min(val, assinante.points).toString())
+                        setPointsToUse(Math.min(val, Number(assinante.points || 0)).toString())
                       }}
                     />
                     <p className="text-xs text-muted-foreground">

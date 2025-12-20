@@ -98,7 +98,7 @@ export default function ParceiroDashboardPage() {
             Bem-vindo, {session?.user?.name}!
           </p>
         </div>
-        <Link href="/parceiro/venda">
+        <Link href="/parceiro/vendas">
           <Button className="w-full sm:w-auto">
             <QrCode className="mr-2 h-4 w-4" />
             Registrar Venda
@@ -241,7 +241,7 @@ export default function ParceiroDashboardPage() {
               <div className="text-center py-8 text-muted-foreground">
                 <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>Nenhuma venda ainda</p>
-                <Link href="/parceiro/venda">
+                <Link href="/parceiro/vendas">
                   <Button variant="link" className="mt-2">
                     Registrar primeira venda
                     <ArrowRight className="ml-1 h-4 w-4" />
@@ -258,7 +258,7 @@ export default function ParceiroDashboardPage() {
             <CardTitle className="text-base md:text-lg">Ações Rápidas</CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0 space-y-3">
-            <Link href="/parceiro/venda" className="block">
+            <Link href="/parceiro/vendas" className="block">
               <Button className="w-full justify-start h-auto py-3" variant="default">
                 <QrCode className="mr-3 h-5 w-5" />
                 <div className="text-left">
