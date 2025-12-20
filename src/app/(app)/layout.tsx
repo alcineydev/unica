@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { BottomNav, AppHeader, AppSidebar } from '@/components/app'
 import { Toaster } from 'sonner'
+import { PushNotificationPrompt } from '@/components/push-notification-prompt'
 
 export default async function AppLayout({
   children,
@@ -42,6 +43,9 @@ export default async function AppLayout({
 
       {/* Bottom Nav - apenas mobile/tablet (< lg) */}
       <BottomNav />
+
+      {/* Prompt de Push Notifications */}
+      <PushNotificationPrompt />
     </div>
   )
 }

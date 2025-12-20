@@ -39,6 +39,7 @@ const menuItems = [
   { title: 'Interesses', href: '/admin/interesses', icon: Handshake },
   { title: 'Assinantes', href: '/admin/assinantes', icon: Users },
   { title: 'Notificações', href: '/admin/notificacoes', icon: Bell },
+  { title: 'Push', href: '/admin/notificacoes-push', icon: Smartphone },
   { title: 'Integrações', href: '/admin/integracoes', icon: Plug },
   { title: 'Relatórios', href: '/admin/relatorios', icon: BarChart3 },
   { title: 'Configurações', href: '/admin/configuracoes', icon: Settings },
