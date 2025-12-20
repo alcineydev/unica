@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Bell, Settings, LogOut, Store, ChevronDown, User, Building2 } from 'lucide-react'
+import { Bell, LogOut, Building2, Users, ShoppingCart, ChevronDown } from 'lucide-react'
 
 export function ParceiroHeader() {
   const { data: session } = useSession()
@@ -100,14 +100,20 @@ export function ParceiroHeader() {
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/parceiro/perfil" className="flex items-center cursor-pointer">
-                  <Store className="mr-2 h-4 w-4" />
+                  <Building2 className="mr-2 h-4 w-4" />
                   Perfil da Empresa
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/parceiro/configuracoes" className="flex items-center cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Configurações
+                <Link href="/parceiro/clientes" className="flex items-center cursor-pointer">
+                  <Users className="mr-2 h-4 w-4" />
+                  Clientes
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/parceiro/vendas" className="flex items-center cursor-pointer">
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Vendas
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
