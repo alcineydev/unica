@@ -36,6 +36,7 @@
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.556.0",
