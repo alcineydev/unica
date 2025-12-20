@@ -3,25 +3,34 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Bell, X } from 'lucide-react'
+import { Bell, X, Loader2 } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/use-push-notifications'
+import { toast } from 'sonner'
 
 export function PushNotificationPrompt() {
   const [show, setShow] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  const [isActivating, setIsActivating] = useState(false)
   const { isSupported, isSubscribed, permission, isLoading, subscribe } = usePushNotifications()
+
+  useEffect(() => {
+    console.log('[PROMPT] Estado:', { isSupported, isSubscribed, permission, isLoading, show, dismissed })
+  }, [isSupported, isSubscribed, permission, isLoading, show, dismissed])
 
   useEffect(() => {
     // Verificar se ja foi dispensado
     const wasDismissed = localStorage.getItem('push-prompt-dismissed')
     if (wasDismissed) {
+      console.log('[PROMPT] Ja foi dispensado anteriormente')
       setDismissed(true)
       return
     }
 
     // Mostrar apos 5 segundos se nao esta inscrito e nao foi negado
     const timer = setTimeout(() => {
+      console.log('[PROMPT] Verificando se deve mostrar...', { isSupported, isSubscribed, permission, isLoading })
       if (isSupported && !isSubscribed && permission !== 'denied' && !isLoading) {
+        console.log('[PROMPT] Mostrando prompt!')
         setShow(true)
       }
     }, 5000)
@@ -30,13 +39,30 @@ export function PushNotificationPrompt() {
   }, [isSupported, isSubscribed, permission, isLoading])
 
   const handleEnable = async () => {
-    const success = await subscribe()
-    if (success) {
-      setShow(false)
+    console.log('[PROMPT] Botao Ativar clicado!')
+    setIsActivating(true)
+
+    try {
+      console.log('[PROMPT] Chamando subscribe()...')
+      const success = await subscribe()
+      console.log('[PROMPT] Resultado do subscribe:', success)
+
+      if (success) {
+        toast.success('Notificações ativadas com sucesso!')
+        setShow(false)
+      } else {
+        toast.error('Não foi possível ativar as notificações. Verifique as permissões do navegador.')
+      }
+    } catch (error) {
+      console.error('[PROMPT] Erro ao ativar:', error)
+      toast.error('Erro ao ativar notificações')
+    } finally {
+      setIsActivating(false)
     }
   }
 
   const handleDismiss = () => {
+    console.log('[PROMPT] Dispensando prompt')
     setShow(false)
     setDismissed(true)
     localStorage.setItem('push-prompt-dismissed', 'true')
@@ -55,16 +81,23 @@ export function PushNotificationPrompt() {
               <Bell className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-sm">Ativar notificacoes</h4>
+              <h4 className="font-semibold text-sm">Ativar notificações</h4>
               <p className="text-xs text-muted-foreground mt-1">
-                Receba alertas de promocoes, novidades e atualizacoes importantes
+                Receba alertas de promoções, novidades e atualizações importantes
               </p>
               <div className="flex gap-2 mt-3">
-                <Button size="sm" onClick={handleEnable} disabled={isLoading}>
-                  Ativar
+                <Button size="sm" onClick={handleEnable} disabled={isLoading || isActivating}>
+                  {isActivating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      Ativando...
+                    </>
+                  ) : (
+                    'Ativar'
+                  )}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={handleDismiss}>
-                  Agora nao
+                  Agora não
                 </Button>
               </div>
             </div>

@@ -3,17 +3,29 @@ import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
+  console.log('[PUSH SUBSCRIBE] Recebendo requisição...')
+
   try {
     const session = await auth()
+    console.log('[PUSH SUBSCRIBE] Sessão:', session?.user?.id ? 'autenticado' : 'NÃO AUTENTICADO')
 
     if (!session?.user?.id) {
+      console.log('[PUSH SUBSCRIBE] Rejeitado: não autorizado')
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
     const { endpoint, keys, deviceInfo } = body
 
+    console.log('[PUSH SUBSCRIBE] Dados recebidos:', {
+      endpoint: endpoint?.substring(0, 50) + '...',
+      hasP256dh: !!keys?.p256dh,
+      hasAuth: !!keys?.auth,
+      deviceInfo: deviceInfo?.substring(0, 30)
+    })
+
     if (!endpoint || !keys?.p256dh || !keys?.auth) {
+      console.log('[PUSH SUBSCRIBE] Rejeitado: dados inválidos')
       return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
     }
 
@@ -21,6 +33,8 @@ export async function POST(request: NextRequest) {
     const existing = await prisma.pushSubscription.findUnique({
       where: { endpoint }
     })
+
+    console.log('[PUSH SUBSCRIBE] Subscription existente:', !!existing)
 
     if (existing) {
       // Atualizar se já existe
@@ -33,6 +47,7 @@ export async function POST(request: NextRequest) {
           deviceInfo: deviceInfo || null
         }
       })
+      console.log('[PUSH SUBSCRIBE] Subscription atualizada')
     } else {
       // Criar novo
       await prisma.pushSubscription.create({
@@ -44,8 +59,10 @@ export async function POST(request: NextRequest) {
           deviceInfo: deviceInfo || null
         }
       })
+      console.log('[PUSH SUBSCRIBE] Nova subscription criada')
     }
 
+    console.log('[PUSH SUBSCRIBE] Sucesso!')
     return NextResponse.json({ success: true })
 
   } catch (error) {
@@ -55,10 +72,13 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  console.log('[PUSH UNSUBSCRIBE] Recebendo requisição...')
+
   try {
     const session = await auth()
 
     if (!session?.user?.id) {
+      console.log('[PUSH UNSUBSCRIBE] Rejeitado: não autorizado')
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
@@ -69,6 +89,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Endpoint obrigatório' }, { status: 400 })
     }
 
+    console.log('[PUSH UNSUBSCRIBE] Removendo:', endpoint.substring(0, 50) + '...')
+
     await prisma.pushSubscription.deleteMany({
       where: {
         endpoint,
@@ -76,6 +98,7 @@ export async function DELETE(request: NextRequest) {
       }
     })
 
+    console.log('[PUSH UNSUBSCRIBE] Sucesso!')
     return NextResponse.json({ success: true })
 
   } catch (error) {

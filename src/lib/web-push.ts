@@ -5,8 +5,15 @@ const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY!
 const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:contato@unicaclub.com.br'
 
+console.log('[WEB-PUSH] Inicializando...')
+console.log('[WEB-PUSH] VAPID Public Key:', vapidPublicKey ? 'presente' : 'AUSENTE')
+console.log('[WEB-PUSH] VAPID Private Key:', vapidPrivateKey ? 'presente' : 'AUSENTE')
+
 if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
+  console.log('[WEB-PUSH] VAPID configurado com sucesso')
+} else {
+  console.error('[WEB-PUSH] VAPID keys ausentes! Push não funcionará.')
 }
 
 export interface PushPayload {
@@ -26,6 +33,8 @@ export async function sendPushNotification(
   },
   payload: PushPayload
 ): Promise<boolean> {
+  console.log('[WEB-PUSH] Enviando notificação para:', subscription.endpoint.substring(0, 50) + '...')
+
   try {
     const pushSubscription = {
       endpoint: subscription.endpoint,
@@ -46,13 +55,19 @@ export async function sendPushNotification(
       tag: payload.tag || 'default'
     })
 
-    await webpush.sendNotification(pushSubscription, notificationPayload)
+    console.log('[WEB-PUSH] Payload:', notificationPayload)
+
+    const result = await webpush.sendNotification(pushSubscription, notificationPayload)
+    console.log('[WEB-PUSH] Sucesso! Status:', result.statusCode)
     return true
   } catch (error: any) {
-    console.error('Erro ao enviar push:', error)
+    console.error('[WEB-PUSH] Erro ao enviar push:', error.message)
+    console.error('[WEB-PUSH] Status code:', error.statusCode)
+    console.error('[WEB-PUSH] Body:', error.body)
 
     // Se subscription expirou ou foi cancelada
     if (error.statusCode === 410 || error.statusCode === 404) {
+      console.log('[WEB-PUSH] Subscription expirada/removida, marcando para exclusão')
       return false // Indicar para remover do banco
     }
 
