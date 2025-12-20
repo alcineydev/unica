@@ -426,7 +426,7 @@ export default function ParceiroVendaPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Coins className="h-4 w-4 text-yellow-500" />
-                    <span>Pontos: <strong>{(assinante.points || 0).toFixed(0)}</strong></span>
+                    <span>Pontos: <strong>{Number(assinante.points || 0).toFixed(0)}</strong></span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Percent className="h-4 w-4 text-blue-500" />
@@ -468,7 +468,7 @@ export default function ParceiroVendaPage() {
               />
             </div>
 
-            {assinante && assinante.points > 0 && (
+            {assinante && Number(assinante.points || 0) > 0 && (
               <div className="rounded-lg border p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -481,7 +481,7 @@ export default function ParceiroVendaPage() {
                     onClick={() => {
                       setUsePoints(!usePoints)
                       if (!usePoints) {
-                        setPointsToUse(assinante.points.toString())
+                        setPointsToUse(String(assinante.points || 0))
                       } else {
                         setPointsToUse('')
                       }
@@ -493,15 +493,15 @@ export default function ParceiroVendaPage() {
 
                 {usePoints && (
                   <div className="space-y-2">
-                    <Label>Pontos a utilizar (máx: {assinante.points.toFixed(0)})</Label>
+                    <Label>Pontos a utilizar (máx: {Number(assinante.points || 0).toFixed(0)})</Label>
                     <Input
                       type="number"
                       min="0"
-                      max={assinante.points}
+                      max={Number(assinante.points || 0)}
                       value={pointsToUse}
                       onChange={(e) => {
                         const val = parseFloat(e.target.value) || 0
-                        setPointsToUse(Math.min(val, assinante.points).toString())
+                        setPointsToUse(Math.min(val, Number(assinante.points || 0)).toString())
                       }}
                     />
                     <p className="text-xs text-muted-foreground">
