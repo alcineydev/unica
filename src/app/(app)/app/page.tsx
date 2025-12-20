@@ -10,10 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import {
-  QrCode,
-  Gift,
   Store,
-  Wallet,
   ChevronRight,
   Crown,
   Star,
@@ -170,24 +167,12 @@ export default function AssinanteDashboard() {
   // Loading State
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-primary to-primary/80 rounded-2xl p-6">
-          <div className="flex items-center gap-4 mb-6">
-            <Skeleton className="h-16 w-16 rounded-full bg-white/20" />
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-40 bg-white/20" />
-              <Skeleton className="h-4 w-24 bg-white/20" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Skeleton className="h-20 rounded-xl bg-white/10" />
-            <Skeleton className="h-20 rounded-xl bg-white/10" />
-          </div>
-        </div>
+      <div className="space-y-4">
+        <Skeleton className="h-5 w-32" />
         <Skeleton className="h-12 rounded-xl" />
         <div className="flex gap-3">
           {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-20 w-20 rounded-xl flex-shrink-0" />
+            <Skeleton key={i} className="h-16 w-16 rounded-xl flex-shrink-0" />
           ))}
         </div>
         <Skeleton className="h-64 rounded-xl" />
@@ -282,45 +267,18 @@ export default function AssinanteDashboard() {
     )
   }
 
-  const { assinante, totalBeneficios, categorias } = data!
+  const { assinante, categorias } = data!
 
   return (
-    <div className="space-y-6">
-      {/* Header com saudação e saldo */}
-      <div className="bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground p-6 rounded-2xl shadow-lg">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="text-white/70 text-sm">Olá,</p>
-            <h1 className="text-2xl font-bold">{assinante.name?.split(' ')[0] || 'Assinante'}!</h1>
-          </div>
-          <Link href="/app/perfil">
-            <Avatar className="h-12 w-12 border-2 border-white/20">
-              <AvatarFallback className="bg-white/20 text-white">
-                {assinante.name?.charAt(0)?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-          </Link>
-        </div>
-
-        {/* Cards de saldo */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white/15 backdrop-blur rounded-xl p-4">
-            <div className="flex items-center gap-2 text-white/70 text-xs mb-1">
-              <Star className="h-3.5 w-3.5" />
-              Seus Pontos
-            </div>
-            <div className="text-2xl font-bold">{assinante.points || 0}</div>
-          </div>
-          <div className="bg-white/15 backdrop-blur rounded-xl p-4">
-            <div className="flex items-center gap-2 text-white/70 text-xs mb-1">
-              <Wallet className="h-3.5 w-3.5" />
-              Cashback
-            </div>
-            <div className="text-2xl font-bold">
-              {formatCurrency(assinante.cashback || 0)}
-            </div>
-          </div>
-        </div>
+    <div className="space-y-4">
+      {/* Header Simples */}
+      <div className="flex items-center justify-between">
+        <p className="text-muted-foreground text-sm">
+          Olá, <span className="font-medium text-foreground">{assinante.name?.split(' ')[0] || 'Assinante'}</span> 👋
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {filteredParceiros.length} parceiro{filteredParceiros.length !== 1 ? 's' : ''}
+        </p>
       </div>
 
       {/* Barra de busca */}
@@ -369,52 +327,6 @@ export default function AssinanteDashboard() {
           </ScrollArea>
         </div>
       )}
-
-      {/* Acesso rápido - Carteira */}
-      <Card className="border-2 border-dashed border-primary/30 bg-primary/5">
-        <CardContent className="p-4">
-          <Link href="/app/carteira" className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-                <QrCode className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Minha Carteirinha</h3>
-                <p className="text-sm text-muted-foreground">
-                  Apresente seu QR Code nos parceiros
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </Link>
-        </CardContent>
-      </Card>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-              <Gift className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{totalBeneficios}</div>
-              <div className="text-xs text-muted-foreground">Benefícios</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-              <Store className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">{filteredParceiros.length}</div>
-              <div className="text-xs text-muted-foreground">Parceiros</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Lista de Parceiros */}
       <div>
