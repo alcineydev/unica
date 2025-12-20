@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Bell, LogOut, Building2, Users, ShoppingCart, ChevronDown } from 'lucide-react'
+import { Bell, LogOut, Building2, Users, ShoppingCart, ChevronDown, MessageCircle } from 'lucide-react'
 
 export function ParceiroHeader() {
   const { data: session } = useSession()
@@ -62,17 +62,19 @@ export function ParceiroHeader() {
         {/* Ações */}
         <div className="flex items-center gap-2">
           {/* Notificações */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            {notificationCount > 0 && (
-              <Badge
-                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                variant="destructive"
-              >
-                {notificationCount > 9 ? '9+' : notificationCount}
-              </Badge>
-            )}
-          </Button>
+          <Link href="/parceiro/notificacoes">
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              {notificationCount > 0 && (
+                <Badge
+                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  variant="destructive"
+                >
+                  {notificationCount > 9 ? '9+' : notificationCount}
+                </Badge>
+              )}
+            </Button>
+          </Link>
 
           {/* Menu do Usuário */}
           <DropdownMenu>
@@ -115,6 +117,18 @@ export function ParceiroHeader() {
                   <ShoppingCart className="mr-2 h-4 w-4" />
                   Vendas
                 </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <a
+                  href="https://wa.me/5511999999999?text=Olá! Sou parceiro UNICA e preciso de suporte."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center cursor-pointer"
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Suporte WhatsApp
+                </a>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

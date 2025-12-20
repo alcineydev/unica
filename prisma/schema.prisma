@@ -110,31 +110,48 @@ model PlanBenefit {
 
 /// Parceiro / Empresa local
 model Parceiro {
-  id            String          @id @default(cuid())
-  userId        String          @unique
-  cnpj          String          @unique @db.VarChar(14)
+  id            String                @id @default(cuid())
+  userId        String                @unique
+  cnpj          String                @unique @db.VarChar(14)
   companyName   String
   tradeName     String?
   logo          String?
   banner        String?
-  gallery       String[]        @default([])
+  gallery       String[]              @default([])
   category      String
   description   String?
   cityId        String
   address       Json
   contact       Json
   hours         Json
-  balance       Decimal         @default(0) @db.Decimal(10, 2)
-  metrics       Json            @default("{\"pageViews\": 0, \"totalSales\": 0, \"salesAmount\": 0, \"whatsappClicks\": 0}")
-  isActive      Boolean         @default(true)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  balance       Decimal               @default(0) @db.Decimal(10, 2)
+  metrics       Json                  @default("{\"pageViews\": 0, \"totalSales\": 0, \"salesAmount\": 0, \"whatsappClicks\": 0}")
+  isActive      Boolean               @default(true)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
   benefitAccess BenefitAccess[]
-  city          City            @relation(fields: [cityId], references: [id])
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city          City                  @relation(fields: [cityId], references: [id])
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions  Transaction[]
+  notificacoes  ParceiroNotificacao[]
 
   @@map("parceiros")
+}
+
+/// Notificação do parceiro (vendas, avaliações, etc)
+model ParceiroNotificacao {
+  id         String   @id @default(cuid())
+  parceiroId String
+  tipo       String   // venda, avaliacao, cliente, info
+  titulo     String
+  mensagem   String
+  lida       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  parceiro   Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  @@index([parceiroId])
+  @@index([createdAt])
+  @@map("parceiro_notificacoes")
 }
 
 /// Assinante / Cliente do clube

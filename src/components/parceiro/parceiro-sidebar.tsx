@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import {
   Home,
   ShoppingCart,
@@ -9,7 +10,7 @@ import {
   Star,
   BarChart3,
   Building2,
-  MessageCircle
+  LogOut
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +25,10 @@ const menuItems = [
 
 export function ParceiroSidebar() {
   const pathname = usePathname()
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/login' })
+  }
 
   return (
     <aside className="hidden md:flex w-64 flex-col border-r bg-zinc-50/50 dark:bg-zinc-900/50">
@@ -52,17 +57,15 @@ export function ParceiroSidebar() {
         </nav>
       </div>
 
-      {/* Link de Suporte */}
+      {/* Botão Sair */}
       <div className="p-3 border-t">
-        <a
-          href="https://wa.me/5566999999999"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
         >
-          <MessageCircle className="h-5 w-5" />
-          Suporte WhatsApp
-        </a>
+          <LogOut className="h-5 w-5" />
+          Sair
+        </button>
       </div>
     </aside>
   )
