@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-// PATCH - Atualizar avaliação (publicar/despublicar)
+// PATCH - Atualizar avaliação (publicar/despublicar ou responder)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -18,7 +18,7 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { publicada } = body
+    const { publicada, resposta } = body
 
     const parceiro = await prisma.parceiro.findFirst({
       where: { userId: session.user.id }
@@ -40,10 +40,22 @@ export async function PATCH(
       return NextResponse.json({ error: 'Avaliação não encontrada' }, { status: 404 })
     }
 
+    // Preparar dados para atualização
+    const updateData: Record<string, unknown> = {}
+
+    if (typeof publicada === 'boolean') {
+      updateData.publicada = publicada
+    }
+
+    if (resposta !== undefined) {
+      updateData.resposta = resposta || null
+      updateData.respondidoEm = resposta ? new Date() : null
+    }
+
     // Atualizar
     const updated = await prisma.avaliacao.update({
       where: { id },
-      data: { publicada }
+      data: updateData
     })
 
     return NextResponse.json({

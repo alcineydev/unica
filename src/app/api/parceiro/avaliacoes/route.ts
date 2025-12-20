@@ -82,6 +82,8 @@ export async function GET(request: NextRequest) {
         id: a.id,
         nota: a.nota,
         comentario: a.comentario,
+        resposta: a.resposta,
+        respondidoEm: a.respondidoEm?.toISOString() || null,
         publicada: a.publicada,
         createdAt: a.createdAt.toISOString(),
         assinante: {

@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { 
-  TrendingUp, 
-  Eye, 
-  MessageCircle, 
+import {
+  TrendingUp,
+  Eye,
+  Star,
   ShoppingCart,
   DollarSign,
   QrCode,
@@ -24,6 +24,10 @@ interface DashboardData {
   pageViews: number
   whatsappClicks: number
   salesGrowth?: number
+  avaliacoes?: {
+    total: number
+    media: number
+  }
   recentTransactions: {
     id: string
     amount: number
@@ -184,23 +188,23 @@ export default function ParceiroDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* WhatsApp */}
+        {/* Avaliações */}
         <Card>
           <CardContent className="p-3 md:p-6">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] md:text-sm text-muted-foreground truncate">
-                  Cliques WhatsApp
+                  Avaliações
                 </p>
                 <p className="text-lg md:text-3xl font-bold mt-0.5">
-                  {data?.whatsappClicks ?? 0}
+                  {data?.avaliacoes?.media ?? 0}
                 </p>
                 <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
-                  Contatos iniciados
+                  {data?.avaliacoes?.total ?? 0} avaliações
                 </p>
               </div>
-              <div className="p-1.5 md:p-3 rounded-lg md:rounded-full bg-emerald-100 flex-shrink-0">
-                <MessageCircle className="h-4 w-4 md:h-6 md:w-6 text-emerald-600" />
+              <div className="p-1.5 md:p-3 rounded-lg md:rounded-full bg-yellow-100 flex-shrink-0">
+                <Star className="h-4 w-4 md:h-6 md:w-6 text-yellow-600" />
               </div>
             </div>
           </CardContent>
