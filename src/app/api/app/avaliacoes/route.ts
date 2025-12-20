@@ -97,11 +97,11 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Dar pontos de bonificação ao assinante (5 pontos por avaliar)
+    // Dar pontos de bonificação ao assinante (1 ponto por avaliar)
     await prisma.assinante.update({
       where: { id: assinante.id },
       data: {
-        points: { increment: 5 }
+        points: { increment: 1 }
       }
     })
 
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Avaliação enviada com sucesso! +5 pontos',
+      message: 'Avaliação enviada com sucesso! +1 ponto',
       avaliacao: {
         id: avaliacao.id,
         nota: avaliacao.nota

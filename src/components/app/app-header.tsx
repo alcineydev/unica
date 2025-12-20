@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Bell, LogOut, User, ChevronDown, QrCode, Crown, Star } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface AppHeaderProps {
   userName?: string
@@ -23,26 +25,52 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
+  const router = useRouter()
   const { data: session } = useSession()
   const [notificationCount, setNotificationCount] = useState(0)
+  const [lastCount, setLastCount] = useState(0)
+  const isFirstRender = useRef(true)
 
   const displayName = userName || session?.user?.name || session?.user?.email?.split('@')[0] || 'Usuário'
   const displayEmail = userEmail || session?.user?.email || ''
   const displayAvatar = userAvatar || (session?.user as any)?.avatar || ''
 
+  // Polling de notificações
   useEffect(() => {
-    fetchNotificationCount()
-  }, [])
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch('/api/app/notifications/count')
+        const data = await response.json()
+        const newCount = data.count || 0
 
-  const fetchNotificationCount = async () => {
-    try {
-      const response = await fetch('/api/app/notifications/count')
-      const data = await response.json()
-      setNotificationCount(data.count || 0)
-    } catch (error) {
-      // Silently fail - notifications are not critical
+        // Se não é a primeira renderização e tem novas notificações
+        if (!isFirstRender.current && newCount > lastCount) {
+          toast.info('📬 Você tem uma nova notificação!', {
+            description: 'Clique no sino para ver',
+            action: {
+              label: 'Ver',
+              onClick: () => router.push('/app/notificacoes')
+            },
+            duration: 5000
+          })
+        }
+
+        setLastCount(newCount)
+        setNotificationCount(newCount)
+        isFirstRender.current = false
+      } catch (error) {
+        // Silently fail - notifications are not critical
+      }
     }
-  }
+
+    // Buscar imediatamente
+    fetchNotifications()
+
+    // Polling a cada 30 segundos
+    const interval = setInterval(fetchNotifications, 30000)
+
+    return () => clearInterval(interval)
+  }, [lastCount, router])
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/login' })

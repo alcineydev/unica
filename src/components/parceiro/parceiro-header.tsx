@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -15,15 +16,56 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Bell, LogOut, Building2, Users, ShoppingCart, ChevronDown, MessageCircle } from 'lucide-react'
+import { toast } from 'sonner'
 
 export function ParceiroHeader() {
+  const router = useRouter()
   const { data: session } = useSession()
   const [parceiro, setParceiro] = useState<any>(null)
   const [notificationCount, setNotificationCount] = useState(0)
+  const [lastCount, setLastCount] = useState(0)
+  const isFirstRender = useRef(true)
 
   useEffect(() => {
     fetchParceiroData()
   }, [])
+
+  // Polling de notificações
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch('/api/parceiro/notificacoes/count')
+        const data = await response.json()
+        const newCount = data.count || 0
+
+        // Se não é a primeira renderização e tem novas notificações
+        if (!isFirstRender.current && newCount > lastCount) {
+          toast.info('📬 Você tem uma nova notificação!', {
+            description: 'Clique no sino para ver',
+            action: {
+              label: 'Ver',
+              onClick: () => router.push('/parceiro/notificacoes')
+            },
+            duration: 5000
+          })
+        }
+
+        setLastCount(newCount)
+        setNotificationCount(newCount)
+        isFirstRender.current = false
+      } catch (error) {
+        // Silently fail - notifications are not critical
+      }
+    }
+
+    // Buscar imediatamente
+    fetchNotifications()
+
+    // Polling a cada 30 segundos
+    const interval = setInterval(fetchNotifications, 30000)
+
+    return () => clearInterval(interval)
+  }, [lastCount, router])
 
   const fetchParceiroData = async () => {
     try {
