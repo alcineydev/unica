@@ -15,6 +15,15 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray
 }
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return window.btoa(binary)
+}
+
 export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false)
   const [isSubscribed, setIsSubscribed] = useState(false)
@@ -23,7 +32,8 @@ export function usePushNotifications() {
 
   useEffect(() => {
     const checkSupport = async () => {
-      const supported = 'serviceWorker' in navigator &&
+      const supported = typeof window !== 'undefined' &&
+                        'serviceWorker' in navigator &&
                         'PushManager' in window &&
                         'Notification' in window
 
@@ -32,7 +42,6 @@ export function usePushNotifications() {
       if (supported) {
         setPermission(Notification.permission)
 
-        // Verificar se já está inscrito
         try {
           const registration = await navigator.serviceWorker.ready
           const subscription = await registration.pushManager.getSubscription()
@@ -63,19 +72,19 @@ export function usePushNotifications() {
 
   const subscribe = useCallback(async (): Promise<boolean> => {
     if (!isSupported || !VAPID_PUBLIC_KEY) {
-      console.error('Push não suportado ou VAPID key ausente')
+      console.error('Push nao suportado ou VAPID key ausente')
       return false
     }
 
     setIsLoading(true)
 
     try {
-      // Pedir permissão
+      // Pedir permissao
       const permissionResult = await Notification.requestPermission()
       setPermission(permissionResult)
 
       if (permissionResult !== 'granted') {
-        console.log('Permissão negada')
+        console.log('Permissao negada')
         setIsLoading(false)
         return false
       }
@@ -89,11 +98,24 @@ export function usePushNotifications() {
 
       await navigator.serviceWorker.ready
 
+      // Converter VAPID key
+      const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+
       // Criar subscription
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        applicationServerKey: applicationServerKey.buffer as ArrayBuffer
       })
+
+      // Extrair keys
+      const p256dhKey = subscription.getKey('p256dh')
+      const authKey = subscription.getKey('auth')
+
+      if (!p256dhKey || !authKey) {
+        console.error('Nao foi possivel obter as chaves da subscription')
+        setIsLoading(false)
+        return false
+      }
 
       // Enviar para o servidor
       const response = await fetch('/api/push/subscribe', {
@@ -102,8 +124,8 @@ export function usePushNotifications() {
         body: JSON.stringify({
           endpoint: subscription.endpoint,
           keys: {
-            p256dh: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh')!))),
-            auth: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth')!)))
+            p256dh: arrayBufferToBase64(p256dhKey),
+            auth: arrayBufferToBase64(authKey)
           },
           deviceInfo: navigator.userAgent
         })
