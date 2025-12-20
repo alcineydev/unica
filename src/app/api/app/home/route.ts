@@ -92,6 +92,10 @@ export async function GET() {
                 name: true,
               },
             },
+            avaliacoes: {
+              where: { publicada: true },
+              select: { nota: true }
+            },
             benefitAccess: {
               where: {
                 benefitId: {
@@ -114,24 +118,35 @@ export async function GET() {
           orderBy: { companyName: 'asc' }
         })
 
-        parceiros = parceirosDb.map(p => ({
-          id: p.id,
-          companyName: p.companyName,
-          tradeName: p.tradeName,
-          logo: p.logo,
-          category: p.category,
-          description: p.description,
-          city: p.city,
-          benefits: p.benefitAccess.map(ba => {
-            const value = ba.benefit.value as Record<string, number>
-            return {
-              id: ba.benefit.id,
-              name: ba.benefit.name,
-              type: ba.benefit.type,
-              value: value.percentage || value.monthlyPoints || 0
-            }
-          })
-        }))
+        parceiros = parceirosDb.map(p => {
+          const avaliacoes = p.avaliacoes || []
+          const mediaAvaliacoes = avaliacoes.length > 0
+            ? avaliacoes.reduce((sum, a) => sum + a.nota, 0) / avaliacoes.length
+            : 0
+
+          return {
+            id: p.id,
+            companyName: p.companyName,
+            tradeName: p.tradeName,
+            logo: p.logo,
+            category: p.category,
+            description: p.description,
+            city: p.city,
+            avaliacoes: {
+              media: Math.round(mediaAvaliacoes * 10) / 10,
+              total: avaliacoes.length
+            },
+            benefits: p.benefitAccess.map(ba => {
+              const value = ba.benefit.value as Record<string, number>
+              return {
+                id: ba.benefit.id,
+                name: ba.benefit.name,
+                type: ba.benefit.type,
+                value: value.percentage || value.monthlyPoints || 0
+              }
+            })
+          }
+        })
       }
     }
 

@@ -30,6 +30,10 @@ interface Parceiro {
   description: string | null
   logo: string | null
   city: { name: string } | null
+  avaliacoes?: {
+    media: number
+    total: number
+  }
   benefits?: Array<{
     id: string
     name: string
@@ -376,9 +380,17 @@ export default function AssinanteDashboard() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium truncate">
-                        {parceiro.tradeName || parceiro.companyName}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium truncate">
+                          {parceiro.tradeName || parceiro.companyName}
+                        </h3>
+                        {parceiro.avaliacoes && parceiro.avaliacoes.total > 0 && (
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-medium">{parceiro.avaliacoes.media.toFixed(1)}</span>
+                          </div>
+                        )}
+                      </div>
                       {parceiro.category && (
                         <p className="text-sm text-muted-foreground">{parceiro.category}</p>
                       )}
