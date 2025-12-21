@@ -19,30 +19,48 @@ export async function GET() {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
 
-    // Buscar histórico
-    const notifications = await prisma.adminPushNotification.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-      include: {
-        admin: {
-          select: { email: true }
+    // Tentar buscar estatísticas de push
+    let totalSubscriptions = 0
+    let assinantesCount = 0
+    let parceirosCount = 0
+    let notifications: any[] = []
+
+    try {
+      // Buscar histórico
+      notifications = await prisma.adminPushNotification.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: {
+          admin: {
+            select: { email: true }
+          }
         }
+      })
+
+      // Contar subscriptions por tipo
+      totalSubscriptions = await prisma.pushSubscription.count()
+
+      assinantesCount = await prisma.pushSubscription.count({
+        where: { user: { role: 'ASSINANTE' } }
+      })
+
+      parceirosCount = await prisma.pushSubscription.count({
+        where: { user: { role: 'PARCEIRO' } }
+      })
+    } catch (dbError: any) {
+      // Se a tabela não existir, retornar zeros
+      console.error('[PUSH HISTORY] Erro no banco:', dbError.message)
+
+      // Verificar se é erro de tabela não existente
+      if (dbError.message?.includes('does not exist') ||
+          dbError.message?.includes('relation') ||
+          dbError.code === 'P2021') {
+        console.warn('[PUSH HISTORY] Tabela push_subscriptions não existe. Execute: npx prisma db push')
       }
-    })
-
-    // Contar subscriptions por tipo
-    const totalSubscriptions = await prisma.pushSubscription.count()
-
-    const assinantesCount = await prisma.pushSubscription.count({
-      where: { user: { role: 'ASSINANTE' } }
-    })
-
-    const parceirosCount = await prisma.pushSubscription.count({
-      where: { user: { role: 'PARCEIRO' } }
-    })
+    }
 
     return NextResponse.json({
-      notifications: notifications.map(n => ({
+      notifications: notifications.map((n: any) => ({
         id: n.id,
         title: n.title,
         message: n.message,
@@ -60,8 +78,12 @@ export async function GET() {
       }
     })
 
-  } catch (error) {
-    console.error('[PUSH HISTORY] Erro:', error)
-    return NextResponse.json({ error: 'Erro ao buscar histórico' }, { status: 500 })
+  } catch (error: any) {
+    console.error('[PUSH HISTORY] Erro geral:', error)
+    return NextResponse.json({
+      notifications: [],
+      stats: { total: 0, assinantes: 0, parceiros: 0 },
+      error: 'Erro ao buscar histórico'
+    })
   }
 }

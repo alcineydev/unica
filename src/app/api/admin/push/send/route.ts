@@ -36,32 +36,42 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar subscriptions baseado no targetType
-    let whereClause: any = {}
+    let subscriptions: any[] = []
 
-    if (targetType === 'ASSINANTES') {
-      whereClause = {
-        user: {
-          role: 'ASSINANTE'
-        }
+    try {
+      let whereClause: any = {}
+
+      if (targetType === 'ASSINANTES') {
+        whereClause = { user: { role: 'ASSINANTE' } }
+      } else if (targetType === 'PARCEIROS') {
+        whereClause = { user: { role: 'PARCEIRO' } }
       }
-    } else if (targetType === 'PARCEIROS') {
-      whereClause = {
-        user: {
-          role: 'PARCEIRO'
+      // targetType === 'ALL' não precisa de filtro
+
+      subscriptions = await prisma.pushSubscription.findMany({
+        where: whereClause,
+        select: {
+          id: true,
+          endpoint: true,
+          p256dh: true,
+          auth: true
         }
+      })
+    } catch (dbError: any) {
+      console.error('[PUSH SEND] Erro no banco:', dbError.message)
+
+      // Se tabela não existe
+      if (dbError.message?.includes('does not exist') || dbError.code === 'P2021') {
+        return NextResponse.json({
+          success: false,
+          sentCount: 0,
+          failedCount: 0,
+          error: 'Tabela de subscriptions não existe. Execute: npx prisma db push'
+        }, { status: 500 })
       }
+
+      throw dbError
     }
-    // targetType === 'ALL' não precisa de filtro
-
-    const subscriptions = await prisma.pushSubscription.findMany({
-      where: whereClause,
-      select: {
-        id: true,
-        endpoint: true,
-        p256dh: true,
-        auth: true
-      }
-    })
 
     if (subscriptions.length === 0) {
       return NextResponse.json({

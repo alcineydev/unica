@@ -41,9 +41,22 @@ self.addEventListener('activate', (event) => {
 
 // Fetch - Network first, fallback to cache
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url)
+
+  // IMPORTANTE: Ignorar requests que não são HTTP/HTTPS
+  // Isso evita o erro "chrome-extension is unsupported"
+  if (!url.protocol.startsWith('http')) {
+    return
+  }
+
   // Ignorar requests não-GET e APIs
   if (event.request.method !== 'GET') return
-  if (event.request.url.includes('/api/')) return
+  if (url.pathname.startsWith('/api/')) return
+
+  // Ignorar requests para origens externas
+  if (url.origin !== self.location.origin) {
+    return
+  }
 
   // Para navegação, tenta rede primeiro
   if (event.request.mode === 'navigate') {
