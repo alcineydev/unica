@@ -1,33 +1,41 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { PushPermissionBanner } from './push-permission-banner'
 
 export function PushProvider({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    // Registrar Service Worker ao carregar (se ainda nao estiver registrado)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration('/sw.js').then((registration) => {
-        if (!registration) {
-          navigator.serviceWorker
-            .register('/sw.js')
-            .then((reg) => {
-              console.log('[Push] Service Worker registrado:', reg.scope)
-            })
-            .catch((error) => {
-              console.error('[Push] Erro ao registrar SW:', error)
-            })
-        }
-      })
+    setMounted(true)
+
+    // Registrar Service Worker ao carregar
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((reg) => {
+          console.log('[PushProvider] SW registrado:', reg.scope)
+        })
+        .catch((error) => {
+          console.error('[PushProvider] Erro ao registrar SW:', error)
+        })
     }
   }, [])
 
-  // So mostrar banner para usuarios logados (Assinantes e Parceiros)
-  const shouldShowBanner = session?.user &&
+  // Nao renderizar banner ate montar no cliente
+  if (!mounted) {
+    return <>{children}</>
+  }
+
+  // Mostrar banner apenas para usuarios autenticados com role elegivel
+  const shouldShowBanner =
+    status === 'authenticated' &&
+    session?.user?.role &&
     ['ASSINANTE', 'PARCEIRO'].includes(session.user.role as string)
+
+  console.log('[PushProvider] status:', status, 'role:', session?.user?.role, 'shouldShow:', shouldShowBanner)
 
   return (
     <>

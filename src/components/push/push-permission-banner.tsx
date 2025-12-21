@@ -19,12 +19,26 @@ export function PushPermissionBanner({ className, variant = 'banner' }: PushPerm
   const { isSupported, isSubscribed, isLoading, permission, subscribe } = usePushNotifications()
 
   useEffect(() => {
+    console.log('[PushBanner] Estado:', { isSupported, isSubscribed, permission, isLoading })
+
+    // Aguardar o hook terminar de carregar
+    if (isLoading) {
+      console.log('[PushBanner] Aguardando hook carregar...')
+      return
+    }
+
     // Verificar se deve mostrar o banner
     const shouldShow = checkShouldShowBanner()
+    console.log('[PushBanner] shouldShow:', shouldShow)
 
-    if (shouldShow && isSupported && !isSubscribed && permission !== 'denied' && !isLoading) {
+    const canShow = shouldShow && isSupported && !isSubscribed && permission !== 'denied'
+    console.log('[PushBanner] canShow:', canShow)
+
+    if (canShow) {
       // Delay para nao aparecer imediatamente ao carregar
+      console.log('[PushBanner] Agendando exibicao em 3s...')
       const timer = setTimeout(() => {
+        console.log('[PushBanner] Exibindo banner!')
         setIsAnimating(true)
         setTimeout(() => setIsVisible(true), 100)
       }, 3000) // Aparece apos 3 segundos

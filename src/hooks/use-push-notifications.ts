@@ -31,26 +31,44 @@ export function usePushNotifications() {
 
   useEffect(() => {
     const checkSupport = async () => {
+      // Verificar suporte basico
       const supported = typeof window !== 'undefined' &&
                         'serviceWorker' in navigator &&
                         'PushManager' in window &&
                         'Notification' in window
 
+      console.log('[PUSH] Suporte verificado:', supported)
       setIsSupported(supported)
 
-      if (supported) {
-        setPermission(Notification.permission)
+      if (!supported) {
+        setIsLoading(false)
+        return
+      }
 
-        try {
-          const registration = await navigator.serviceWorker.ready
-          const subscription = await registration.pushManager.getSubscription()
+      // Obter permissao atual
+      setPermission(Notification.permission)
+      console.log('[PUSH] Permissao atual:', Notification.permission)
+
+      // Verificar subscription existente (com timeout para nao travar)
+      try {
+        const registration = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise<null>((_, reject) =>
+            setTimeout(() => reject(new Error('SW timeout')), 3000)
+          )
+        ])
+
+        if (registration) {
+          const subscription = await (registration as ServiceWorkerRegistration).pushManager.getSubscription()
           setIsSubscribed(!!subscription)
-        } catch (e) {
-          console.error('[PUSH] Erro ao verificar subscription:', e)
+          console.log('[PUSH] Ja inscrito:', !!subscription)
         }
+      } catch (e) {
+        console.log('[PUSH] SW nao pronto ainda, continuando...')
       }
 
       setIsLoading(false)
+      console.log('[PUSH] Hook pronto')
     }
 
     checkSupport()
