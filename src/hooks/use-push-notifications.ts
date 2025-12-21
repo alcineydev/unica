@@ -111,14 +111,20 @@ export function usePushNotifications() {
 
       // Buscar VAPID public key do servidor
       if (!vapidKeyRef.current) {
+        console.log('[PUSH] Buscando VAPID key do servidor...')
         const keyResponse = await fetch('/api/push/subscribe')
-        if (!keyResponse.ok) {
-          console.error('[PUSH] Push nao configurado no servidor')
+        const keyData = await keyResponse.json()
+
+        console.log('[PUSH] Resposta da API:', keyData)
+
+        if (!keyResponse.ok || !keyData.publicKey) {
+          console.error('[PUSH] Erro ao buscar VAPID key:', keyData)
           setIsLoading(false)
           return false
         }
-        const { publicKey } = await keyResponse.json()
-        vapidKeyRef.current = publicKey
+
+        vapidKeyRef.current = keyData.publicKey
+        console.log('[PUSH] VAPID key recebida:', keyData.publicKey?.substring(0, 20) + '...')
       }
 
       // Registrar Service Worker
