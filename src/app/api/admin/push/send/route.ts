@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { sendPushNotification } from '@/lib/web-push'
+import { sendPushNotification, isWebPushConfigured } from '@/lib/web-push'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,6 +18,14 @@ export async function POST(request: NextRequest) {
 
     if (!user || !['ADMIN', 'DEVELOPER'].includes(user.role)) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+    }
+
+    // Verificar se VAPID está configurado
+    if (!isWebPushConfigured()) {
+      return NextResponse.json(
+        { error: 'Push notifications não configuradas. Configure as VAPID keys no ambiente.' },
+        { status: 500 }
+      )
     }
 
     const body = await request.json()
@@ -55,15 +63,23 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    console.log(`[PUSH SEND] Enviando para ${subscriptions.length} dispositivos`)
+    if (subscriptions.length === 0) {
+      return NextResponse.json({
+        success: true,
+        sentCount: 0,
+        failedCount: 0,
+        total: 0,
+        message: 'Nenhum dispositivo registrado para receber notificações'
+      })
+    }
 
     // Enviar para todos
     let sentCount = 0
     let failedCount = 0
-    const failedEndpoints: string[] = []
+    const expiredEndpoints: string[] = []
 
     for (const sub of subscriptions) {
-      const success = await sendPushNotification(
+      const result = await sendPushNotification(
         {
           endpoint: sub.endpoint,
           p256dh: sub.p256dh,
@@ -77,22 +93,23 @@ export async function POST(request: NextRequest) {
         }
       )
 
-      if (success) {
+      if (result.success) {
         sentCount++
       } else {
         failedCount++
-        failedEndpoints.push(sub.endpoint)
+        if (result.expired) {
+          expiredEndpoints.push(sub.endpoint)
+        }
       }
     }
 
-    // Remover subscriptions inválidas (expiradas)
-    if (failedEndpoints.length > 0) {
+    // Remover apenas subscriptions expiradas (não todas as falhas)
+    if (expiredEndpoints.length > 0) {
       await prisma.pushSubscription.deleteMany({
         where: {
-          endpoint: { in: failedEndpoints }
+          endpoint: { in: expiredEndpoints }
         }
       })
-      console.log(`[PUSH SEND] Removidas ${failedEndpoints.length} subscriptions inválidas`)
     }
 
     // Salvar log da notificação

@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { getVapidPublicKey } from '@/lib/web-push'
+
+// GET - Retorna a VAPID public key para o cliente
+export async function GET() {
+  const publicKey = getVapidPublicKey()
+
+  if (!publicKey) {
+    return NextResponse.json(
+      { error: 'Push não configurado' },
+      { status: 500 }
+    )
+  }
+
+  return NextResponse.json({ publicKey })
+}
 
 export async function POST(request: NextRequest) {
   console.log('[PUSH SUBSCRIBE] Recebendo requisição...')
