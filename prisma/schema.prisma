@@ -110,6 +110,25 @@ model PlanBenefit {
   @@map("plan_benefits")
 }
 
+/// Categoria de parceiros
+model Category {
+  id           String     @id @default(uuid())
+  name         String
+  slug         String     @unique
+  icon         String     @default("Store")
+  banner       String
+  description  String?
+  displayOrder Int        @default(0) @map("display_order")
+  isActive     Boolean    @default(true) @map("is_active")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  parceiros    Parceiro[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("categories")
+}
+
 /// Parceiro / Empresa local
 model Parceiro {
   id            String                @id @default(cuid())
@@ -120,9 +139,14 @@ model Parceiro {
   logo          String?
   banner        String?
   gallery       String[]              @default([])
-  category      String
-  description   String?
-  cityId        String
+  category       String
+  categoryId     String?        @map("category_id")
+  categoryRef    Category?      @relation(fields: [categoryId], references: [id])
+  description    String?
+  isDestaque     Boolean        @default(false) @map("is_destaque")
+  bannerDestaque String?        @map("banner_destaque")
+  destaqueOrder  Int            @default(0) @map("destaque_order")
+  cityId         String
   address       Json
   contact       Json
   hours         Json
