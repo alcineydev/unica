@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -117,6 +118,8 @@ interface Plan {
 }
 
 export default function PlanosPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
   const [benefits, setBenefits] = useState<Benefit[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -136,6 +139,15 @@ export default function PlanosPage() {
   } = useForm<PlanFormData>({
     resolver: zodResolver(planSchema),
   })
+
+  // Abrir modal automaticamente se vier com action=create
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      handleCreate()
+      // Limpar o parâmetro da URL
+      router.replace('/admin/planos')
+    }
+  }, [searchParams])
 
   // Buscar planos
   const fetchPlans = useCallback(async () => {
