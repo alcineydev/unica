@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -61,7 +61,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
 import { BENEFIT_TYPES } from '@/constants'
 
@@ -117,7 +116,17 @@ interface Plan {
   }
 }
 
-export default function PlanosPage() {
+// Componente de loading
+function PlanosLoading() {
+  return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  )
+}
+
+// Componente principal que usa useSearchParams
+function PlanosContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
@@ -140,6 +149,22 @@ export default function PlanosPage() {
     resolver: zodResolver(planSchema),
   })
 
+  // Abrir modal para criar
+  const handleCreate = useCallback(() => {
+    setSelectedPlan(null)
+    setSelectedBenefits([])
+    reset({
+      name: '',
+      description: '',
+      price: 0,
+      slug: '',
+      priceYearly: null,
+      priceSingle: null,
+      benefitIds: [],
+    })
+    setIsDialogOpen(true)
+  }, [reset])
+
   // Abrir modal automaticamente se vier com action=create
   useEffect(() => {
     if (searchParams.get('action') === 'create') {
@@ -147,14 +172,14 @@ export default function PlanosPage() {
       // Limpar o parâmetro da URL
       router.replace('/admin/planos')
     }
-  }, [searchParams])
+  }, [searchParams, handleCreate, router])
 
   // Buscar planos
   const fetchPlans = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/plans?includeInactive=true')
       const result = await response.json()
-      
+
       if (response.ok) {
         setPlans(result.data)
       } else {
@@ -172,7 +197,7 @@ export default function PlanosPage() {
     try {
       const response = await fetch('/api/admin/benefits')
       const result = await response.json()
-      
+
       if (response.ok) {
         setBenefits(result.data)
       }
@@ -185,22 +210,6 @@ export default function PlanosPage() {
     fetchPlans()
     fetchBenefits()
   }, [fetchPlans, fetchBenefits])
-
-  // Abrir modal para criar
-  function handleCreate() {
-    setSelectedPlan(null)
-    setSelectedBenefits([])
-    reset({
-      name: '',
-      description: '',
-      price: 0,
-      slug: '',
-      priceYearly: null,
-      priceSingle: null,
-      benefitIds: [],
-    })
-    setIsDialogOpen(true)
-  }
 
   // Abrir modal para editar
   function handleEdit(plan: Plan) {
@@ -231,7 +240,7 @@ export default function PlanosPage() {
       const newSelection = prev.includes(benefitId)
         ? prev.filter((id) => id !== benefitId)
         : [...prev, benefitId]
-      
+
       setValue('benefitIds', newSelection)
       return newSelection
     })
@@ -247,10 +256,10 @@ export default function PlanosPage() {
     }
 
     try {
-      const url = selectedPlan 
-        ? `/api/admin/plans/${selectedPlan.id}` 
+      const url = selectedPlan
+        ? `/api/admin/plans/${selectedPlan.id}`
         : '/api/admin/plans'
-      
+
       const method = selectedPlan ? 'PATCH' : 'POST'
 
       const response = await fetch(url, {
@@ -579,8 +588,8 @@ export default function PlanosPage() {
               {selectedPlan ? 'Editar Plano' : 'Novo Plano'}
             </DialogTitle>
             <DialogDescription>
-              {selectedPlan 
-                ? 'Altere os dados do plano' 
+              {selectedPlan
+                ? 'Altere os dados do plano'
                 : 'Preencha os dados e selecione os benefícios do plano'}
             </DialogDescription>
           </DialogHeader>
@@ -635,7 +644,7 @@ export default function PlanosPage() {
 
             {/* Preços */}
             <div className="space-y-3">
-              <Label className="text-base font-semibold">💰 Preços</Label>
+              <Label className="text-base font-semibold">Preços</Label>
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="price">Preço Mensal (R$) *</Label>
@@ -663,8 +672,8 @@ export default function PlanosPage() {
                     step="0.01"
                     min="0"
                     placeholder="299.90"
-                    {...register('priceYearly', { 
-                      setValueAs: (v) => v === '' ? null : parseFloat(v) 
+                    {...register('priceYearly', {
+                      setValueAs: (v) => v === '' ? null : parseFloat(v)
                     })}
                   />
                   <p className="text-xs text-muted-foreground">
@@ -680,8 +689,8 @@ export default function PlanosPage() {
                     step="0.01"
                     min="0"
                     placeholder="499.90"
-                    {...register('priceSingle', { 
-                      setValueAs: (v) => v === '' ? null : parseFloat(v) 
+                    {...register('priceSingle', {
+                      setValueAs: (v) => v === '' ? null : parseFloat(v)
                     })}
                   />
                   <p className="text-xs text-muted-foreground">
@@ -697,7 +706,7 @@ export default function PlanosPage() {
               {errors.benefitIds && (
                 <p className="text-sm text-destructive">{errors.benefitIds.message}</p>
               )}
-              
+
               <div className="grid gap-2 md:grid-cols-2">
                 {benefits.length === 0 ? (
                   <p className="text-sm text-muted-foreground col-span-2">
@@ -707,21 +716,21 @@ export default function PlanosPage() {
                   benefits.map((benefit) => {
                     const isSelected = selectedBenefits.includes(benefit.id)
                     const value = benefit.value as Record<string, number | string>
-                    
+
                     return (
                       <Card
                         key={benefit.id}
                         className={`cursor-pointer transition-all ${
-                          isSelected 
-                            ? 'border-primary bg-primary/5' 
+                          isSelected
+                            ? 'border-primary bg-primary/5'
                             : 'hover:border-muted-foreground/50'
                         }`}
                         onClick={() => toggleBenefit(benefit.id)}
                       >
                         <CardContent className="p-3 flex items-center gap-3">
                           <div className={`flex h-5 w-5 items-center justify-center rounded border ${
-                            isSelected 
-                              ? 'bg-primary border-primary text-primary-foreground' 
+                            isSelected
+                              ? 'bg-primary border-primary text-primary-foreground'
                               : 'border-muted-foreground/30'
                           }`}>
                             {isSelected && <Check className="h-3 w-3" />}
@@ -740,7 +749,7 @@ export default function PlanosPage() {
                   })
                 )}
               </div>
-              
+
               <p className="text-xs text-muted-foreground">
                 {selectedBenefits.length} benefício(s) selecionado(s)
               </p>
@@ -799,5 +808,14 @@ export default function PlanosPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  )
+}
+
+// Página principal com Suspense
+export default function PlanosPage() {
+  return (
+    <Suspense fallback={<PlanosLoading />}>
+      <PlanosContent />
+    </Suspense>
   )
 }
