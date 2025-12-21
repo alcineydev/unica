@@ -14,7 +14,7 @@ import {
   Wallet
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { CarouselDestaques, CategoriesList, ParceiroCardGrid, SectionHeader } from '@/components/app/home'
+import { CarouselDestaques, CategoriesList, ParceiroCardGrid, SectionHeader, QuickActions, OfertasBanner } from '@/components/app/home'
 
 interface Plan {
   id: string
@@ -285,6 +285,12 @@ export default function AppHomePage() {
         </section>
       )}
 
+      {/* Ofertas Próximas */}
+      <section className="space-y-3">
+        <SectionHeader title="Ofertas Próximas" />
+        <OfertasBanner />
+      </section>
+
       {/* Novidades */}
       {novidades.length > 0 && (
         <section className="space-y-3">
@@ -296,6 +302,12 @@ export default function AppHomePage() {
           </div>
         </section>
       )}
+
+      {/* Minha Conta - Atalhos Rápidos */}
+      <section className="space-y-3">
+        <SectionHeader title="Minha Conta" />
+        <QuickActions />
+      </section>
 
       {/* Se não houver nenhum conteúdo */}
       {!destaques.length && !parceirosDestaque.length && !novidades.length && (
