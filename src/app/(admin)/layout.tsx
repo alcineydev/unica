@@ -18,8 +18,8 @@ export default function AdminLayout({
     <div className="min-h-screen bg-muted/30">
       <AdminSidebar />
       
-      {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 transition-all duration-300">
+      {/* Main Content - pt-14 para compensar header fixo */}
+      <main className="lg:ml-64 min-h-screen pt-14 transition-all duration-300">
         <div className="p-4 md:p-6">
           {children}
         </div>

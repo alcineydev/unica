@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { UserAvatar } from '@/components/ui/user-avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
@@ -22,7 +23,6 @@ import {
   Bell,
   Menu,
   LogOut,
-  X,
   Smartphone,
   ChevronDown,
   List,
@@ -124,7 +124,6 @@ export function AdminSidebar() {
       }
     })
     setExpandedMenus(prev => {
-      // Adicionar novos menus ativos sem remover os já expandidos manualmente
       const newExpanded = [...prev]
       activeMenus.forEach(menu => {
         if (!newExpanded.includes(menu)) {
@@ -148,200 +147,218 @@ export function AdminSidebar() {
     )
   }
 
-  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="flex items-center gap-3 p-4 border-b">
-        <Link href="/admin" className="flex items-center gap-2">
-          <Sparkles className="h-7 w-7 text-primary" />
-          <span className="text-xl font-bold">Unica</span>
-        </Link>
-        {isMobile && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="ml-auto"
-            onClick={() => setIsOpen(false)}
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        )}
-      </div>
+  const displayName = session?.user?.name || 'Admin'
+  const displayEmail = session?.user?.email || ''
+  const displayAvatar = (session?.user as { avatar?: string })?.avatar || ''
 
-      {/* Menu */}
-      <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => {
-          // Item simples (sem filhos)
-          if (!item.children) {
-            const isActive = pathname === item.href
-            return (
-              <Link
-                key={item.label}
-                href={item.href!}
-                onClick={() => isMobile && setIsOpen(false)}
-              >
-                <div
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <item.icon className="h-5 w-5 flex-shrink-0" />
-                  <span className="text-sm font-medium">{item.label}</span>
-                </div>
-              </Link>
-            )
-          }
-
-          // Item com filhos (expansível)
-          const isExpanded = expandedMenus.includes(item.label)
-          const hasActive = hasActiveChild(item.children, pathname)
-
+  // Conteúdo do Menu (usado em mobile e desktop)
+  const MenuContent = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <>
+      {menuItems.map((item) => {
+        // Item simples (sem filhos)
+        if (!item.children) {
+          const isActive = pathname === item.href
           return (
-            <div key={item.label}>
-              {/* Item pai */}
-              <button
-                onClick={() => toggleMenu(item.label)}
+            <Link
+              key={item.label}
+              href={item.href!}
+              onClick={() => isMobile && setIsOpen(false)}
+            >
+              <div
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                  hasActive
-                    ? "bg-primary/10 text-primary"
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
                     : "hover:bg-muted text-muted-foreground hover:text-foreground"
                 )}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
-                <span className="text-sm font-semibold flex-1 text-left">{item.label}</span>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 transition-transform duration-200",
-                    isExpanded && "rotate-180"
-                  )}
-                />
-              </button>
+                <span className="text-sm font-medium">{item.label}</span>
+              </div>
+            </Link>
+          )
+        }
 
-              {/* Itens filhos */}
-              <div
+        // Item com filhos (expansível)
+        const isExpanded = expandedMenus.includes(item.label)
+        const hasActive = hasActiveChild(item.children, pathname)
+
+        return (
+          <div key={item.label}>
+            <button
+              onClick={() => toggleMenu(item.label)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                hasActive
+                  ? "bg-primary/10 text-primary"
+                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <item.icon className="h-5 w-5 flex-shrink-0" />
+              <span className="text-sm font-semibold flex-1 text-left">{item.label}</span>
+              <ChevronDown
                 className={cn(
-                  "overflow-hidden transition-all duration-200",
-                  isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                  "h-4 w-4 transition-transform duration-200",
+                  isExpanded && "rotate-180"
                 )}
-              >
-                <div className="mt-1 space-y-1">
-                  {item.children.map((child) => {
-                    const isChildActive = pathname === child.href ||
-                      pathname.startsWith(child.href + '/')
-                    const ChildIcon = child.icon
+              />
+            </button>
 
-                    if (child.disabled) {
-                      return (
-                        <div
-                          key={child.href}
-                          className="flex items-center gap-3 pl-8 pr-3 py-2 rounded-lg text-muted-foreground/50 cursor-not-allowed"
-                        >
-                          {ChildIcon && <ChildIcon className="h-4 w-4 flex-shrink-0" />}
-                          <span className="text-sm flex-1">{child.label}</span>
-                          {child.badge && (
-                            <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
-                              {child.badge}
-                            </span>
-                          )}
-                        </div>
-                      )
-                    }
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-200",
+                isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+              )}
+            >
+              <div className="mt-1 space-y-1">
+                {item.children.map((child) => {
+                  const isChildActive = pathname === child.href ||
+                    pathname.startsWith(child.href + '/')
+                  const ChildIcon = child.icon
 
+                  if (child.disabled) {
                     return (
-                      <Link
+                      <div
                         key={child.href}
-                        href={child.href}
-                        onClick={() => isMobile && setIsOpen(false)}
+                        className="flex items-center gap-3 pl-8 pr-3 py-2 rounded-lg text-muted-foreground/50 cursor-not-allowed"
                       >
-                        <div
-                          className={cn(
-                            "flex items-center gap-3 pl-8 pr-3 py-2 rounded-lg transition-colors",
-                            isChildActive
-                              ? "bg-primary/10 text-primary font-medium"
-                              : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          {ChildIcon && <ChildIcon className="h-4 w-4 flex-shrink-0" />}
-                          <span className="text-sm flex-1">{child.label}</span>
-                          {child.badge && (
-                            <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
-                              {child.badge}
-                            </span>
-                          )}
-                        </div>
-                      </Link>
+                        {ChildIcon && <ChildIcon className="h-4 w-4 flex-shrink-0" />}
+                        <span className="text-sm flex-1">{child.label}</span>
+                        {child.badge && (
+                          <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
+                            {child.badge}
+                          </span>
+                        )}
+                      </div>
                     )
-                  })}
-                </div>
+                  }
+
+                  return (
+                    <Link
+                      key={child.href}
+                      href={child.href}
+                      onClick={() => isMobile && setIsOpen(false)}
+                    >
+                      <div
+                        className={cn(
+                          "flex items-center gap-3 pl-8 pr-3 py-2 rounded-lg transition-colors",
+                          isChildActive
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {ChildIcon && <ChildIcon className="h-4 w-4 flex-shrink-0" />}
+                        <span className="text-sm flex-1">{child.label}</span>
+                        {child.badge && (
+                          <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
+                            {child.badge}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  )
+                })}
               </div>
             </div>
-          )
-        })}
-      </nav>
-
-      {/* User Info + Botão Sair */}
-      <div className="p-4 border-t space-y-3">
-        {/* Info do usuário */}
-        <div className="flex items-center gap-3">
-          <UserAvatar
-            src={session?.user?.avatar}
-            name={session?.user?.name}
-            size="sm"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{session?.user?.name || 'Admin'}</p>
-            <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
           </div>
-        </div>
-
-        {/* Botão Sair - Fixo no rodapé */}
-        <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
-        >
-          <LogOut className="h-5 w-5" />
-          Sair
-        </button>
-      </div>
-    </div>
+        )
+      })}
+    </>
   )
 
   return (
     <>
-      {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b h-16">
+      {/* ========== HEADER FIXO NO TOPO (Mobile e Desktop) ========== */}
+      <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="flex items-center justify-between h-full px-4">
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72">
-              <SidebarContent isMobile />
-            </SheetContent>
-          </Sheet>
+          {/* Esquerda: Menu hambúrguer (mobile) + Logo */}
+          <div className="flex items-center gap-3">
+            {/* Menu hambúrguer - apenas mobile */}
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger asChild className="lg:hidden">
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72">
+                <div className="flex flex-col h-full">
+                  {/* Header do Sheet */}
+                  <div className="p-4 border-b">
+                    <span className="font-bold text-lg">Menu</span>
+                  </div>
 
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <span className="font-bold">Unica Admin</span>
+                  {/* Menu Items */}
+                  <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+                    <MenuContent isMobile />
+                  </nav>
+
+                  {/* Botão Sair - Fixo no rodapé */}
+                  <div className="p-3 border-t">
+                    <button
+                      onClick={() => signOut({ callbackUrl: '/login' })}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
+                    >
+                      <LogOut className="h-5 w-5" />
+                      Sair
+                    </button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Logo */}
+            <Link href="/admin" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <div className="hidden sm:block">
+                <span className="font-semibold text-lg">UNICA</span>
+                <Badge variant="secondary" className="ml-2 text-xs">Admin</Badge>
+              </div>
+            </Link>
           </div>
 
-          <UserAvatar
-            src={session?.user?.avatar}
-            name={session?.user?.name}
-            size="sm"
-          />
+          {/* Direita: Notificações + Avatar */}
+          <div className="flex items-center gap-2">
+            {/* Sino de notificações */}
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+            </Button>
+
+            {/* Avatar com nome */}
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={displayAvatar} />
+                <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                  {displayName.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="hidden md:inline text-sm font-medium max-w-[120px] truncate">
+                {displayName}
+              </span>
+              <ChevronDown className="hidden md:block h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* Desktop Sidebar - Fixed width 256px (w-64) */}
-      <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-background border-r z-40">
-        <SidebarContent />
+      {/* ========== SIDEBAR DESKTOP (abaixo do header) ========== */}
+      <aside className="hidden lg:flex flex-col fixed left-0 top-14 bottom-0 w-64 bg-background border-r z-40">
+        {/* Menu com scroll */}
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+          <MenuContent />
+        </nav>
+
+        {/* Botão Sair - Fixo no rodapé */}
+        <div className="p-3 border-t">
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
+          >
+            <LogOut className="h-5 w-5" />
+            Sair
+          </button>
+        </div>
       </aside>
     </>
   )
