@@ -289,14 +289,14 @@ export default function EditarParceiroPage() {
 
   if (isLoadingData) {
     return (
-      <div className="container max-w-4xl py-6 flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
   return (
-    <div className="container max-w-4xl py-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/admin/parceiros">
           <Button variant="ghost" size="icon">

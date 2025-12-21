@@ -223,7 +223,7 @@ export default function NovoParceiroPage() {
   }
 
   return (
-    <div className="container max-w-4xl py-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/admin/parceiros">
           <Button variant="ghost" size="icon">
