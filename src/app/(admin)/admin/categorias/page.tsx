@@ -67,7 +67,7 @@ const categorySchema = z.object({
   icon: z.string().min(1, 'Selecione um ícone'),
   banner: z.string().min(1, 'Banner é obrigatório'),
   description: z.string().optional(),
-  displayOrder: z.coerce.number().int().min(0).default(0)
+  displayOrder: z.coerce.number().int().min(0)
 })
 
 type CategoryFormData = z.infer<typeof categorySchema>
