@@ -283,8 +283,9 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      {/* User */}
-      <div className="p-4 border-t">
+      {/* User Info + Botão Sair */}
+      <div className="p-4 border-t space-y-3">
+        {/* Info do usuário */}
         <div className="flex items-center gap-3">
           <UserAvatar
             src={session?.user?.avatar}
@@ -295,15 +296,16 @@ export function AdminSidebar() {
             <p className="text-sm font-medium truncate">{session?.user?.name || 'Admin'}</p>
             <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => signOut({ callbackUrl: '/login' })}
-            title="Sair"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
         </div>
+
+        {/* Botão Sair - Fixo no rodapé */}
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
+        >
+          <LogOut className="h-5 w-5" />
+          Sair
+        </button>
       </div>
     </div>
   )
