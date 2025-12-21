@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { BottomNav, AppHeader, AppSidebar } from '@/components/app'
 import { Toaster } from 'sonner'
-import { PushNotificationPrompt } from '@/components/push-notification-prompt'
 
 export default async function AppLayout({
   children,
@@ -28,12 +27,12 @@ export default async function AppLayout({
       {/* Header */}
       <AppHeader />
 
-      {/* Container com Sidebar + Conteúdo */}
+      {/* Container com Sidebar + Conteudo */}
       <div className="flex">
         {/* Sidebar - apenas desktop (lg+) */}
         <AppSidebar />
 
-        {/* Conteúdo Principal */}
+        {/* Conteudo Principal */}
         <main className="flex-1 w-full">
           <div className="max-w-4xl mx-auto px-4 py-6 pb-24 lg:pb-6">
             {children}
@@ -43,9 +42,6 @@ export default async function AppLayout({
 
       {/* Bottom Nav - apenas mobile/tablet (< lg) */}
       <BottomNav />
-
-      {/* Prompt de Push Notifications */}
-      <PushNotificationPrompt />
     </div>
   )
 }

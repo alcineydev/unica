@@ -4,7 +4,6 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { ParceiroHeader, ParceiroSidebar, ParceiroBottomNav } from '@/components/parceiro'
-import { PushNotificationPrompt } from '@/components/push-notification-prompt'
 import { Loader2 } from 'lucide-react'
 
 export default function ParceiroLayout({
@@ -47,7 +46,6 @@ export default function ParceiroLayout({
         </main>
       </div>
       <ParceiroBottomNav />
-      <PushNotificationPrompt />
     </div>
   )
 }

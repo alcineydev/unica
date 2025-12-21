@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react'
 import { SessionProvider } from './session-provider'
+import { PushProvider } from '@/components/push'
 
 interface ProvidersProps {
   children: ReactNode
@@ -10,7 +11,9 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <SessionProvider>
-      {children}
+      <PushProvider>
+        {children}
+      </PushProvider>
     </SessionProvider>
   )
 }
