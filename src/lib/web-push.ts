@@ -1,11 +1,21 @@
 import webpush from 'web-push'
 
-// Funcao para obter VAPID keys dinamicamente (evita problemas de timing)
+// Fallback hardcoded para quando env vars nao estao disponiveis
+const FALLBACK_PUBLIC_KEY = 'BDgxbvXNieDaGmEvQxgwa1GQSt_4Fq-NjC2VwHmXp0dIXVLwKXNOEzg6GH1kEX6bAt9DGSBh_HCS1ebaIUsRQYM'
+const FALLBACK_PRIVATE_KEY = 'F9HKk763mSWxEirD2zWTs7f8naxuyR_egRFwjkpGOH4'
+const FALLBACK_SUBJECT = 'mailto:unicabeneficios.com.br@gmail.com'
+
+// Funcao para obter VAPID keys dinamicamente (com fallback)
 function getVapidKeys() {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || FALLBACK_PUBLIC_KEY
+  const privateKey = process.env.VAPID_PRIVATE_KEY || FALLBACK_PRIVATE_KEY
+  const subject = process.env.VAPID_SUBJECT || FALLBACK_SUBJECT
+
   return {
-    publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-    privateKey: process.env.VAPID_PRIVATE_KEY,
-    subject: process.env.VAPID_SUBJECT || 'mailto:contato@unicaclub.com.br'
+    publicKey,
+    privateKey,
+    subject,
+    usingFallback: !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   }
 }
 
@@ -18,6 +28,7 @@ function ensureConfigured(): boolean {
   console.log('[WEB-PUSH] Verificando config:', {
     hasPublic: !!keys.publicKey,
     hasPrivate: !!keys.privateKey,
+    usingFallback: keys.usingFallback,
     publicPreview: keys.publicKey?.substring(0, 20)
   })
 

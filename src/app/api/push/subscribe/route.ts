@@ -3,18 +3,22 @@ import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { getVapidPublicKey } from '@/lib/web-push'
 
+// Fallback hardcoded
+const FALLBACK_PUBLIC_KEY = 'BDgxbvXNieDaGmEvQxgwa1GQSt_4Fq-NjC2VwHmXp0dIXVLwKXNOEzg6GH1kEX6bAt9DGSBh_HCS1ebaIUsRQYM'
+
 // GET - Retorna a VAPID public key para o cliente
 export async function GET() {
-  const publicKey = getVapidPublicKey()
+  const envKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  const publicKey = envKey || FALLBACK_PUBLIC_KEY
+  const source = envKey ? 'env' : 'fallback'
 
-  if (!publicKey) {
-    return NextResponse.json(
-      { error: 'Push não configurado' },
-      { status: 500 }
-    )
-  }
+  console.log('[API Push] GET - source:', source, 'key preview:', publicKey?.substring(0, 20))
 
-  return NextResponse.json({ publicKey })
+  return NextResponse.json({
+    publicKey,
+    source,
+    configured: true
+  })
 }
 
 export async function POST(request: NextRequest) {
