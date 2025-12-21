@@ -112,6 +112,13 @@ export function usePushNotifications() {
 
       await navigator.serviceWorker.ready
 
+      // Verificar se VAPID key está disponível
+      if (!vapidKeyRef.current) {
+        console.error('[PUSH] VAPID key nao disponivel')
+        setIsLoading(false)
+        return false
+      }
+
       // Converter VAPID key
       const applicationServerKey = urlBase64ToUint8Array(vapidKeyRef.current)
 
