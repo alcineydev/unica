@@ -25,20 +25,20 @@ model City {
 
 /// Usuário base do sistema
 model User {
-  id                     String                  @id @default(cuid())
-  email                  String                  @unique
-  password               String
-  role                   Role                    @default(ASSINANTE)
-  isActive               Boolean                 @default(true)
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  avatar                 String?
-  phone                  String?
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  role      Role       @default(ASSINANTE)
+  avatar    String?
+  phone     String?
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  admin     Admin?
+  assinante Assinante?
+  parceiro  Parceiro?
+  pushSubscriptions      PushSubscription[]
   adminPushNotifications AdminPushNotification[]
-  admin                  Admin?
-  assinante              Assinante?
-  parceiro               Parceiro?
-  push_subscriptions     PushSubscription[]
 
   @@map("users")
 }
@@ -80,6 +80,8 @@ model Plan {
   name          String
   description   String
   price         Decimal        @db.Decimal(10, 2)
+  period        String         @default("MONTHLY")
+  features      String[]       @default([])
   isActive      Boolean        @default(true)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -87,8 +89,6 @@ model Plan {
   priceSingle   Decimal?       @db.Decimal(10, 2)
   priceYearly   Decimal?       @db.Decimal(10, 2)
   slug          String?        @unique
-  features      String[]       @default([])
-  period        String         @default("MONTHLY")
   assinantes    Assinante[]
   notifications Notification[]
   planBenefits  PlanBenefit[]
@@ -118,6 +118,8 @@ model Parceiro {
   companyName   String
   tradeName     String?
   logo          String?
+  banner        String?
+  gallery       String[]              @default([])
   category      String
   description   String?
   cityId        String
@@ -129,14 +131,12 @@ model Parceiro {
   isActive      Boolean               @default(true)
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
-  banner        String?
-  gallery       String[]              @default([])
-  avaliacoes    Avaliacao[]
   benefitAccess BenefitAccess[]
-  notificacoes  ParceiroNotificacao[]
   city          City                  @relation(fields: [cityId], references: [id])
   user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions  Transaction[]
+  notificacoes  ParceiroNotificacao[]
+  avaliacoes    Avaliacao[]
 
   @@map("parceiros")
 }
@@ -145,7 +145,7 @@ model Parceiro {
 model ParceiroNotificacao {
   id         String   @id @default(cuid())
   parceiroId String
-  tipo       String
+  tipo       String   // venda, avaliacao, cliente, info
   titulo     String
   mensagem   String
   lida       Boolean  @default(false)
@@ -159,31 +159,31 @@ model ParceiroNotificacao {
 
 /// Assinante / Cliente do clube
 model Assinante {
-  id                 String                 @id @default(cuid())
-  userId             String                 @unique
-  cpf                String?                @unique @db.VarChar(11)
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  cpf                String?            @unique @db.VarChar(11)
   name               String
   phone              String?
+  birthDate          DateTime?
   cityId             String?
   address            Json?
   planId             String?
-  subscriptionStatus SubscriptionStatus     @default(PENDING)
-  points             Decimal                @default(0) @db.Decimal(10, 2)
-  cashback           Decimal                @default(0) @db.Decimal(10, 2)
-  qrCode             String                 @unique
+  subscriptionStatus SubscriptionStatus @default(PENDING)
+  points             Decimal            @default(0) @db.Decimal(10, 2)
+  cashback           Decimal            @default(0) @db.Decimal(10, 2)
+  qrCode             String             @unique
+  planStartDate      DateTime?
+  planEndDate        DateTime?
   nextBillingDate    DateTime?
   lastPaymentDate    DateTime?
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  planEndDate        DateTime?
-  planStartDate      DateTime?
-  birthDate          DateTime?
-  notificacoes       AssinanteNotificacao[]
-  city               City?                  @relation(fields: [cityId], references: [id])
-  plan               Plan?                  @relation(fields: [planId], references: [id])
-  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  avaliacoes         Avaliacao[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  city               City?              @relation(fields: [cityId], references: [id])
+  plan               Plan?              @relation(fields: [planId], references: [id])
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions       Transaction[]
+  avaliacoes         Avaliacao[]
+  notificacoes       AssinanteNotificacao[]
 
   @@map("assinantes")
 }
@@ -192,10 +192,10 @@ model Assinante {
 model AssinanteNotificacao {
   id          String    @id @default(cuid())
   assinanteId String
-  tipo        String
+  tipo        String    // AVALIACAO, COMPRA, PONTOS, CASHBACK, INFO
   titulo      String
   mensagem    String
-  dados       Json?
+  dados       Json?     // { parceiroId, link, etc }
   lida        Boolean   @default(false)
   createdAt   DateTime  @default(now())
   assinante   Assinante @relation(fields: [assinanteId], references: [id], onDelete: Cascade)
@@ -329,113 +329,6 @@ model Notification {
   @@map("notifications")
 }
 
-/// Configurações do PWA (Progressive Web App)
-model PWAConfig {
-  id                String   @id @default(cuid())
-  appName           String   @default("UNICA")
-  shortName         String   @default("UNICA")
-  description       String   @default("Seu clube de benefícios e descontos exclusivos")
-  themeColor        String   @default("#000000")
-  backgroundColor   String   @default("#ffffff")
-  icon72            String?
-  icon96            String?
-  icon128           String?
-  icon144           String?
-  icon152           String?
-  icon192           String?
-  icon384           String?
-  icon512           String?
-  splashIphone5     String?
-  splashIphone6     String?
-  splashIphonePlus  String?
-  splashIphoneX     String?
-  splashIphoneXr    String?
-  splashIphoneXsMax String?
-  splashIpad        String?
-  splashIpadPro     String?
-  display           String   @default("standalone")
-  orientation       String   @default("portrait-primary")
-  startUrl          String   @default("/")
-  scope             String   @default("/")
-  screenshot1       String?
-  screenshot2       String?
-  screenshot3       String?
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  @@map("pwa_configs")
-}
-
-/// Interesse de parceria (leads de empresas interessadas)
-model InteresseParceiro {
-  id          String   @id @default(cuid())
-  nome        String
-  email       String
-  telefone    String
-  nomeEmpresa String
-  cidade      String
-  status      String   @default("PENDENTE")
-  observacoes String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("interesses_parceiros")
-}
-
-/// Avaliação do parceiro feita por assinantes
-model Avaliacao {
-  id           String    @id @default(uuid())
-  assinanteId  String
-  parceiroId   String
-  nota         Int
-  comentario   String?
-  publicada    Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  respondidoEm DateTime?
-  resposta     String?
-  assinante    Assinante @relation(fields: [assinanteId], references: [id], onDelete: Cascade)
-  parceiro     Parceiro  @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
-
-  @@index([assinanteId])
-  @@index([parceiroId])
-  @@map("avaliacoes")
-}
-
-/// Subscription de Push Notification por dispositivo
-model PushSubscription {
-  id         String   @id @default(uuid())
-  endpoint   String   @unique
-  p256dh     String
-  auth       String
-  createdAt  DateTime @default(now())
-  deviceInfo String?
-  userId     String
-  deviceInfo String?  @map("device_info")
-  users      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("push_subscriptions")
-}
-
-/// Histórico de Push Notifications enviadas pelo admin
-model AdminPushNotification {
-  id          String   @id @default(uuid())
-  title       String
-  message     String
-  icon        String?
-  link        String?
-  targetType  String
-  sentCount   Int      @default(0)
-  failedCount Int      @default(0)
-  createdBy   String
-  createdAt   DateTime @default(now())
-  admin       User     @relation(fields: [createdBy], references: [id])
-
-  @@map("admin_push_notifications")
-}
-
 enum Role {
   DEVELOPER
   ADMIN
@@ -453,9 +346,9 @@ enum BenefitType {
 enum SubscriptionStatus {
   PENDING
   ACTIVE
+  INACTIVE
   SUSPENDED
   CANCELED
-  INACTIVE
   EXPIRED
 }
 
@@ -504,4 +397,152 @@ enum NotificationStatus {
   SENT
   PARTIAL
   FAILED
+}
+
+/// Configurações do PWA (Progressive Web App)
+model PWAConfig {
+  id                String   @id @default(cuid())
+  
+  // Informações básicas
+  appName           String   @default("UNICA")
+  shortName         String   @default("UNICA")
+  description       String   @default("Seu clube de benefícios e descontos exclusivos")
+  
+  // Cores
+  themeColor        String   @default("#000000")
+  backgroundColor   String   @default("#ffffff")
+  
+  // Ícones
+  icon72            String?
+  icon96            String?
+  icon128           String?
+  icon144           String?
+  icon152           String?
+  icon192           String?
+  icon384           String?
+  icon512           String?
+  
+  // Splash Screens
+  splashIphone5     String?  // 640x1136
+  splashIphone6     String?  // 750x1334
+  splashIphonePlus  String?  // 1242x2208
+  splashIphoneX     String?  // 1125x2436
+  splashIphoneXr    String?  // 828x1792
+  splashIphoneXsMax String?  // 1242x2688
+  splashIpad        String?  // 1536x2048
+  splashIpadPro     String?  // 2048x2732
+  
+  // Configurações avançadas
+  display           String   @default("standalone") // standalone, fullscreen, minimal-ui, browser
+  orientation       String   @default("portrait-primary")
+  startUrl          String   @default("/")
+  scope             String   @default("/")
+  
+  // Screenshots
+  screenshot1       String?
+  screenshot2       String?
+  screenshot3       String?
+  
+  // Status
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("pwa_configs")
+}
+
+/// Interesse de parceria (leads de empresas interessadas)
+model InteresseParceiro {
+  id          String   @id @default(cuid())
+
+  // Dados do contato
+  nome        String
+  email       String
+  telefone    String
+
+  // Dados da empresa
+  nomeEmpresa String
+  cidade      String
+
+  // Controle
+  status      String   @default("PENDENTE") // PENDENTE, CONTATADO, CONVERTIDO, REJEITADO
+  observacoes String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("interesses_parceiros")
+}
+
+/// Avaliação do parceiro feita por assinantes
+model Avaliacao {
+  id          String    @id @default(uuid())
+
+  // Relacionamentos
+  assinanteId String
+  assinante   Assinante @relation(fields: [assinanteId], references: [id], onDelete: Cascade)
+
+  parceiroId  String
+  parceiro    Parceiro  @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  // Dados da avaliação
+  nota        Int       // 1-5 estrelas
+  comentario  String?   // Opcional
+
+  // Resposta do parceiro
+  resposta     String?
+  respondidoEm DateTime?
+
+  // Controle de publicação
+  publicada   Boolean   @default(false)
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([assinanteId])
+  @@index([parceiroId])
+  @@map("avaliacoes")
+}
+
+/// Subscription de Push Notification por dispositivo
+model PushSubscription {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  userAgent  String?  @map("user_agent")
+  platform   String?
+  deviceInfo String?  @map("device_info")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @map("updated_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+/// Histórico de Push Notifications enviadas pelo admin
+model AdminPushNotification {
+  id          String   @id @default(uuid())
+
+  title       String
+  message     String
+  icon        String?
+  link        String?
+
+  targetType  String   // ALL, ASSINANTES, PARCEIROS
+
+  sentCount   Int      @default(0)
+  failedCount Int      @default(0)
+
+  createdBy   String
+  admin       User     @relation(fields: [createdBy], references: [id])
+
+  createdAt   DateTime @default(now())
+
+  @@map("admin_push_notifications")
 }
