@@ -1,19 +1,40 @@
 import webpush from 'web-push'
 
-// Configurar VAPID
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY
-const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:contato@unicaclub.com.br'
-
-let isConfigured = false
-
-if (vapidPublicKey && vapidPrivateKey) {
-  try {
-    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
-    isConfigured = true
-  } catch (error) {
-    console.error('[WEB-PUSH] Erro ao configurar VAPID:', error)
+// Funcao para obter VAPID keys dinamicamente (evita problemas de timing)
+function getVapidKeys() {
+  return {
+    publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    privateKey: process.env.VAPID_PRIVATE_KEY,
+    subject: process.env.VAPID_SUBJECT || 'mailto:contato@unicaclub.com.br'
   }
+}
+
+// Configurar VAPID sob demanda
+let isConfigured = false
+function ensureConfigured(): boolean {
+  if (isConfigured) return true
+
+  const keys = getVapidKeys()
+  console.log('[WEB-PUSH] Verificando config:', {
+    hasPublic: !!keys.publicKey,
+    hasPrivate: !!keys.privateKey,
+    publicPreview: keys.publicKey?.substring(0, 20)
+  })
+
+  if (keys.publicKey && keys.privateKey) {
+    try {
+      webpush.setVapidDetails(keys.subject, keys.publicKey, keys.privateKey)
+      isConfigured = true
+      console.log('[WEB-PUSH] VAPID configurado com sucesso')
+      return true
+    } catch (error) {
+      console.error('[WEB-PUSH] Erro ao configurar VAPID:', error)
+      return false
+    }
+  }
+
+  console.warn('[WEB-PUSH] VAPID keys nao encontradas')
+  return false
 }
 
 export interface PushPayload {
@@ -33,8 +54,8 @@ export async function sendPushNotification(
   },
   payload: PushPayload
 ): Promise<{ success: boolean; expired?: boolean }> {
-  if (!isConfigured) {
-    console.error('[WEB-PUSH] VAPID não configurado')
+  if (!ensureConfigured()) {
+    console.error('[WEB-PUSH] VAPID nao configurado')
     return { success: false }
   }
 
@@ -73,11 +94,12 @@ export async function sendPushNotification(
 }
 
 export function getVapidPublicKey(): string | null {
-  return vapidPublicKey || null
+  const keys = getVapidKeys()
+  return keys.publicKey || null
 }
 
 export function isWebPushConfigured(): boolean {
-  return isConfigured
+  return ensureConfigured()
 }
 
 export { webpush }
