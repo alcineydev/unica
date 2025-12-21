@@ -62,12 +62,12 @@ import {
 
 // Schema de validação
 const categorySchema = z.object({
-  name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
-  slug: z.string().min(2, 'Slug deve ter no mínimo 2 caracteres').regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens'),
-  icon: z.string().default('Store'),
-  banner: z.string().url('URL do banner inválida').or(z.literal('')),
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  slug: z.string().min(2, 'Slug deve ter pelo menos 2 caracteres'),
+  icon: z.string().min(1, 'Selecione um ícone'),
+  banner: z.string().min(1, 'Banner é obrigatório'),
   description: z.string().optional(),
-  displayOrder: z.coerce.number().int().min(0).default(0),
+  displayOrder: z.coerce.number().int().min(0).default(0)
 })
 
 type CategoryFormData = z.infer<typeof categorySchema>
