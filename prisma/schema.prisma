@@ -509,15 +509,19 @@ model Avaliacao {
 /// Subscription de Push Notification por dispositivo
 model PushSubscription {
   id        String   @id @default(uuid())
-  userId    String
+  userId    String   @map("user_id")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   endpoint  String   @unique
   p256dh    String
   auth      String
 
-  deviceInfo String?
-  createdAt  DateTime @default(now())
+  userAgent  String?  @map("user_agent")
+  platform   String?
+  isActive   Boolean  @default(true) @map("is_active")
+  deviceInfo String?  @map("device_info")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@map("push_subscriptions")

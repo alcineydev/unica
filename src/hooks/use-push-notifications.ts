@@ -162,6 +162,17 @@ export function usePushNotifications() {
         return false
       }
 
+      // Detectar plataforma
+      const detectPlatform = (): string => {
+        const ua = navigator.userAgent.toLowerCase()
+        if (/iphone|ipad|ipod/.test(ua)) return 'ios'
+        if (/android/.test(ua)) return 'android'
+        if (/windows/.test(ua)) return 'windows'
+        if (/mac/.test(ua)) return 'macos'
+        if (/linux/.test(ua)) return 'linux'
+        return 'unknown'
+      }
+
       // Enviar para o servidor
       const response = await fetch('/api/push/subscribe', {
         method: 'POST',
@@ -172,15 +183,24 @@ export function usePushNotifications() {
             p256dh: arrayBufferToBase64(p256dhKey),
             auth: arrayBufferToBase64(authKey)
           },
-          deviceInfo: navigator.userAgent
+          userAgent: navigator.userAgent,
+          platform: detectPlatform(),
+          deviceInfo: `${detectPlatform()} - ${navigator.userAgent.substring(0, 100)}`
         })
       })
+
+      console.log('[PUSH] Resposta do POST:', response.status)
 
       if (response.ok) {
         setIsSubscribed(true)
         setIsLoading(false)
+        console.log('[PUSH] Inscricao concluida com sucesso!')
         return true
       }
+
+      // Log do erro
+      const errorData = await response.json().catch(() => ({}))
+      console.error('[PUSH] Erro ao salvar no servidor:', errorData)
 
       setIsLoading(false)
       return false

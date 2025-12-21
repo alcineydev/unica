@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { getVapidPublicKey } from '@/lib/web-push'
 
 // Fallback hardcoded
 const FALLBACK_PUBLIC_KEY = 'BDgxbvXNieDaGmEvQxgwa1GQSt_4Fq-NjC2VwHmXp0dIXVLwKXNOEzg6GH1kEX6bAt9DGSBh_HCS1ebaIUsRQYM'
@@ -34,13 +33,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { endpoint, keys, deviceInfo } = body
+    const { endpoint, keys, deviceInfo, userAgent, platform } = body
 
     console.log('[PUSH SUBSCRIBE] Dados recebidos:', {
       endpoint: endpoint?.substring(0, 50) + '...',
       hasP256dh: !!keys?.p256dh,
       hasAuth: !!keys?.auth,
-      deviceInfo: deviceInfo?.substring(0, 30)
+      deviceInfo: deviceInfo?.substring(0, 30),
+      userAgent: userAgent?.substring(0, 30),
+      platform
     })
 
     if (!endpoint || !keys?.p256dh || !keys?.auth) {
@@ -63,7 +64,10 @@ export async function POST(request: NextRequest) {
           userId: session.user.id,
           p256dh: keys.p256dh,
           auth: keys.auth,
-          deviceInfo: deviceInfo || null
+          deviceInfo: deviceInfo || null,
+          userAgent: userAgent || null,
+          platform: platform || null,
+          isActive: true
         }
       })
       console.log('[PUSH SUBSCRIBE] Subscription atualizada')
@@ -75,7 +79,10 @@ export async function POST(request: NextRequest) {
           endpoint,
           p256dh: keys.p256dh,
           auth: keys.auth,
-          deviceInfo: deviceInfo || null
+          deviceInfo: deviceInfo || null,
+          userAgent: userAgent || null,
+          platform: platform || null,
+          isActive: true
         }
       })
       console.log('[PUSH SUBSCRIBE] Nova subscription criada')
@@ -84,9 +91,36 @@ export async function POST(request: NextRequest) {
     console.log('[PUSH SUBSCRIBE] Sucesso!')
     return NextResponse.json({ success: true })
 
-  } catch (error) {
-    console.error('[PUSH SUBSCRIBE] Erro:', error)
-    return NextResponse.json({ error: 'Erro ao salvar subscription' }, { status: 500 })
+  } catch (error: unknown) {
+    const err = error as Error & { code?: string; meta?: unknown }
+    console.error('[PUSH SUBSCRIBE] Erro detalhado:', {
+      message: err.message,
+      name: err.name,
+      code: err.code,
+      meta: err.meta,
+      stack: err.stack
+    })
+
+    // Verificar se é erro de tabela não existente
+    if (err.code === 'P2021' || err.message?.includes('does not exist')) {
+      return NextResponse.json({
+        error: 'Tabela push_subscriptions não existe. Execute as migrations do Prisma.',
+        code: 'TABLE_NOT_FOUND'
+      }, { status: 500 })
+    }
+
+    // Erro de constraint única (endpoint já existe para outro usuário)
+    if (err.code === 'P2002') {
+      return NextResponse.json({
+        error: 'Este dispositivo já está registrado',
+        code: 'DUPLICATE_ENDPOINT'
+      }, { status: 409 })
+    }
+
+    return NextResponse.json({
+      error: 'Erro ao salvar subscription',
+      details: err.message
+    }, { status: 500 })
   }
 }
 
