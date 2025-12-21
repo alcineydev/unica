@@ -90,12 +90,13 @@ export async function POST(request: Request) {
       )
     }
 
-    const { 
-      email, password, companyName, tradeName, cnpj, 
-      category, description, cityId, whatsapp, phone, isActive,
+    const {
+      email, password, companyName, tradeName, cnpj,
+      category, categoryId, description, cityId, whatsapp, phone, isActive,
       logo, banner, gallery, benefitIds,
       address, addressNumber, neighborhood, complement, zipCode,
-      website, instagram, facebook
+      website, instagram, facebook,
+      isDestaque, bannerDestaque, destaqueOrder
     } = validationResult.data
 
     // Verifica se email já existe
@@ -147,6 +148,7 @@ export async function POST(request: Request) {
             tradeName: tradeName || null,
             cnpj,
             category,
+            categoryId: categoryId || null,
             description: description || null,
             logo: logo || null,
             banner: banner || null,
@@ -184,6 +186,9 @@ export async function POST(request: Request) {
               salesAmount: 0,
             },
             isActive,
+            isDestaque: isDestaque || false,
+            bannerDestaque: isDestaque ? bannerDestaque : null,
+            destaqueOrder: isDestaque ? (destaqueOrder || 0) : 0,
           },
         },
       },

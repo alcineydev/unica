@@ -12,9 +12,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { GalleryUpload } from '@/components/ui/gallery-upload'
-import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { PARTNER_CATEGORIES } from '@/constants'
@@ -29,6 +30,7 @@ const partnerSchema = z.object({
   whatsapp: z.string().min(10, 'WhatsApp inválido'),
   description: z.string().optional(),
   category: z.string().min(1, 'Selecione uma categoria'),
+  categoryId: z.string().min(1, 'Selecione uma categoria'),
   cityId: z.string().min(1, 'Selecione uma cidade'),
   address: z.string().optional(),
   addressNumber: z.string().optional(),
@@ -56,15 +58,28 @@ interface City {
   state: string
 }
 
+interface Category {
+  id: string
+  name: string
+  slug: string
+  isActive: boolean
+}
+
 export default function NovoParceiroPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [benefits, setBenefits] = useState<Benefit[]>([])
   const [cities, setCities] = useState<City[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [selectedBenefits, setSelectedBenefits] = useState<string[]>([])
   const [logo, setLogo] = useState<string | null>(null)
   const [banner, setBanner] = useState<string | null>(null)
   const [gallery, setGallery] = useState<string[]>([])
+
+  // Estados para destaque
+  const [isDestaque, setIsDestaque] = useState(false)
+  const [bannerDestaque, setBannerDestaque] = useState<string | null>(null)
+  const [destaqueOrder, setDestaqueOrder] = useState(1)
 
   const {
     register,
@@ -76,6 +91,7 @@ export default function NovoParceiroPage() {
     resolver: zodResolver(partnerSchema),
     defaultValues: {
       category: '',
+      categoryId: '',
       cityId: ''
     }
   })
@@ -104,10 +120,23 @@ export default function NovoParceiroPage() {
     }
   }, [])
 
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/categories')
+      const data = await response.json()
+      if (data.data) {
+        setCategories(data.data.filter((c: Category) => c.isActive))
+      }
+    } catch (error) {
+      console.error('Erro ao buscar categorias:', error)
+    }
+  }, [])
+
   useEffect(() => {
     fetchBenefits()
     fetchCities()
-  }, [fetchBenefits, fetchCities])
+    fetchCategories()
+  }, [fetchBenefits, fetchCities, fetchCategories])
 
   const formatCNPJ = (value: string) => {
     const numbers = value.replace(/\D/g, '').slice(0, 14)
@@ -147,6 +176,12 @@ export default function NovoParceiroPage() {
   }
 
   const onSubmit = async (data: PartnerFormData) => {
+    // Validação adicional para destaque
+    if (isDestaque && !bannerDestaque) {
+      toast.error('Banner de destaque é obrigatório quando o parceiro está em destaque')
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -159,6 +194,10 @@ export default function NovoParceiroPage() {
         cnpj: data.cnpj.replace(/\D/g, ''),
         phone: data.phone?.replace(/\D/g, '') || '',
         whatsapp: data.whatsapp.replace(/\D/g, ''),
+        // Campos de destaque
+        isDestaque,
+        bannerDestaque: isDestaque ? bannerDestaque : null,
+        destaqueOrder: isDestaque ? destaqueOrder : 0,
       }
 
       const response = await fetch('/api/admin/partners', {
@@ -275,13 +314,13 @@ export default function NovoParceiroPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category">Categoria *</Label>
-              <Select 
-                value={watch('category') || 'none'} 
+              <Label htmlFor="category">Segmento *</Label>
+              <Select
+                value={watch('category') || 'none'}
                 onValueChange={(value) => setValue('category', value === 'none' ? '' : value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione a categoria" />
+                  <SelectValue placeholder="Selecione o segmento" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Selecione...</SelectItem>
@@ -291,6 +330,25 @@ export default function NovoParceiroPage() {
                 </SelectContent>
               </Select>
               {errors.category && <p className="text-xs text-destructive">{errors.category.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="categoryId">Categoria *</Label>
+              <Select
+                value={watch('categoryId') || 'none'}
+                onValueChange={(value) => setValue('categoryId', value === 'none' ? '' : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Selecione...</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.categoryId && <p className="text-xs text-destructive">{errors.categoryId.message}</p>}
             </div>
 
             <div className="space-y-2 md:col-span-2">
@@ -469,6 +527,66 @@ export default function NovoParceiroPage() {
                     </div>
                   </label>
                 ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Card Destaque */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-yellow-500" />
+              Destaque na Home
+            </CardTitle>
+            <CardDescription>
+              Parceiros em destaque aparecem no carrossel principal do app
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Exibir como destaque</Label>
+                <p className="text-sm text-muted-foreground">
+                  Ativar para mostrar no carrossel da home
+                </p>
+              </div>
+              <Switch
+                checked={isDestaque}
+                onCheckedChange={setIsDestaque}
+              />
+            </div>
+
+            {isDestaque && (
+              <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-2">
+                  <Label>Banner do Destaque *</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Tamanho recomendado: 1200 x 600 pixels
+                  </p>
+                  <ImageUpload
+                    value={bannerDestaque}
+                    onChange={setBannerDestaque}
+                    folder="parceiros/destaques"
+                    aspectRatio="video"
+                    placeholder="Clique para fazer upload do banner de destaque"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="destaqueOrder">Ordem no carrossel</Label>
+                  <Input
+                    id="destaqueOrder"
+                    type="number"
+                    min={1}
+                    value={destaqueOrder}
+                    onChange={(e) => setDestaqueOrder(parseInt(e.target.value) || 1)}
+                    className="w-32"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Menor número aparece primeiro
+                  </p>
+                </div>
               </div>
             )}
           </CardContent>

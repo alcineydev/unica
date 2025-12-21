@@ -32,6 +32,7 @@ export async function GET(request: Request, { params }: RouteParams) {
           },
         },
         city: true,
+        categoryRef: true,
         benefitAccess: {
           include: {
             benefit: true,
@@ -99,16 +100,29 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       )
     }
 
-    const { 
+    const {
       isActive, whatsapp, phone, cityId, benefitIds,
       logo, banner, gallery,
       address, addressNumber, neighborhood, complement, zipCode,
       website, instagram, facebook,
-      ...rest 
+      categoryId, isDestaque, bannerDestaque, destaqueOrder,
+      ...rest
     } = validationResult.data
 
     // Prepara os dados de atualização
     const updateData: Record<string, unknown> = { ...rest }
+
+    // Atualiza categoria se fornecida
+    if (categoryId !== undefined) {
+      updateData.categoryId = categoryId || null
+    }
+
+    // Atualiza campos de destaque
+    if (isDestaque !== undefined) {
+      updateData.isDestaque = isDestaque
+      updateData.bannerDestaque = isDestaque ? bannerDestaque : null
+      updateData.destaqueOrder = isDestaque ? (destaqueOrder || 0) : 0
+    }
 
     // Atualiza imagens se fornecidas
     if (logo !== undefined) updateData.logo = logo
