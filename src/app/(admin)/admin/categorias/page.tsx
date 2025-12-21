@@ -67,13 +67,18 @@ const categorySchema = z.object({
   icon: z.string().min(1, 'Selecione um ícone'),
   banner: z.string().min(1, 'Banner é obrigatório'),
   description: z.string().optional(),
-  displayOrder: z.preprocess(
-    (val) => (val === '' || val === undefined ? 0 : Number(val)),
-    z.number().int().min(0)
-  )
+  displayOrder: z.number().int().min(0)
 })
 
-type CategoryFormData = z.infer<typeof categorySchema>
+// Tipo definido manualmente para evitar bug de inferência do zod
+type CategoryFormData = {
+  name: string
+  slug: string
+  icon: string
+  banner: string
+  description?: string
+  displayOrder: number
+}
 
 interface Category {
   id: string
@@ -114,7 +119,8 @@ export default function CategoriasPage() {
     watch,
     formState: { errors },
   } = useForm<CategoryFormData>({
-    resolver: zodResolver(categorySchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(categorySchema) as any,
     defaultValues: {
       name: '',
       slug: '',
