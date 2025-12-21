@@ -67,7 +67,10 @@ const categorySchema = z.object({
   icon: z.string().min(1, 'Selecione um ícone'),
   banner: z.string().min(1, 'Banner é obrigatório'),
   description: z.string().optional(),
-  displayOrder: z.coerce.number().int().min(0)
+  displayOrder: z.preprocess(
+    (val) => (val === '' || val === undefined ? 0 : Number(val)),
+    z.number().int().min(0)
+  )
 })
 
 type CategoryFormData = z.infer<typeof categorySchema>
@@ -113,8 +116,12 @@ export default function CategoriasPage() {
   } = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
+      name: '',
+      slug: '',
       icon: 'Store',
-      displayOrder: 0,
+      banner: '',
+      description: '',
+      displayOrder: 0
     }
   })
 
