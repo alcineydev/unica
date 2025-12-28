@@ -1,9 +1,10 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState, useCallback, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
-import { SearchInput, CategoryFilter } from '@/components/app/parceiros'
+import { SearchInput } from '@/components/app/parceiros/search-input'
+import { CategoryFilter } from '@/components/app/parceiros/category-filter'
 import { ParceiroCardGrid } from '@/components/app/home/parceiro-card-grid'
 
 interface Parceiro {
@@ -26,86 +27,97 @@ interface Category {
   count?: number
 }
 
+interface PageData {
+  data: Parceiro[]
+  categories: Category[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
+
 function ParceirosContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
+  const isFirstRender = useRef(true)
+  const lastFetchParams = useRef('')
 
-  const [parceiros, setParceiros] = useState<Parceiro[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
+  const [data, setData] = useState<PageData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 })
+  const [search, setSearch] = useState(searchParams.get('search') || '')
+  const [categoria, setCategoria] = useState(searchParams.get('categoria') || '')
 
-  // Get filter values from URL
-  const search = searchParams.get('search') || ''
-  const categoria = searchParams.get('categoria') || ''
-  const destaque = searchParams.get('destaque') === 'true'
-  const novidades = searchParams.get('novidades') === 'true'
-
-  // Update URL with new params
-  const updateParams = useCallback((updates: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams.toString())
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value === null || value === '') {
-        params.delete(key)
-      } else {
-        params.set(key, value)
-      }
-    })
-
-    router.push(`/app/parceiros?${params.toString()}`, { scroll: false })
-  }, [router, searchParams])
-
-  // Fetch parceiros
-  const fetchParceiros = useCallback(async () => {
-    setLoading(true)
-    try {
-      const params = new URLSearchParams()
-      if (search) params.set('search', search)
-      if (categoria) params.set('categoria', categoria)
-      if (destaque) params.set('destaque', 'true')
-      if (novidades) params.set('novidades', 'true')
-
-      const res = await fetch(`/api/app/parceiros?${params.toString()}`)
-      const data = await res.json()
-
-      if (data.data) {
-        setParceiros(data.data)
-        setCategories(data.categories || [])
-        setPagination(data.pagination || { page: 1, totalPages: 1, total: 0 })
-      }
-    } catch (error) {
-      console.error('Erro ao buscar parceiros:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [search, categoria, destaque, novidades])
-
+  // Fetch parceiros - apenas quando search ou categoria mudar
   useEffect(() => {
-    fetchParceiros()
-  }, [fetchParceiros])
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    if (categoria) params.set('categoria', categoria)
 
-  // Handle search
-  const handleSearch = useCallback((value: string) => {
-    updateParams({ search: value || null })
-  }, [updateParams])
+    const paramsString = params.toString()
 
-  // Handle category change
-  const handleCategoryChange = useCallback((categoryId: string | null) => {
-    updateParams({ categoria: categoryId })
-  }, [updateParams])
+    // Evitar fetch duplicado com mesmos parâmetros
+    if (paramsString === lastFetchParams.current && !isFirstRender.current) {
+      return
+    }
+
+    lastFetchParams.current = paramsString
+    isFirstRender.current = false
+
+    const fetchData = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/app/parceiros?${paramsString}`)
+        const json = await res.json()
+        setData(json)
+      } catch (error) {
+        console.error('Erro ao buscar parceiros:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [search, categoria])
+
+  // Atualizar URL - separado do fetch, sem causar re-render
+  useEffect(() => {
+    if (isFirstRender.current) return
+
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    if (categoria) params.set('categoria', categoria)
+
+    const newUrl = params.toString()
+      ? `/app/parceiros?${params.toString()}`
+      : '/app/parceiros'
+
+    // Usar window.history para não causar re-render
+    window.history.replaceState(null, '', newUrl)
+  }, [search, categoria])
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+  }, [])
+
+  const handleCategorySelect = useCallback((id: string | null) => {
+    setCategoria(id || '')
+  }, [])
 
   // Get page title
   const getTitle = () => {
     if (search) return `Resultados para "${search}"`
-    if (destaque) return 'Destaques'
-    if (novidades) return 'Novidades'
-    if (categoria) {
-      const cat = categories.find(c => c.id === categoria)
+    if (categoria && data?.categories) {
+      const cat = data.categories.find(c => c.id === categoria)
       return cat?.name || 'Parceiros'
     }
     return 'Todos os Parceiros'
   }
+
+  const handleClearFilters = useCallback(() => {
+    setSearch('')
+    setCategoria('')
+  }, [])
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -114,19 +126,21 @@ function ParceirosContent() {
         <div className="px-4 py-3">
           <SearchInput
             value={search}
-            onSearch={handleSearch}
+            onChange={handleSearchChange}
             placeholder="Buscar parceiros..."
           />
         </div>
 
         {/* Filtro de categorias */}
-        <div className="px-4 pb-3">
-          <CategoryFilter
-            categories={categories}
-            selected={categoria || null}
-            onChange={handleCategoryChange}
-          />
-        </div>
+        {data?.categories && data.categories.length > 0 && (
+          <div className="px-4 pb-3">
+            <CategoryFilter
+              categories={data.categories}
+              selected={categoria || null}
+              onChange={handleCategorySelect}
+            />
+          </div>
+        )}
       </div>
 
       {/* Conteúdo */}
@@ -135,7 +149,7 @@ function ParceirosContent() {
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-bold">{getTitle()}</h1>
           <span className="text-sm text-muted-foreground">
-            {pagination.total} parceiro{pagination.total !== 1 ? 's' : ''}
+            {data?.pagination?.total || 0} parceiro{(data?.pagination?.total || 0) !== 1 ? 's' : ''}
           </span>
         </div>
 
@@ -147,14 +161,14 @@ function ParceirosContent() {
         )}
 
         {/* Lista vazia */}
-        {!loading && parceiros.length === 0 && (
+        {!loading && (!data?.data || data.data.length === 0) && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
               Nenhum parceiro encontrado
             </p>
             {(search || categoria) && (
               <button
-                onClick={() => updateParams({ search: null, categoria: null })}
+                onClick={handleClearFilters}
                 className="mt-2 text-primary text-sm underline"
               >
                 Limpar filtros
@@ -164,11 +178,18 @@ function ParceirosContent() {
         )}
 
         {/* Grid de parceiros */}
-        {!loading && parceiros.length > 0 && (
+        {!loading && data?.data && data.data.length > 0 && (
           <div className="grid grid-cols-3 gap-3">
-            {parceiros.map(parceiro => (
+            {data.data.map(parceiro => (
               <ParceiroCardGrid key={parceiro.id} parceiro={parceiro} />
             ))}
+          </div>
+        )}
+
+        {/* Paginação */}
+        {data?.pagination && data.pagination.totalPages > 1 && (
+          <div className="text-center text-sm text-muted-foreground mt-4">
+            Página {data.pagination.page} de {data.pagination.totalPages}
           </div>
         )}
       </div>

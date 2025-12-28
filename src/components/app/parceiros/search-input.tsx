@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -8,82 +8,77 @@ import { cn } from '@/lib/utils'
 
 interface SearchInputProps {
   value?: string
-  onChange?: (value: string) => void
-  onSearch?: (value: string) => void
+  onChange: (value: string) => void
   placeholder?: string
   className?: string
   autoFocus?: boolean
-  debounceMs?: number
 }
 
 export function SearchInput({
-  value: externalValue,
+  value = '',
   onChange,
-  onSearch,
-  placeholder = 'Buscar parceiros...',
+  placeholder = 'Buscar...',
   className,
-  autoFocus = false,
-  debounceMs = 300
+  autoFocus = false
 }: SearchInputProps) {
-  const [internalValue, setInternalValue] = useState(externalValue || '')
+  const [localValue, setLocalValue] = useState(value)
+  const isFirstRender = useRef(true)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Sync with external value
+  // Sincronizar valor externo apenas na primeira renderização
   useEffect(() => {
-    if (externalValue !== undefined) {
-      setInternalValue(externalValue)
+    if (isFirstRender.current) {
+      setLocalValue(value)
+      isFirstRender.current = false
     }
-  }, [externalValue])
+  }, [value])
 
-  // Debounced search
+  // Debounce - chamar onChange após parar de digitar
   useEffect(() => {
-    if (!onSearch) return
+    if (isFirstRender.current) return
 
-    const timer = setTimeout(() => {
-      onSearch(internalValue)
-    }, debounceMs)
-
-    return () => clearTimeout(timer)
-  }, [internalValue, debounceMs, onSearch])
-
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value
-    setInternalValue(newValue)
-    onChange?.(newValue)
-  }, [onChange])
-
-  const handleClear = useCallback(() => {
-    setInternalValue('')
-    onChange?.('')
-    onSearch?.('')
-  }, [onChange, onSearch])
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      onSearch?.(internalValue)
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
     }
-  }, [internalValue, onSearch])
+
+    timeoutRef.current = setTimeout(() => {
+      if (localValue !== value) {
+        onChange(localValue)
+      }
+    }, 300)
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localValue]) // Remover onChange e value das dependências para evitar loop
+
+  const handleClear = () => {
+    setLocalValue('')
+    onChange('')
+  }
 
   return (
     <div className={cn('relative', className)}>
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       <Input
-        type="text"
-        value={internalValue}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
         placeholder={placeholder}
         autoFocus={autoFocus}
-        className="pl-10 pr-10 rounded-xl bg-muted border-0 focus-visible:ring-1 focus-visible:ring-primary"
+        className="pl-10 pr-10 h-12 rounded-xl bg-muted border-0"
       />
-      {internalValue && (
+      {localValue && (
         <Button
           type="button"
           variant="ghost"
           size="icon"
+          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
           onClick={handleClear}
-          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 hover:bg-transparent"
         >
-          <X className="h-4 w-4 text-muted-foreground" />
+          <X className="h-4 w-4" />
         </Button>
       )}
     </div>

@@ -72,7 +72,7 @@ export default function BuscarPage() {
       <div className="bg-background border-b px-4 py-4">
         <h1 className="text-xl font-bold mb-3">Buscar</h1>
         <SearchInput
-          onSearch={handleSearch}
+          onChange={handleSearch}
           placeholder="O que você está procurando?"
           autoFocus
         />
