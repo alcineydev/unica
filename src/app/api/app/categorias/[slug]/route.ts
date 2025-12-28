@@ -6,18 +6,29 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  let step = 'inicio'
+
   try {
+    // STEP 1: Autenticação
+    step = 'autenticacao'
     const session = await auth()
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
+    // STEP 2: Pegar slug dos params
+    step = 'params'
     const { slug } = await params
+
+    if (!slug) {
+      return NextResponse.json({ error: 'Slug não fornecido' }, { status: 400 })
+    }
 
     console.log('[API Categoria] Buscando slug:', slug)
 
-    // Buscar categoria por slug ou id (case insensitive)
+    // STEP 3: Buscar categoria
+    step = 'buscar_categoria'
     const category = await prisma.category.findFirst({
       where: {
         OR: [
@@ -45,46 +56,54 @@ export async function GET(
       }, { status: 404 })
     }
 
-    // Buscar assinante com seu plano
-    const assinante = await prisma.assinante.findUnique({
-      where: { userId: session.user.id! },
-      include: {
-        plan: {
-          include: {
-            planBenefits: {
-              select: { benefitId: true }
+    // STEP 4: Buscar assinante
+    step = 'buscar_assinante'
+    let benefitIdsDoPlano: string[] = []
+
+    try {
+      const assinante = await prisma.assinante.findUnique({
+        where: { userId: session.user.id! },
+        include: {
+          plan: {
+            include: {
+              planBenefits: {
+                select: { benefitId: true }
+              }
             }
           }
         }
-      }
-    })
+      })
+      benefitIdsDoPlano = assinante?.plan?.planBenefits.map(pb => pb.benefitId) || []
+    } catch (assinanteError) {
+      console.warn('[API Categoria] Erro ao buscar assinante (ignorando):', assinanteError)
+      // Continuar sem os benefícios do plano
+    }
 
-    const benefitIdsDoPlano = assinante?.plan?.planBenefits.map(pb => pb.benefitId) || []
-
-    // Buscar parceiros desta categoria
+    // STEP 5: Buscar parceiros básico
+    step = 'buscar_parceiros'
     const parceiros = await prisma.parceiro.findMany({
       where: {
         categoryId: category.id,
-        isActive: true,
-        user: { isActive: true }
+        isActive: true
       },
       include: {
         city: { select: { id: true, name: true } },
         categoryRef: { select: { id: true, name: true } },
+        user: { select: { isActive: true } },
         avaliacoes: {
           where: { publicada: true },
           select: { nota: true }
         },
-        benefitAccess: {
-          where: benefitIdsDoPlano.length > 0
-            ? { benefitId: { in: benefitIdsDoPlano } }
-            : {},
-          include: {
-            benefit: {
-              select: { id: true, name: true, type: true, value: true }
+        benefitAccess: benefitIdsDoPlano.length > 0
+          ? {
+              where: { benefitId: { in: benefitIdsDoPlano } },
+              include: {
+                benefit: {
+                  select: { id: true, name: true, type: true, value: true }
+                }
+              }
             }
-          }
-        }
+          : false
       },
       orderBy: [
         { isDestaque: 'desc' },
@@ -93,8 +112,15 @@ export async function GET(
       ]
     })
 
-    // Formatar parceiros com rating e desconto
-    const parceirosFormatados = parceiros.map(p => {
+    console.log('[API Categoria] Parceiros encontrados:', parceiros.length)
+
+    // STEP 6: Filtrar apenas parceiros com usuário ativo
+    step = 'filtrar_parceiros'
+    const parceirosAtivos = parceiros.filter(p => p.user?.isActive !== false)
+
+    // STEP 7: Formatar parceiros
+    step = 'formatar_parceiros'
+    const parceirosFormatados = parceirosAtivos.map(p => {
       const avaliacoes = p.avaliacoes || []
       const mediaAvaliacoes = avaliacoes.length > 0
         ? avaliacoes.reduce((sum, a) => sum + a.nota, 0) / avaliacoes.length
@@ -102,12 +128,13 @@ export async function GET(
 
       // Extrair desconto do primeiro benefício
       let desconto = null
-      if (p.benefitAccess?.[0]?.benefit) {
-        const benefit = p.benefitAccess[0].benefit
+      const benefitAccess = (p as any).benefitAccess
+      if (benefitAccess?.[0]?.benefit) {
+        const benefit = benefitAccess[0].benefit
         const value = benefit.value as Record<string, number>
-        if (benefit.type === 'DESCONTO' && value.percentage) {
+        if (benefit.type === 'DESCONTO' && value?.percentage) {
           desconto = `${value.percentage}% OFF`
-        } else if (benefit.type === 'CASHBACK' && value.percentage) {
+        } else if (benefit.type === 'CASHBACK' && value?.percentage) {
           desconto = `${value.percentage}% Cashback`
         }
       }
@@ -128,13 +155,18 @@ export async function GET(
     return NextResponse.json({
       category,
       parceiros: parceirosFormatados,
-      total: parceiros.length
+      total: parceirosFormatados.length
     })
   } catch (error: any) {
-    console.error('[API Categoria] Erro:', error)
+    console.error('[API Categoria] ERRO no passo:', step)
+    console.error('[API Categoria] Mensagem:', error?.message)
+    console.error('[API Categoria] Stack:', error?.stack)
+
     return NextResponse.json({
       error: 'Erro ao buscar categoria',
-      details: error?.message || 'Erro desconhecido'
+      step: step,
+      message: error?.message || 'Erro desconhecido',
+      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
     }, { status: 500 })
   }
 }
