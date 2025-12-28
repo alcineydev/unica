@@ -103,6 +103,11 @@ export async function GET(
         zipCode: address.zipCode,
         city: parceiro.city,
         benefits: beneficios
+      },
+      assinante: {
+        id: assinante?.id || session.user.id,
+        name: assinante?.name || session.user.name || 'Cliente',
+        planName: assinante?.plan?.name || 'UNICA'
       }
     })
 

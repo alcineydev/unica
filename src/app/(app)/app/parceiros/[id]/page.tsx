@@ -60,12 +60,19 @@ interface Parceiro {
   }[]
 }
 
+interface AssinanteInfo {
+  id: string
+  name: string
+  planName: string
+}
+
 export default function ParceiroDetalhesPage() {
   const params = useParams()
   const router = useRouter()
   const parceiroId = params.id as string
 
   const [parceiro, setParceiro] = useState<Parceiro | null>(null)
+  const [assinante, setAssinante] = useState<AssinanteInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
@@ -78,9 +85,12 @@ export default function ParceiroDetalhesPage() {
     try {
       const response = await fetch(`/api/app/parceiros/${parceiroId}`)
       const data = await response.json()
-      
+
       if (data.parceiro) {
         setParceiro(data.parceiro)
+      }
+      if (data.assinante) {
+        setAssinante(data.assinante)
       }
     } catch (error) {
       console.error('Erro ao buscar parceiro:', error)
@@ -101,8 +111,9 @@ export default function ParceiroDetalhesPage() {
     if (!parceiro?.whatsapp) return null
     const phone = parceiro.whatsapp.replace(/\D/g, '')
     const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`
+    const assinanteId = assinante?.id?.slice(0, 8) || 'N/A'
     const message = encodeURIComponent(
-      `Olá! Sou assinante do UNICA Clube de Benefícios e gostaria de utilizar meus benefícios na ${parceiro.name}! 🎉`
+      `Olá! Sou ${assinante?.name || 'cliente'}, assinante ${assinante?.planName || 'UNICA'}. Meu ID: ${assinanteId}. Vim pelo app UNICA Clube de Benefícios!`
     )
     return `https://wa.me/${phoneWithCountry}?text=${message}`
   }
@@ -487,9 +498,12 @@ export default function ParceiroDetalhesPage() {
             <a href={getWhatsAppLink() || '#'} target="_blank" rel="noopener noreferrer">
               <Button className="w-full h-14 text-lg bg-green-600 hover:bg-green-700 shadow-lg">
                 <MessageCircle className="mr-2 h-6 w-6" />
-                Falar no WhatsApp
+                Chamar no WhatsApp
               </Button>
             </a>
+            <p className="text-xs text-center text-muted-foreground mt-2">
+              Mensagem: &quot;Olá! Sou {assinante?.name || 'cliente'}, assinante {assinante?.planName || 'UNICA'}...&quot;
+            </p>
           </div>
         </div>
       )}
