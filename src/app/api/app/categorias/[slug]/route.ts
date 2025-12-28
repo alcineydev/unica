@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
+// Função para verificar se é um UUID válido
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(str)
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -29,15 +35,24 @@ export async function GET(
 
     // STEP 3: Buscar categoria
     step = 'buscar_categoria'
-    const category = await prisma.category.findFirst({
+
+    // Primeiro: buscar por slug (case insensitive)
+    let category = await prisma.category.findFirst({
       where: {
-        OR: [
-          { slug: { equals: slug, mode: 'insensitive' } },
-          { id: slug }
-        ],
+        slug: { equals: slug, mode: 'insensitive' },
         isActive: true
       }
     })
+
+    // Segundo: se não encontrou e o valor é um UUID válido, buscar por ID
+    if (!category && isValidUUID(slug)) {
+      category = await prisma.category.findFirst({
+        where: {
+          id: slug,
+          isActive: true
+        }
+      })
+    }
 
     console.log('[API Categoria] Categoria encontrada:', category?.name || 'Não encontrada')
 
