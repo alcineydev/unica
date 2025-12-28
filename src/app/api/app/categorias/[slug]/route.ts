@@ -15,19 +15,34 @@ export async function GET(
 
     const { slug } = await params
 
-    // Buscar categoria por slug ou id
+    console.log('[API Categoria] Buscando slug:', slug)
+
+    // Buscar categoria por slug ou id (case insensitive)
     const category = await prisma.category.findFirst({
       where: {
         OR: [
-          { slug },
+          { slug: { equals: slug, mode: 'insensitive' } },
           { id: slug }
         ],
         isActive: true
       }
     })
 
+    console.log('[API Categoria] Categoria encontrada:', category?.name || 'Não encontrada')
+
     if (!category) {
-      return NextResponse.json({ error: 'Categoria não encontrada' }, { status: 404 })
+      // Listar todas as categorias para debug
+      const allCategories = await prisma.category.findMany({
+        where: { isActive: true },
+        select: { id: true, slug: true, name: true }
+      })
+      console.log('[API Categoria] Categorias disponíveis:', allCategories)
+
+      return NextResponse.json({
+        error: 'Categoria não encontrada',
+        slugBuscado: slug,
+        categoriasDisponiveis: allCategories
+      }, { status: 404 })
     }
 
     // Buscar assinante com seu plano

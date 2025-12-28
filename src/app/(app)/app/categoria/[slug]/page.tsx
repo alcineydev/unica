@@ -12,7 +12,7 @@ interface Category {
   name: string
   slug: string
   icon: string
-  banner: string
+  banner: string | null
   description: string | null
 }
 
@@ -32,6 +32,8 @@ interface PageData {
   category: Category
   parceiros: Parceiro[]
   total: number
+  error?: string
+  categoriasDisponiveis?: { id: string; slug: string; name: string }[]
 }
 
 export default function CategoriaPage() {
@@ -39,14 +41,28 @@ export default function CategoriaPage() {
   const router = useRouter()
   const [data, setData] = useState<PageData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!params.slug) return
 
-    fetch(`/api/app/categorias/${params.slug}`)
+    const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug
+
+    fetch(`/api/app/categorias/${slug}`)
       .then(res => res.json())
-      .then(setData)
-      .catch(console.error)
+      .then(json => {
+        if (json.error) {
+          setError(json.error)
+          console.log('Slug buscado:', json.slugBuscado)
+          console.log('Categorias disponíveis:', json.categoriasDisponiveis)
+        } else {
+          setData(json)
+        }
+      })
+      .catch(err => {
+        console.error('Erro:', err)
+        setError('Erro ao carregar categoria')
+      })
       .finally(() => setLoading(false))
   }, [params.slug])
 
@@ -58,11 +74,11 @@ export default function CategoriaPage() {
     )
   }
 
-  if (!data || !data.category) {
+  if (error || !data?.category) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-4">
         <Store className="h-12 w-12 text-muted-foreground" />
-        <p className="text-muted-foreground">Categoria não encontrada</p>
+        <p className="text-muted-foreground text-center">{error || 'Categoria não encontrada'}</p>
         <Button onClick={() => router.back()}>Voltar</Button>
       </div>
     )
