@@ -371,7 +371,6 @@ export default function CategoriasPage() {
                 folder="categories"
                 aspectRatio="banner"
                 placeholder="Clique para fazer upload do banner"
-                enableCrop={false}
               />
               <p className="text-xs text-muted-foreground">
                 Proporção recomendada: 4:1 (ex: 1200x300 pixels)
