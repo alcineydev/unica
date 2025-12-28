@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { BottomNav, AppHeader, AppSidebar } from '@/components/app'
+import { NotificationPermissionModal } from '@/components/app/notification-permission-modal'
 import { Toaster } from 'sonner'
 
 export default async function AppLayout({
@@ -42,6 +43,9 @@ export default async function AppLayout({
 
       {/* Bottom Nav - apenas mobile/tablet (< lg) */}
       <BottomNav />
+
+      {/* Modal de Permissão de Notificações */}
+      <NotificationPermissionModal />
     </div>
   )
 }
