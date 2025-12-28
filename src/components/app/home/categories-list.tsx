@@ -1,51 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {
-  Car,
-  UtensilsCrossed,
-  Scissors,
-  Heart,
-  Wrench,
-  ShoppingBag,
-  Store,
-  GraduationCap,
-  Stethoscope,
-  Home,
-  Plane,
-  Camera,
-  Music,
-  Gamepad2,
-  Sparkles,
-  Dumbbell,
-  Briefcase,
-  Shirt,
-  Coffee,
-  type LucideIcon
-} from 'lucide-react'
-
-const iconMap: Record<string, LucideIcon> = {
-  Car,
-  UtensilsCrossed,
-  Utensils: UtensilsCrossed,
-  Scissors,
-  Heart,
-  Wrench,
-  ShoppingBag,
-  Store,
-  GraduationCap,
-  Stethoscope,
-  Home,
-  Plane,
-  Camera,
-  Music,
-  Gamepad2,
-  Sparkles,
-  Dumbbell,
-  Briefcase,
-  Shirt,
-  Coffee
-}
+import Image from 'next/image'
 
 interface Category {
   id: string
@@ -65,24 +21,36 @@ export function CategoriesList({ categories }: CategoriesListProps) {
   return (
     <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
       <div className="flex gap-3" style={{ width: 'max-content' }}>
-        {categories.map((category) => {
-          const IconComponent = iconMap[category.icon] || Store
-
-          return (
-            <Link
-              key={category.id}
-              href={`/app/parceiros?categoria=${category.slug}`}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card border hover:border-primary hover:shadow-md transition-all min-w-[80px]"
-            >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <IconComponent className="h-6 w-6 text-primary" />
-              </div>
-              <span className="text-xs font-medium text-center line-clamp-1">
-                {category.name}
-              </span>
-            </Link>
-          )
-        })}
+        {categories.map((category) => (
+          <Link
+            key={category.id}
+            href={`/app/categoria/${category.slug}`}
+            className="flex flex-col items-center gap-2 min-w-[80px]"
+          >
+            {/* Imagem da categoria (banner) */}
+            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-muted border shadow-sm">
+              {category.banner ? (
+                <Image
+                  src={category.banner}
+                  alt={category.name}
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                  <span className="text-lg font-bold text-primary">
+                    {category.name.charAt(0)}
+                  </span>
+                </div>
+              )}
+            </div>
+            <span className="text-xs font-medium text-center line-clamp-1">
+              {category.name}
+            </span>
+          </Link>
+        ))}
       </div>
     </div>
   )
