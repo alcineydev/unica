@@ -130,8 +130,11 @@ export async function GET(
       parceiros: parceirosFormatados,
       total: parceiros.length
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('[API Categoria] Erro:', error)
-    return NextResponse.json({ error: 'Erro ao buscar categoria' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Erro ao buscar categoria',
+      details: error?.message || 'Erro desconhecido'
+    }, { status: 500 })
   }
 }

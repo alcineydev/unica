@@ -26,10 +26,13 @@ export function CategoriesList({ categories }: CategoriesListProps) {
           const hasValidBanner = category.banner &&
             (category.banner.startsWith('http') || category.banner.startsWith('/'))
 
+          // Usar slug se disponível, senão usar id
+          const categoryPath = category.slug || category.id
+
           return (
             <Link
               key={category.id}
-              href={`/app/categoria/${category.slug}`}
+              href={`/app/categoria/${categoryPath}`}
               className="relative flex-shrink-0 w-[120px] h-[80px] rounded-xl overflow-hidden group"
             >
               {/* Imagem de fundo */}
