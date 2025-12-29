@@ -25,8 +25,9 @@ export async function GET(
     }
 
     return NextResponse.json(page)
-  } catch (error: any) {
-    console.error('[Pages GET/:id] Erro:', error)
+  } catch (error) {
+    const err = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('[Pages GET/:id] Erro:', err)
     return NextResponse.json({ error: 'Erro ao buscar página' }, { status: 500 })
   }
 }
@@ -85,8 +86,9 @@ export async function PUT(
     })
 
     return NextResponse.json(page)
-  } catch (error: any) {
-    console.error('[Pages PUT] Erro:', error)
+  } catch (error) {
+    const err = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('[Pages PUT] Erro:', err)
     return NextResponse.json({ error: 'Erro ao atualizar página' }, { status: 500 })
   }
 }
@@ -119,8 +121,9 @@ export async function DELETE(
     })
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error('[Pages DELETE] Erro:', error)
+  } catch (error) {
+    const err = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('[Pages DELETE] Erro:', err)
     return NextResponse.json({ error: 'Erro ao excluir página' }, { status: 500 })
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
     const ordenar = searchParams.get('ordenar') || 'recente'
 
     // Construir filtro
-    const where: any = { parceiroId: parceiro.id }
+    const where: Prisma.AvaliacaoWhereInput = { parceiroId: parceiro.id }
 
     if (filtro === 'publicadas') {
       where.publicada = true
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Construir ordenação
-    let orderBy: any = { createdAt: 'desc' }
+    let orderBy: Prisma.AvaliacaoOrderByWithRelationInput = { createdAt: 'desc' }
 
     if (ordenar === 'antiga') {
       orderBy = { createdAt: 'asc' }

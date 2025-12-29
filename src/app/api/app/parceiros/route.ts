@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { Prisma } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
     const benefitIdsDoPlano = assinante?.plan?.planBenefits.map(pb => pb.benefitId) || []
 
     // Construir filtro where
-    const where: any = {
+    const where: Prisma.ParceiroWhereInput = {
       isActive: true,
       user: { isActive: true }
     }

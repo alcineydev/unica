@@ -39,7 +39,13 @@ export async function GET() {
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    let recentTransactions: any[] = []
+    type TransactionWithAssinante = {
+      id: string
+      amount: number | null
+      createdAt: Date
+      assinante: { name: string | null } | null
+    }
+    let recentTransactions: TransactionWithAssinante[] = []
     try {
       recentTransactions = await prisma.transaction.findMany({
         where: {

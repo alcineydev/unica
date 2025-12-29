@@ -144,7 +144,7 @@ export async function GET(
 
       // Extrair desconto do primeiro benefício
       let desconto = null
-      const benefitAccess = (p as any).benefitAccess
+      const benefitAccess = 'benefitAccess' in p ? (p as typeof p & { benefitAccess?: Array<{ benefit: { type: string; value: Record<string, number> } }> }).benefitAccess : undefined
       if (benefitAccess?.[0]?.benefit) {
         const benefit = benefitAccess[0].benefit
         const value = benefit.value as Record<string, number>
@@ -173,16 +173,17 @@ export async function GET(
       parceiros: parceirosFormatados,
       total: parceirosFormatados.length
     })
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as Error
     console.error('[API Categoria] ERRO no passo:', step)
-    console.error('[API Categoria] Mensagem:', error?.message)
-    console.error('[API Categoria] Stack:', error?.stack)
+    console.error('[API Categoria] Mensagem:', err?.message)
+    console.error('[API Categoria] Stack:', err?.stack)
 
     return NextResponse.json({
       error: 'Erro ao buscar categoria',
       step: step,
-      message: error?.message || 'Erro desconhecido',
-      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      message: err?.message || 'Erro desconhecido',
+      stack: process.env.NODE_ENV === 'development' ? err?.stack : undefined
     }, { status: 500 })
   }
 }

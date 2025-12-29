@@ -151,12 +151,13 @@ export async function GET(
       }
     })
 
-  } catch (error: any) {
-    console.error('[API Parceiro] ERRO:', error?.message)
-    console.error('[API Parceiro] Stack:', error?.stack)
+  } catch (error) {
+    const err = error as Error
+    console.error('[API Parceiro] ERRO:', err?.message)
+    console.error('[API Parceiro] Stack:', err?.stack)
     return NextResponse.json({
       error: 'Erro ao buscar parceiro',
-      message: error?.message || 'Erro desconhecido'
+      message: err?.message || 'Erro desconhecido'
     }, { status: 500 })
   }
 }
@@ -213,8 +214,9 @@ export async function POST(
 
     return NextResponse.json({ success: true })
 
-  } catch (error: any) {
-    console.error('[API Parceiro] Erro ao registrar ação:', error?.message)
+  } catch (error) {
+    const err = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('[API Parceiro] Erro ao registrar ação:', err)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

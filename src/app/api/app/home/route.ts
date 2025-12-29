@@ -147,10 +147,21 @@ export async function GET() {
     })
 
     // Função para processar parceiros
-    const processParceiro = (p: any) => {
+    type ParceiroComAvaliacoes = {
+      id: string
+      tradeName: string | null
+      companyName: string
+      logo: string | null
+      category: string
+      city: { name: string } | null
+      categoryRef: { name: string } | null
+      avaliacoes: { nota: number }[]
+      benefitAccess?: Array<{ benefit: { type: string; value: Record<string, number> } }>
+    }
+    const processParceiro = (p: ParceiroComAvaliacoes) => {
       const avaliacoes = p.avaliacoes || []
       const mediaAvaliacoes = avaliacoes.length > 0
-        ? avaliacoes.reduce((sum: number, a: any) => sum + a.nota, 0) / avaliacoes.length
+        ? avaliacoes.reduce((sum, a) => sum + a.nota, 0) / avaliacoes.length
         : 0
 
       // Extrair desconto do primeiro benefício
@@ -179,7 +190,18 @@ export async function GET() {
     }
 
     // Buscar parceiros APENAS se tiver plano ativo (para lista geral)
-    let parceiros: any[] = []
+    type ParceiroFormatado = {
+      id: string
+      companyName: string
+      tradeName: string | null
+      logo: string | null
+      category: string
+      description: string | null
+      city: { name: string } | null
+      avaliacoes: { media: number; total: number }
+      benefits: Array<{ id: string; name: string; type: string; value: number }>
+    }
+    let parceiros: ParceiroFormatado[] = []
     if (temPlanoAtivo && assinante.plan) {
       const benefitIdsDoPlano = assinante.plan.planBenefits.map(pb => pb.benefitId)
 

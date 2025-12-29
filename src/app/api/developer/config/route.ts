@@ -34,8 +34,9 @@ export async function GET(request: NextRequest) {
     }, {} as Record<string, typeof configs>)
 
     return NextResponse.json({ configs, grouped })
-  } catch (error: any) {
-    console.error('[Config GET] Erro:', error)
+  } catch (error) {
+    const err = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('[Config GET] Erro:', err)
     return NextResponse.json({ error: 'Erro ao buscar configurações' }, { status: 500 })
   }
 }
@@ -71,8 +72,9 @@ export async function PUT(request: NextRequest) {
     })
 
     return NextResponse.json(config)
-  } catch (error: any) {
-    console.error('[Config PUT] Erro:', error)
+  } catch (error) {
+    const err = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('[Config PUT] Erro:', err)
     return NextResponse.json({ error: 'Erro ao atualizar configuração' }, { status: 500 })
   }
 }
@@ -105,8 +107,9 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json({ updated: results.length, configs: results })
-  } catch (error: any) {
-    console.error('[Config POST] Erro:', error)
+  } catch (error) {
+    const err = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('[Config POST] Erro:', err)
     return NextResponse.json({ error: 'Erro ao atualizar configurações' }, { status: 500 })
   }
 }
