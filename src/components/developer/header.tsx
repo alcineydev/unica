@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { LogOut, User, Shield } from 'lucide-react'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export function DeveloperHeader() {
   const { data: session } = useSession()
@@ -31,6 +32,9 @@ export function DeveloperHeader() {
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Toggle de Tema */}
+        <ThemeToggle />
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">

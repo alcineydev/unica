@@ -134,3 +134,96 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Cores do tema dinâmicas - serão sobrescritas pelo ThemeProvider */
+:root {
+  --color-primary: #1E3A8A;
+  --color-primary-light: #3B82F6;
+  --color-secondary: #10B981;
+  --color-accent: #F59E0B;
+  --color-background-dark: #0F172A;
+  --color-background-light: #F8FAFC;
+  --color-text-dark: #111827;
+  --color-text-light: #F8FAFC;
+}
+
+/* Classes utilitárias para usar cores do tema */
+.bg-theme-primary {
+  background-color: var(--color-primary);
+}
+
+.bg-theme-primary-light {
+  background-color: var(--color-primary-light);
+}
+
+.bg-theme-secondary {
+  background-color: var(--color-secondary);
+}
+
+.bg-theme-accent {
+  background-color: var(--color-accent);
+}
+
+.text-theme-primary {
+  color: var(--color-primary);
+}
+
+.text-theme-primary-light {
+  color: var(--color-primary-light);
+}
+
+.text-theme-secondary {
+  color: var(--color-secondary);
+}
+
+.text-theme-accent {
+  color: var(--color-accent);
+}
+
+/* Bordas do tema */
+.border-theme-primary {
+  border-color: var(--color-primary);
+}
+
+.border-theme-primary-light {
+  border-color: var(--color-primary-light);
+}
+
+.border-theme-secondary {
+  border-color: var(--color-secondary);
+}
+
+/* Gradientes do tema */
+.bg-theme-gradient {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+}
+
+.bg-theme-gradient-dark {
+  background: linear-gradient(135deg, var(--color-background-dark) 0%, var(--color-primary) 100%);
+}
+
+/* Hover states */
+.hover\:bg-theme-primary:hover {
+  background-color: var(--color-primary);
+}
+
+.hover\:bg-theme-primary-light:hover {
+  background-color: var(--color-primary-light);
+}
+
+.hover\:text-theme-primary:hover {
+  color: var(--color-primary);
+}
+
+.hover\:text-theme-primary-light:hover {
+  color: var(--color-primary-light);
+}
+
+/* Ring/Focus states */
+.ring-theme-primary {
+  --tw-ring-color: var(--color-primary);
+}
+
+.focus\:ring-theme-primary:focus {
+  --tw-ring-color: var(--color-primary);
+}
