@@ -12,6 +12,7 @@ import {
   ChevronRight,
   LayoutDashboard,
   Smartphone,
+  Palette,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
@@ -36,6 +37,11 @@ const menuItems = [
     title: 'PWA / App',
     href: '/developer/pwa',
     icon: Smartphone,
+  },
+  {
+    title: 'Sistema',
+    href: '/developer/sistema',
+    icon: Palette,
   },
   {
     title: 'Configurações',

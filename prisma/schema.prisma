@@ -570,3 +570,19 @@ model AdminPushNotification {
 
   @@map("admin_push_notifications")
 }
+
+/// Configurações do sistema (branding, cores, etc)
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String?
+  type        String   @default("text") // text, image, color, json
+  category    String   @default("general") // general, branding, theme
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([key])
+  @@map("system_config")
+}
