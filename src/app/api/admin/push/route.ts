@@ -40,13 +40,29 @@ export async function GET() {
       // Contar subscriptions por tipo
       totalSubscriptions = await prisma.pushSubscription.count()
 
-      assinantesCount = await prisma.pushSubscription.count({
-        where: { user: { role: 'ASSINANTE' } }
+      // Buscar usuários assinantes com push subscription
+      const assinantesWithPush = await prisma.user.findMany({
+        where: {
+          role: 'ASSINANTE',
+          pushSubscriptions: {
+            some: {}
+          }
+        },
+        select: { id: true }
       })
+      assinantesCount = assinantesWithPush.length
 
-      parceirosCount = await prisma.pushSubscription.count({
-        where: { user: { role: 'PARCEIRO' } }
+      // Buscar usuários parceiros com push subscription
+      const parceirosWithPush = await prisma.user.findMany({
+        where: {
+          role: 'PARCEIRO',
+          pushSubscriptions: {
+            some: {}
+          }
+        },
+        select: { id: true }
       })
+      parceirosCount = parceirosWithPush.length
     } catch (dbError: any) {
       // Se a tabela não existir, retornar zeros
       console.error('[PUSH HISTORY] Erro no banco:', dbError.message)
