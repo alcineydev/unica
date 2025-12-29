@@ -147,83 +147,95 @@
   --color-text-light: #F8FAFC;
 }
 
-/* Classes utilitárias para usar cores do tema */
+/* ===== CORES CUSTOMIZÁVEIS DO TEMA ===== */
+
+/* Backgrounds */
 .bg-theme-primary {
-  background-color: var(--color-primary);
+  background-color: var(--color-primary, #1E3A8A) !important;
 }
 
 .bg-theme-primary-light {
-  background-color: var(--color-primary-light);
+  background-color: var(--color-primary-light, #3B82F6) !important;
 }
 
 .bg-theme-secondary {
-  background-color: var(--color-secondary);
+  background-color: var(--color-secondary, #10B981) !important;
 }
 
 .bg-theme-accent {
-  background-color: var(--color-accent);
+  background-color: var(--color-accent, #F59E0B) !important;
 }
 
+/* Textos */
 .text-theme-primary {
-  color: var(--color-primary);
+  color: var(--color-primary, #1E3A8A) !important;
 }
 
 .text-theme-primary-light {
-  color: var(--color-primary-light);
+  color: var(--color-primary-light, #3B82F6) !important;
 }
 
 .text-theme-secondary {
-  color: var(--color-secondary);
+  color: var(--color-secondary, #10B981) !important;
 }
 
 .text-theme-accent {
-  color: var(--color-accent);
+  color: var(--color-accent, #F59E0B) !important;
 }
 
-/* Bordas do tema */
+/* Bordas */
 .border-theme-primary {
-  border-color: var(--color-primary);
+  border-color: var(--color-primary, #1E3A8A) !important;
 }
 
 .border-theme-primary-light {
-  border-color: var(--color-primary-light);
+  border-color: var(--color-primary-light, #3B82F6) !important;
 }
 
 .border-theme-secondary {
-  border-color: var(--color-secondary);
+  border-color: var(--color-secondary, #10B981) !important;
 }
 
-/* Gradientes do tema */
+/* Gradientes */
 .bg-theme-gradient {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  background: linear-gradient(135deg, var(--color-primary, #1E3A8A) 0%, var(--color-primary-light, #3B82F6) 100%) !important;
+}
+
+.bg-theme-gradient-secondary {
+  background: linear-gradient(135deg, var(--color-secondary, #10B981) 0%, var(--color-accent, #F59E0B) 100%) !important;
 }
 
 .bg-theme-gradient-dark {
-  background: linear-gradient(135deg, var(--color-background-dark) 0%, var(--color-primary) 100%);
+  background: linear-gradient(135deg, var(--color-background-dark, #0F172A) 0%, var(--color-primary, #1E3A8A) 100%) !important;
 }
 
 /* Hover states */
 .hover\:bg-theme-primary:hover {
-  background-color: var(--color-primary);
+  background-color: var(--color-primary, #1E3A8A) !important;
 }
 
 .hover\:bg-theme-primary-light:hover {
-  background-color: var(--color-primary-light);
+  background-color: var(--color-primary-light, #3B82F6) !important;
 }
 
 .hover\:text-theme-primary:hover {
-  color: var(--color-primary);
+  color: var(--color-primary, #1E3A8A) !important;
 }
 
 .hover\:text-theme-primary-light:hover {
-  color: var(--color-primary-light);
+  color: var(--color-primary-light, #3B82F6) !important;
 }
 
 /* Ring/Focus states */
 .ring-theme-primary {
-  --tw-ring-color: var(--color-primary);
+  --tw-ring-color: var(--color-primary, #1E3A8A) !important;
 }
 
 .focus\:ring-theme-primary:focus {
-  --tw-ring-color: var(--color-primary);
+  --tw-ring-color: var(--color-primary, #1E3A8A) !important;
+}
+
+/* Sombras com cor do tema */
+.shadow-theme-primary {
+  box-shadow: 0 4px 14px 0 rgba(var(--color-primary, #1E3A8A), 0.3) !important;
 }
