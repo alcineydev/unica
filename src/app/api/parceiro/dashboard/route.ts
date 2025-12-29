@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import type { Decimal } from '@prisma/client/runtime/library'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +42,7 @@ export async function GET() {
 
     type TransactionWithAssinante = {
       id: string
-      amount: number | null
+      amount: Decimal
       createdAt: Date
       assinante: { name: string | null } | null
     }
