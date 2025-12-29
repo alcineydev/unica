@@ -558,7 +558,7 @@ function CadastroForm() {
                         </Button>
                         <Button
                           type="submit"
-                          className="flex-1 h-11"
+                          className="flex-1 h-11 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-900"
                           disabled={isLoading}
                         >
                           {isLoading ? (
