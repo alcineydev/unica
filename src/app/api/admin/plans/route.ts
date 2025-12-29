@@ -3,18 +3,19 @@ import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createPlanSchema } from '@/lib/validations/plan'
 import { generateSlug } from '@/lib/utils/slug'
+import { logger } from '@/lib/logger'
 
 // Forçar rota dinâmica
 export const dynamic = 'force-dynamic'
 
 // GET - Listar todos os planos
 export async function GET(request: Request) {
-  console.log('=== GET /api/admin/plans ===')
-  
+  logger.debug('=== GET /api/admin/plans ===')
+
   try {
     const session = await auth()
-    console.log('Session:', session?.user?.email)
-    
+    logger.debug('Session:', session?.user?.email)
+
     if (!session || !['ADMIN', 'DEVELOPER'].includes(session.user.role)) {
       return NextResponse.json(
         { error: 'Não autorizado' },
@@ -24,9 +25,9 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const includeInactive = searchParams.get('includeInactive') === 'true'
-    console.log('includeInactive:', includeInactive)
+    logger.debug('includeInactive:', includeInactive)
 
-    console.log('Executando query...')
+    logger.debug('Executando query...')
     const plans = await prisma.plan.findMany({
       where: includeInactive ? {} : { isActive: true },
       orderBy: { price: 'asc' },
@@ -50,8 +51,8 @@ export async function GET(request: Request) {
         },
       },
     })
-    
-    console.log('Planos encontrados:', plans.length)
+
+    logger.debug('Planos encontrados:', plans.length)
 
     return NextResponse.json({ data: plans })
   } catch (error) {
@@ -78,11 +79,11 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    console.log('Dados recebidos:', JSON.stringify(body, null, 2))
+    logger.debug('Dados recebidos:', JSON.stringify(body, null, 2))
 
     const validationResult = createPlanSchema.safeParse(body)
     if (!validationResult.success) {
-      console.log('Erro de validação:', validationResult.error.flatten())
+      logger.debug('Erro de validação:', validationResult.error.flatten())
       return NextResponse.json(
         { error: 'Dados inválidos', details: validationResult.error.flatten().fieldErrors },
         { status: 400 }
@@ -149,7 +150,7 @@ export async function POST(request: Request) {
       },
     }
 
-    console.log('Dados para salvar:', JSON.stringify(dataToSave, null, 2))
+    logger.debug('Dados para salvar:', JSON.stringify(dataToSave, null, 2))
 
     // Cria o plano e associa os benefícios
     const plan = await prisma.plan.create({

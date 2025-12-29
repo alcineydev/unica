@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 
+// Logger client-side seguro
+const isDev = process.env.NODE_ENV === 'development'
+const clientLog = (...args: unknown[]) => { if (isDev) console.log(...args) }
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
@@ -37,7 +41,7 @@ export function usePushNotifications() {
                         'PushManager' in window &&
                         'Notification' in window
 
-      console.log('[PUSH] Suporte verificado:', supported)
+      clientLog('[PUSH] Suporte verificado:', supported)
       setIsSupported(supported)
 
       if (!supported) {
@@ -47,7 +51,7 @@ export function usePushNotifications() {
 
       // Obter permissao atual
       setPermission(Notification.permission)
-      console.log('[PUSH] Permissao atual:', Notification.permission)
+      clientLog('[PUSH] Permissao atual:', Notification.permission)
 
       // Verificar subscription existente (com timeout para nao travar)
       try {
@@ -61,14 +65,14 @@ export function usePushNotifications() {
         if (registration) {
           const subscription = await (registration as ServiceWorkerRegistration).pushManager.getSubscription()
           setIsSubscribed(!!subscription)
-          console.log('[PUSH] Ja inscrito:', !!subscription)
+          clientLog('[PUSH] Ja inscrito:', !!subscription)
         }
-      } catch (e) {
-        console.log('[PUSH] SW nao pronto ainda, continuando...')
+      } catch {
+        clientLog('[PUSH] SW nao pronto ainda, continuando...')
       }
 
       setIsLoading(false)
-      console.log('[PUSH] Hook pronto')
+      clientLog('[PUSH] Hook pronto')
     }
 
     checkSupport()
@@ -81,9 +85,9 @@ export function usePushNotifications() {
     }
 
     try {
-      console.log('[PUSH] Registrando Service Worker...')
+      clientLog('[PUSH] Registrando Service Worker...')
       const registration = await navigator.serviceWorker.register('/sw.js')
-      console.log('[PUSH] Service Worker registrado:', registration)
+      clientLog('[PUSH] Service Worker registrado:', registration)
       return registration
     } catch (error) {
       console.error('[PUSH] Erro ao registrar SW:', error)
@@ -111,11 +115,11 @@ export function usePushNotifications() {
 
       // Buscar VAPID public key do servidor
       if (!vapidKeyRef.current) {
-        console.log('[PUSH] Buscando VAPID key do servidor...')
+        clientLog('[PUSH] Buscando VAPID key do servidor...')
         const keyResponse = await fetch('/api/push/subscribe')
         const keyData = await keyResponse.json()
 
-        console.log('[PUSH] Resposta da API:', keyData)
+        clientLog('[PUSH] Resposta da API:', keyData)
 
         if (!keyResponse.ok || !keyData.publicKey) {
           console.error('[PUSH] Erro ao buscar VAPID key:', keyData)
@@ -124,7 +128,7 @@ export function usePushNotifications() {
         }
 
         vapidKeyRef.current = keyData.publicKey
-        console.log('[PUSH] VAPID key recebida:', keyData.publicKey?.substring(0, 20) + '...')
+        clientLog('[PUSH] VAPID key recebida:', keyData.publicKey?.substring(0, 20) + '...')
       }
 
       // Registrar Service Worker
@@ -189,12 +193,12 @@ export function usePushNotifications() {
         })
       })
 
-      console.log('[PUSH] Resposta do POST:', response.status)
+      clientLog('[PUSH] Resposta do POST:', response.status)
 
       if (response.ok) {
         setIsSubscribed(true)
         setIsLoading(false)
-        console.log('[PUSH] Inscricao concluida com sucesso!')
+        clientLog('[PUSH] Inscricao concluida com sucesso!')
         return true
       }
 

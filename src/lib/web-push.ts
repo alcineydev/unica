@@ -1,4 +1,5 @@
 import webpush from 'web-push'
+import { logger } from './logger'
 
 // Fallback hardcoded para quando env vars nao estao disponiveis
 const FALLBACK_PUBLIC_KEY = 'BDgxbvXNieDaGmEvQxgwa1GQSt_4Fq-NjC2VwHmXp0dIXVLwKXNOEzg6GH1kEX6bAt9DGSBh_HCS1ebaIUsRQYM'
@@ -25,7 +26,7 @@ function ensureConfigured(): boolean {
   if (isConfigured) return true
 
   const keys = getVapidKeys()
-  console.log('[WEB-PUSH] Verificando config:', {
+  logger.debug('[WEB-PUSH] Verificando config:', {
     hasPublic: !!keys.publicKey,
     hasPrivate: !!keys.privateKey,
     usingFallback: keys.usingFallback,
@@ -36,15 +37,15 @@ function ensureConfigured(): boolean {
     try {
       webpush.setVapidDetails(keys.subject, keys.publicKey, keys.privateKey)
       isConfigured = true
-      console.log('[WEB-PUSH] VAPID configurado com sucesso')
+      logger.debug('[WEB-PUSH] VAPID configurado com sucesso')
       return true
     } catch (error) {
-      console.error('[WEB-PUSH] Erro ao configurar VAPID:', error)
+      logger.error('[WEB-PUSH] Erro ao configurar VAPID:', error)
       return false
     }
   }
 
-  console.warn('[WEB-PUSH] VAPID keys nao encontradas')
+  logger.warn('[WEB-PUSH] VAPID keys nao encontradas')
   return false
 }
 
@@ -66,7 +67,7 @@ export async function sendPushNotification(
   payload: PushPayload
 ): Promise<{ success: boolean; expired?: boolean }> {
   if (!ensureConfigured()) {
-    console.error('[WEB-PUSH] VAPID nao configurado')
+    logger.error('[WEB-PUSH] VAPID nao configurado')
     return { success: false }
   }
 
@@ -92,11 +93,12 @@ export async function sendPushNotification(
 
     await webpush.sendNotification(pushSubscription, notificationPayload)
     return { success: true }
-  } catch (error: any) {
-    console.error('[WEB-PUSH] Erro ao enviar:', error.message)
+  } catch (error) {
+    const err = error as { statusCode?: number; message?: string }
+    logger.error('[WEB-PUSH] Erro ao enviar:', err.message)
 
     // Se subscription expirou ou foi cancelada (410 Gone ou 404 Not Found)
-    if (error.statusCode === 410 || error.statusCode === 404) {
+    if (err.statusCode === 410 || err.statusCode === 404) {
       return { success: false, expired: true }
     }
 

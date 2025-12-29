@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
         }
       })
     } catch (e) {
-      console.log('Erro ao criar notificação:', e)
+      logger.debug('Erro ao criar notificação:', e)
     }
 
     return NextResponse.json({

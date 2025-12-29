@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('[API PLANS] Buscando planos...')
-    
+    logger.debug('[API PLANS] Buscando planos...')
+
     const plans = await prisma.plan.findMany({
       where: { isActive: true },
       orderBy: { price: 'asc' },
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    console.log('[API PLANS] Planos encontrados:', plans.length)
+    logger.debug('[API PLANS] Planos encontrados:', plans.length)
 
     // Formatar os planos para o frontend
     const formattedPlans = plans.map((plan, index) => ({

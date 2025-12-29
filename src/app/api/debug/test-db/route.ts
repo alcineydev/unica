@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
 export async function GET() {
-  const results: Record<string, any> = {
+  // Bloquear se não for DEVELOPER
+  const session = await auth()
+  if (!session || session.user.role !== 'DEVELOPER') {
+    return NextResponse.json(
+      { error: 'Acesso negado' },
+      { status: 403 }
+    )
+  }
+
+  const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     status: 'iniciando'
   }
@@ -53,11 +63,12 @@ export async function GET() {
     results.status = 'OK'
     return NextResponse.json(results)
 
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as Error
     results.status = 'ERRO'
     results.error = {
-      message: error?.message,
-      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      message: err?.message,
+      stack: process.env.NODE_ENV === 'development' ? err?.stack : undefined
     }
     return NextResponse.json(results, { status: 500 })
   }

@@ -19,8 +19,9 @@ export async function GET() {
     })
 
     return NextResponse.json({ pages })
-  } catch (error: any) {
-    console.error('[Pages GET] Erro:', error)
+  } catch (error) {
+    const err = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('[Pages GET] Erro:', err)
     return NextResponse.json({ error: 'Erro ao buscar páginas' }, { status: 500 })
   }
 }
@@ -64,8 +65,9 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(page, { status: 201 })
-  } catch (error: any) {
-    console.error('[Pages POST] Erro:', error)
+  } catch (error) {
+    const err = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('[Pages POST] Erro:', err)
     return NextResponse.json({ error: 'Erro ao criar página' }, { status: 500 })
   }
 }

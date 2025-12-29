@@ -23,7 +23,18 @@ export async function GET() {
     let totalSubscriptions = 0
     let assinantesCount = 0
     let parceirosCount = 0
-    let notifications: any[] = []
+    type NotificationWithAdmin = {
+      id: string
+      title: string
+      message: string
+      link: string | null
+      targetType: string
+      sentCount: number
+      failedCount: number
+      createdAt: Date
+      admin: { email: string } | null
+    }
+    let notifications: NotificationWithAdmin[] = []
 
     try {
       // Buscar histórico
@@ -55,20 +66,21 @@ export async function GET() {
       // Contar por role
       assinantesCount = subscriptionsWithUser.filter(s => s.user?.role === 'ASSINANTE').length
       parceirosCount = subscriptionsWithUser.filter(s => s.user?.role === 'PARCEIRO').length
-    } catch (dbError: any) {
+    } catch (dbError) {
       // Se a tabela não existir, retornar zeros
-      console.error('[PUSH HISTORY] Erro no banco:', dbError.message)
+      const err = dbError as Error & { code?: string }
+      console.error('[PUSH HISTORY] Erro no banco:', err.message)
 
       // Verificar se é erro de tabela não existente
-      if (dbError.message?.includes('does not exist') ||
-          dbError.message?.includes('relation') ||
-          dbError.code === 'P2021') {
+      if (err.message?.includes('does not exist') ||
+          err.message?.includes('relation') ||
+          err.code === 'P2021') {
         console.warn('[PUSH HISTORY] Tabela push_subscriptions não existe. Execute: npx prisma db push')
       }
     }
 
     return NextResponse.json({
-      notifications: notifications.map((n: any) => ({
+      notifications: notifications.map((n) => ({
         id: n.id,
         title: n.title,
         message: n.message,
@@ -86,8 +98,9 @@ export async function GET() {
       }
     })
 
-  } catch (error: any) {
-    console.error('[PUSH HISTORY] Erro geral:', error)
+  } catch (error) {
+    const err = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('[PUSH HISTORY] Erro geral:', err)
     return NextResponse.json({
       notifications: [],
       stats: { total: 0, assinantes: 0, parceiros: 0 },

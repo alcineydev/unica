@@ -20,6 +20,8 @@ model City {
   notifications Notification[]
   parceiros     Parceiro[]
 
+  @@index([state])
+  @@index([isActive])
   @@map("cities")
 }
 
@@ -40,6 +42,9 @@ model User {
   pushSubscriptions      PushSubscription[]
   adminPushNotifications AdminPushNotification[]
 
+  @@index([role])
+  @@index([isActive])
+  @@index([createdAt])
   @@map("users")
 }
 
@@ -71,6 +76,8 @@ model Benefit {
   benefitAccess BenefitAccess[]
   planBenefits  PlanBenefit[]
 
+  @@index([type])
+  @@index([isActive])
   @@map("benefits")
 }
 
@@ -93,6 +100,8 @@ model Plan {
   notifications Notification[]
   planBenefits  PlanBenefit[]
 
+  @@index([isActive])
+  @@index([price])
   @@map("plans")
 }
 
@@ -162,6 +171,10 @@ model Parceiro {
   notificacoes  ParceiroNotificacao[]
   avaliacoes    Avaliacao[]
 
+  @@index([isActive])
+  @@index([categoryId])
+  @@index([cityId])
+  @@index([isDestaque])
   @@map("parceiros")
 }
 
@@ -209,6 +222,9 @@ model Assinante {
   avaliacoes         Avaliacao[]
   notificacoes       AssinanteNotificacao[]
 
+  @@index([subscriptionStatus])
+  @@index([planId])
+  @@index([cityId])
   @@map("assinantes")
 }
 
@@ -350,6 +366,9 @@ model Notification {
   targetCity       City?              @relation(fields: [targetCityId], references: [id])
   targetPlan       Plan?              @relation(fields: [targetPlanId], references: [id])
 
+  @@index([status])
+  @@index([createdAt])
+  @@index([sentAt])
   @@map("notifications")
 }
 

@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import crypto from 'crypto'
+import { registerRateLimit, getClientIP, rateLimitResponse } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 const registroSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -23,9 +25,17 @@ const registroSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  // Rate limiting - 3 registros por minuto por IP
+  const ip = getClientIP(request)
+  const { success } = await registerRateLimit(ip)
+  if (!success) {
+    logger.warn('[REGISTRO] Rate limit excedido para IP:', ip)
+    return rateLimitResponse()
+  }
+
   try {
     const body = await request.json()
-    
+
     // Validar dados
     const validatedData = registroSchema.parse(body)
     
@@ -98,7 +108,7 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Erro ao registrar usuário:', error)
+    logger.error('Erro ao registrar usuário:', error)
     
     if (error instanceof z.ZodError) {
       const zodError = error as z.ZodError

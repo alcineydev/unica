@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { sendPushNotification, isWebPushConfigured } from '@/lib/web-push'
+import { Prisma } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,10 +37,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar subscriptions baseado no targetType
-    let subscriptions: any[] = []
+    type SubscriptionData = {
+      id: string
+      endpoint: string
+      p256dh: string
+      auth: string
+    }
+    let subscriptions: SubscriptionData[] = []
 
     try {
-      let whereClause: any = {}
+      let whereClause: Prisma.PushSubscriptionWhereInput = {}
 
       if (targetType === 'ASSINANTES') {
         whereClause = { user: { role: 'ASSINANTE' } }
@@ -57,11 +64,12 @@ export async function POST(request: NextRequest) {
           auth: true
         }
       })
-    } catch (dbError: any) {
-      console.error('[PUSH SEND] Erro no banco:', dbError.message)
+    } catch (dbError) {
+      const err = dbError as Error & { code?: string }
+      console.error('[PUSH SEND] Erro no banco:', err.message)
 
       // Se tabela não existe
-      if (dbError.message?.includes('does not exist') || dbError.code === 'P2021') {
+      if (err.message?.includes('does not exist') || err.code === 'P2021') {
         return NextResponse.json({
           success: false,
           sentCount: 0,

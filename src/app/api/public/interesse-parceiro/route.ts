@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
+import { registerRateLimit, getClientIP, rateLimitResponse } from '@/lib/rate-limit'
 
 const interesseSchema = z.object({
   nome: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -11,35 +13,43 @@ const interesseSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  // Rate limiting - 3 submissões por minuto por IP
+  const ip = getClientIP(request)
+  const { success } = await registerRateLimit(`interesse-${ip}`)
+  if (!success) {
+    logger.warn('[INTERESSE] Rate limit excedido para IP:', ip)
+    return rateLimitResponse()
+  }
+
   try {
     const body = await request.json()
-    
-    console.log('[INTERESSE] Body recebido:', body)
-    
+
+    logger.debug('[INTERESSE] Body recebido:', body)
+
     // Validar dados
     const validatedData = interesseSchema.parse(body)
-    
-    console.log('[INTERESSE] Dados validados:', validatedData)
-    
+
+    logger.debug('[INTERESSE] Dados validados:', validatedData)
+
     // Verificar se já existe interesse com este email
     const existente = await prisma.interesseParceiro.findFirst({
       where: { email: validatedData.email }
     })
-    
+
     if (existente) {
-      console.log('[INTERESSE] Email já existe:', validatedData.email)
+      logger.debug('[INTERESSE] Email já existe:', validatedData.email)
       return NextResponse.json(
         { error: 'Já recebemos seu interesse! Entraremos em contato em breve.' },
         { status: 400 }
       )
     }
-    
+
     // Criar registro
     const interesse = await prisma.interesseParceiro.create({
       data: validatedData
     })
-    
-    console.log('[INTERESSE] Criado com sucesso:', interesse.id)
+
+    logger.log('[INTERESSE] Criado com sucesso:', interesse.id)
     
     return NextResponse.json({
       success: true,
@@ -48,11 +58,11 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('[INTERESSE] Erro:', error)
-    
+    logger.error('[INTERESSE] Erro:', error)
+
     if (error instanceof z.ZodError) {
       const zodError = error as z.ZodError
-      console.log('[INTERESSE] Erro de validação:', zodError.issues)
+      logger.debug('[INTERESSE] Erro de validação:', zodError.issues)
       return NextResponse.json(
         { error: zodError.issues[0]?.message || 'Dados inválidos' },
         { status: 400 }

@@ -30,8 +30,9 @@ export async function GET(
       metaTitle: page.metaTitle,
       metaDescription: page.metaDescription
     })
-  } catch (error: any) {
-    console.error('[Public Pages GET] Erro:', error)
+  } catch (error) {
+    const err = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('[Public Pages GET] Erro:', err)
     return NextResponse.json({ error: 'Erro ao buscar página' }, { status: 500 })
   }
 }

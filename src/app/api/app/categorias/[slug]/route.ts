@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
+import type { JsonValue } from '@prisma/client/runtime/library'
 
 // Função para verificar se é um UUID válido
 function isValidUUID(str: string): boolean {
@@ -31,7 +33,7 @@ export async function GET(
       return NextResponse.json({ error: 'Slug não fornecido' }, { status: 400 })
     }
 
-    console.log('[API Categoria] Buscando slug:', slug)
+    logger.debug('[API Categoria] Buscando slug:', slug)
 
     // STEP 3: Buscar categoria
     step = 'buscar_categoria'
@@ -54,7 +56,7 @@ export async function GET(
       })
     }
 
-    console.log('[API Categoria] Categoria encontrada:', category?.name || 'Não encontrada')
+    logger.debug('[API Categoria] Categoria encontrada:', category?.name || 'Não encontrada')
 
     if (!category) {
       // Listar todas as categorias para debug
@@ -62,7 +64,7 @@ export async function GET(
         where: { isActive: true },
         select: { id: true, slug: true, name: true }
       })
-      console.log('[API Categoria] Categorias disponíveis:', allCategories)
+      logger.debug('[API Categoria] Categorias disponíveis:', allCategories)
 
       return NextResponse.json({
         error: 'Categoria não encontrada',
@@ -127,7 +129,7 @@ export async function GET(
       ]
     })
 
-    console.log('[API Categoria] Parceiros encontrados:', parceiros.length)
+    logger.debug('[API Categoria] Parceiros encontrados:', parceiros.length)
 
     // STEP 6: Filtrar apenas parceiros com usuário ativo
     step = 'filtrar_parceiros'
@@ -143,7 +145,7 @@ export async function GET(
 
       // Extrair desconto do primeiro benefício
       let desconto = null
-      const benefitAccess = (p as any).benefitAccess
+      const benefitAccess = 'benefitAccess' in p ? (p as typeof p & { benefitAccess?: Array<{ benefit: { type: string; value: JsonValue } }> }).benefitAccess : undefined
       if (benefitAccess?.[0]?.benefit) {
         const benefit = benefitAccess[0].benefit
         const value = benefit.value as Record<string, number>
@@ -172,16 +174,17 @@ export async function GET(
       parceiros: parceirosFormatados,
       total: parceirosFormatados.length
     })
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as Error
     console.error('[API Categoria] ERRO no passo:', step)
-    console.error('[API Categoria] Mensagem:', error?.message)
-    console.error('[API Categoria] Stack:', error?.stack)
+    console.error('[API Categoria] Mensagem:', err?.message)
+    console.error('[API Categoria] Stack:', err?.stack)
 
     return NextResponse.json({
       error: 'Erro ao buscar categoria',
       step: step,
-      message: error?.message || 'Erro desconhecido',
-      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      message: err?.message || 'Erro desconhecido',
+      stack: process.env.NODE_ENV === 'development' ? err?.stack : undefined
     }, { status: 500 })
   }
 }

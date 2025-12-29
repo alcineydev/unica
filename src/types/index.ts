@@ -2,6 +2,23 @@
  * Tipos globais do sistema Unica
  */
 
+import type {
+  User,
+  Plan,
+  Benefit,
+  Parceiro,
+  Assinante,
+  City,
+  Category,
+  Transaction,
+  PlanBenefit,
+  BenefitAccess
+} from '@prisma/client'
+
+// ============================================
+// Enums / Tipos Base
+// ============================================
+
 // Roles do sistema
 export type Role = 'DEVELOPER' | 'ADMIN' | 'PARCEIRO' | 'ASSINANTE'
 
@@ -23,12 +40,21 @@ export type ConfigCategory = 'PAYMENT' | 'INTEGRATION' | 'BUSINESS' | 'SYSTEM'
 // Tipos de integração
 export type IntegrationType = 'EVOLUTION_API' | 'EMAIL' | 'SMS' | 'PAYMENT'
 
+// ============================================
+// API Responses
+// ============================================
+
 // Interface base para respostas de API
 export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string
   message?: string
+}
+
+export interface ApiErrorResponse {
+  error: string
+  details?: Record<string, string[]>
 }
 
 // Interface para paginação
@@ -48,6 +74,68 @@ export interface ListFilters {
   orderBy?: string
   order?: 'asc' | 'desc'
 }
+
+// ============================================
+// Models with Relations
+// ============================================
+
+export interface UserWithRelations extends User {
+  assinante?: Assinante | null
+  parceiro?: Parceiro | null
+  admin?: { id: string; name: string; phone: string } | null
+}
+
+export interface ParceiroWithRelations extends Parceiro {
+  user: User
+  categoryRef?: Category | null
+  city: City
+  benefitAccess?: BenefitAccess[]
+  _count?: {
+    transactions: number
+    avaliacoes: number
+  }
+}
+
+export interface AssinanteWithRelations extends Assinante {
+  user: User
+  plan?: Plan | null
+  city?: City | null
+  _count?: {
+    transactions: number
+    avaliacoes: number
+  }
+}
+
+export interface PlanWithBenefits extends Plan {
+  planBenefits?: (PlanBenefit & { benefit: Benefit })[]
+  _count?: {
+    assinantes: number
+  }
+}
+
+export interface CategoryWithCount extends Category {
+  _count?: {
+    parceiros: number
+  }
+}
+
+export interface TransactionWithRelations extends Transaction {
+  assinante: Assinante
+  parceiro?: Parceiro | null
+}
+
+// ============================================
+// Form Events
+// ============================================
+
+export type InputChangeEvent = React.ChangeEvent<HTMLInputElement>
+export type TextAreaChangeEvent = React.ChangeEvent<HTMLTextAreaElement>
+export type SelectChangeEvent = React.ChangeEvent<HTMLSelectElement>
+export type FormSubmitEvent = React.FormEvent<HTMLFormElement>
+
+// ============================================
+// Address & Contact
+// ============================================
 
 // Interface para endereço
 export interface Address {
@@ -69,6 +157,9 @@ export interface Contact {
   whatsapp: string
   phone?: string
   email?: string
+  website?: string
+  instagram?: string
+  facebook?: string
 }
 
 // Interface para horário de funcionamento
@@ -80,6 +171,10 @@ export interface BusinessHours {
   isClosed: boolean
 }
 
+// ============================================
+// Metrics
+// ============================================
+
 // Interface para métricas do parceiro
 export interface PartnerMetrics {
   pageViews: number
@@ -87,6 +182,21 @@ export interface PartnerMetrics {
   totalSales: number
   salesAmount: number
 }
+
+// Dashboard Stats
+export interface DashboardStats {
+  totalAssinantes: number
+  totalParceiros: number
+  totalTransactions: number
+  totalRevenue: number
+  assinantesAtivos: number
+  assinantesPendentes: number
+  parceirosAtivos: number
+}
+
+// ============================================
+// Benefit Config
+// ============================================
 
 // Interface para configuração de benefício
 export interface BenefitConfig {
@@ -97,6 +207,10 @@ export interface BenefitConfig {
   partnerIds?: string[]
 }
 
+// ============================================
+// Session
+// ============================================
+
 // Interface para sessão do usuário
 export interface UserSession {
   id: string
@@ -104,4 +218,87 @@ export interface UserSession {
   role: Role
   name: string
   isActive: boolean
+  avatar?: string | null
+}
+
+// ============================================
+// Push Notifications
+// ============================================
+
+export interface PushSubscriptionData {
+  endpoint: string
+  keys: {
+    p256dh: string
+    auth: string
+  }
+  userAgent?: string
+  platform?: string
+  deviceInfo?: string
+}
+
+export interface PushPayload {
+  title: string
+  message: string
+  icon?: string
+  badge?: string
+  link?: string
+  tag?: string
+}
+
+// ============================================
+// Mercado Pago
+// ============================================
+
+export interface MercadoPagoPreference {
+  id: string
+  init_point: string
+  sandbox_init_point: string
+}
+
+export interface MercadoPagoPayment {
+  id: number
+  status: 'pending' | 'approved' | 'authorized' | 'in_process' | 'in_mediation' | 'rejected' | 'cancelled' | 'refunded' | 'charged_back'
+  status_detail: string
+  transaction_amount: number
+  currency_id: string
+  payer: {
+    email: string
+    identification?: {
+      type: string
+      number: string
+    }
+  }
+  metadata?: Record<string, unknown>
+  external_reference?: string
+}
+
+export interface WebhookPayload {
+  action: string
+  type: string
+  data: {
+    id: string
+  }
+}
+
+// ============================================
+// Cloudinary
+// ============================================
+
+export interface CloudinaryUploadResult {
+  secure_url: string
+  public_id: string
+  width: number
+  height: number
+  format: string
+  bytes: number
+}
+
+// ============================================
+// Error Types
+// ============================================
+
+export interface AppError extends Error {
+  code?: string
+  statusCode?: number
+  details?: Record<string, unknown>
 }

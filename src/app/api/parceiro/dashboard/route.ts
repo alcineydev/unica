@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import type { Decimal } from '@prisma/client/runtime/library'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,7 +40,13 @@ export async function GET() {
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    let recentTransactions: any[] = []
+    type TransactionWithAssinante = {
+      id: string
+      amount: Decimal
+      createdAt: Date
+      assinante: { name: string | null } | null
+    }
+    let recentTransactions: TransactionWithAssinante[] = []
     try {
       recentTransactions = await prisma.transaction.findMany({
         where: {

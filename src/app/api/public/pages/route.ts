@@ -20,8 +20,9 @@ export async function GET() {
     })
 
     return NextResponse.json({ pages })
-  } catch (error: any) {
-    console.error('[Public Pages GET] Erro:', error)
+  } catch (error) {
+    const err = error instanceof Error ? error.message : 'Erro desconhecido'
+    console.error('[Public Pages GET] Erro:', err)
     return NextResponse.json({ pages: [] })
   }
 }

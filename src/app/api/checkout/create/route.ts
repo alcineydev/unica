@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { planId, userId, paymentType, paymentMethod } = body
 
-    console.log('[CHECKOUT] Iniciando:', { planId, userId, paymentType, paymentMethod })
+    logger.debug('[CHECKOUT] Iniciando:', { planId, userId, paymentType, paymentMethod })
 
     // Buscar plano
     const plan = await prisma.plan.findUnique({
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
       notification_url: `${baseUrl}/api/webhooks/mercadopago`
     }
 
-    console.log('[CHECKOUT] Criando preferência:', preference)
+    logger.debug('[CHECKOUT] Criando preferência:', preference)
 
     // Chamar API do Mercado Pago
     const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Erro ao criar pagamento' }, { status: 500 })
     }
 
-    console.log('[CHECKOUT] Preferência criada:', mpData.id)
+    logger.debug('[CHECKOUT] Preferência criada:', mpData.id)
 
     // Retornar URL de checkout
     const isSandbox = config.mode === 'sandbox'
