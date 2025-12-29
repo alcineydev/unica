@@ -61,17 +61,18 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" className="light" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('theme');
-                  var systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                  var activeTheme = theme === 'system' || !theme ? systemTheme : theme;
-                  document.documentElement.classList.add(activeTheme);
+                  var theme = localStorage.getItem('unica_theme');
+                  if (theme === 'dark') {
+                    document.documentElement.classList.remove('light');
+                    document.documentElement.classList.add('dark');
+                  }
                 } catch (e) {}
               })();
             `,
