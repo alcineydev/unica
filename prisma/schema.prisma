@@ -586,3 +586,22 @@ model SystemConfig {
   @@index([key])
   @@map("system_config")
 }
+
+/// Páginas institucionais (Sobre, Termos, Privacidade, etc)
+model Page {
+  id              String   @id @default(uuid())
+  title           String
+  slug            String   @unique
+  content         String?  @db.Text
+  metaTitle       String?  @map("meta_title")
+  metaDescription String?  @map("meta_description")
+  isPublished     Boolean  @default(false) @map("is_published")
+  showInFooter    Boolean  @default(false) @map("show_in_footer")
+  footerOrder     Int      @default(0) @map("footer_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([isPublished])
+  @@map("pages")
+}

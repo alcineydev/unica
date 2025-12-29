@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   Smartphone,
   Palette,
+  FileText,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
@@ -42,6 +43,11 @@ const menuItems = [
     title: 'Sistema',
     href: '/developer/sistema',
     icon: Palette,
+  },
+  {
+    title: 'Páginas',
+    href: '/developer/paginas',
+    icon: FileText,
   },
   {
     title: 'Configurações',
