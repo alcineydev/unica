@@ -75,7 +75,7 @@ export const LazyImageCropper = dynamic(
 
 // Lazy WhatsApp Preview
 export const LazyWhatsAppPreview = dynamic(
-  () => import('@/components/admin/WhatsAppPreview').then(mod => mod.default),
+  () => import('@/components/admin/WhatsAppPreview').then(mod => mod.WhatsAppPreview),
   {
     loading: () => <WhatsAppPreviewSkeleton />,
     ssr: false,
