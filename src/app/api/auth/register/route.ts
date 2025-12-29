@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -55,7 +56,7 @@ function generateQRCode(cpf: string): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    console.log('[REGISTER] Dados recebidos:', { ...body, password: '***' })
+    logger.debug('[REGISTER] Dados recebidos:', { ...body, password: '***' })
 
     // Validar dados
     const validationResult = registerSchema.safeParse(body)
@@ -135,8 +136,8 @@ export async function POST(request: Request) {
       return { user, assinante }
     })
 
-    console.log('[REGISTER] Usuário criado:', result.user.id)
-    console.log('[REGISTER] Assinante criado:', result.assinante.id)
+    logger.log('[REGISTER] Usuário criado:', result.user.id)
+    logger.log('[REGISTER] Assinante criado:', result.assinante.id)
 
     return NextResponse.json({
       success: true,

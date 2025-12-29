@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 // Função auxiliar para obter configs da Evolution API
 async function getEvolutionConfig() {
@@ -21,23 +22,23 @@ async function getEvolutionConfig() {
 
 // GET - Listar instâncias
 export async function GET() {
-  console.log('[WHATSAPP API] GET /instances - Iniciando')
-  
+  logger.debug('[WHATSAPP API] GET /instances - Iniciando')
+
   try {
     const session = await auth()
-    
+
     if (!session || !['ADMIN', 'DEVELOPER'].includes(session.user.role)) {
-      console.log('[WHATSAPP API] Não autorizado - session:', session?.user?.role)
+      logger.debug('[WHATSAPP API] Não autorizado - session:', session?.user?.role)
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    console.log('[WHATSAPP API] Usuário autenticado:', session.user.email)
+    logger.debug('[WHATSAPP API] Usuário autenticado:', session.user.email)
 
     const instances = await prisma.whatsAppInstance.findMany({
       orderBy: { createdAt: 'desc' }
     })
 
-    console.log('[WHATSAPP API] Instâncias encontradas:', instances.length)
+    logger.debug('[WHATSAPP API] Instâncias encontradas:', instances.length)
 
     return NextResponse.json(instances)
   } catch (error) {

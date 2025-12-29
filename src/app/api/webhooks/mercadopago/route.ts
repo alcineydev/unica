@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { logger } from '@/lib/logger'
+import { apiRateLimit, getClientIP, rateLimitResponse } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -50,9 +52,9 @@ async function sendWhatsAppMessage(phone: string, message: string): Promise<bool
   try {
     const evolutionUrl = await getConfig('evolution_api_url')
     const evolutionKey = await getConfig('evolution_api_key')
-    
+
     if (!evolutionUrl || !evolutionKey) {
-      console.log('[WEBHOOK MP] Evolution API não configurada, pulando envio de WhatsApp')
+      logger.debug('[WEBHOOK MP] Evolution API não configurada, pulando envio de WhatsApp')
       return false
     }
 
@@ -62,7 +64,7 @@ async function sendWhatsAppMessage(phone: string, message: string): Promise<bool
     })
 
     if (!instance) {
-      console.log('[WEBHOOK MP] Nenhuma instância WhatsApp conectada')
+      logger.debug('[WEBHOOK MP] Nenhuma instância WhatsApp conectada')
       return false
     }
 
@@ -84,10 +86,10 @@ async function sendWhatsAppMessage(phone: string, message: string): Promise<bool
     })
 
     if (response.ok) {
-      console.log('[WEBHOOK MP] WhatsApp enviado com sucesso para:', fullNumber)
+      logger.log('[WEBHOOK MP] WhatsApp enviado com sucesso para:', fullNumber)
       return true
     } else {
-      console.log('[WEBHOOK MP] Erro ao enviar WhatsApp:', await response.text())
+      logger.debug('[WEBHOOK MP] Erro ao enviar WhatsApp:', await response.text())
       return false
     }
   } catch (error) {
@@ -119,36 +121,44 @@ async function getPaymentDetails(paymentId: string, accessToken: string) {
 
 // POST - Receber webhook do Mercado Pago
 export async function POST(request: Request) {
-  console.log('[WEBHOOK MP] ========================================')
-  console.log('[WEBHOOK MP] Notificação recebida:', new Date().toISOString())
+  // Rate limiting - 60 req/minuto por IP (permissivo para webhooks)
+  const ip = getClientIP(request)
+  const { success } = await apiRateLimit(`webhook-mp-${ip}`)
+  if (!success) {
+    logger.warn('[WEBHOOK MP] Rate limit excedido para IP:', ip)
+    return rateLimitResponse()
+  }
+
+  logger.log('[WEBHOOK MP] ========================================')
+  logger.log('[WEBHOOK MP] Notificação recebida:', new Date().toISOString())
 
   try {
     // Obter body da requisição
     const body = await request.json()
-    console.log('[WEBHOOK MP] Body:', JSON.stringify(body, null, 2))
+    logger.debug('[WEBHOOK MP] Body:', JSON.stringify(body, null, 2))
 
     // Obter query params
     const url = new URL(request.url)
     const type = url.searchParams.get('type') || body.type
     const dataId = url.searchParams.get('data.id') || body.data?.id
 
-    console.log('[WEBHOOK MP] Tipo:', type)
-    console.log('[WEBHOOK MP] Data ID:', dataId)
+    logger.debug('[WEBHOOK MP] Tipo:', type)
+    logger.debug('[WEBHOOK MP] Data ID:', dataId)
 
     // Verificar tipo de notificação
     if (type !== 'payment' && body.action !== 'payment.created' && body.action !== 'payment.updated') {
-      console.log('[WEBHOOK MP] Tipo de notificação ignorado:', type || body.action)
+      logger.debug('[WEBHOOK MP] Tipo de notificação ignorado:', type || body.action)
       return NextResponse.json({ received: true })
     }
 
     // Obter ID do pagamento
     const paymentId = dataId || body.data?.id
     if (!paymentId) {
-      console.log('[WEBHOOK MP] ID do pagamento não encontrado')
+      logger.debug('[WEBHOOK MP] ID do pagamento não encontrado')
       return NextResponse.json({ received: true })
     }
 
-    console.log('[WEBHOOK MP] Processando pagamento:', paymentId)
+    logger.log('[WEBHOOK MP] Processando pagamento:', paymentId)
 
     // Buscar access token
     const accessToken = await getConfig('mercadopago_access_token')
@@ -164,13 +174,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true })
     }
 
-    console.log('[WEBHOOK MP] Status do pagamento:', payment.status)
-    console.log('[WEBHOOK MP] Valor:', payment.transaction_amount)
-    console.log('[WEBHOOK MP] External Reference:', payment.external_reference)
+    logger.log('[WEBHOOK MP] Status do pagamento:', payment.status)
+    logger.log('[WEBHOOK MP] Valor:', payment.transaction_amount)
+    logger.log('[WEBHOOK MP] External Reference:', payment.external_reference)
 
     // Verificar se pagamento foi aprovado
     if (payment.status !== 'approved') {
-      console.log('[WEBHOOK MP] Pagamento não aprovado, status:', payment.status)
+      logger.debug('[WEBHOOK MP] Pagamento não aprovado, status:', payment.status)
       
       // Logar para debug
       await prisma.systemLog.create({
@@ -188,7 +198,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true })
     }
 
-    console.log('[WEBHOOK MP] ✅ Pagamento APROVADO:', paymentId)
+    logger.log('[WEBHOOK MP] ✅ Pagamento APROVADO:', paymentId)
 
     // Extrair dados do external_reference
     let referenceData: {
@@ -205,7 +215,7 @@ export async function POST(request: Request) {
       console.error('[WEBHOOK MP] Erro ao parsear external_reference')
     }
 
-    console.log('[WEBHOOK MP] Dados da referência:', referenceData)
+    logger.debug('[WEBHOOK MP] Dados da referência:', referenceData)
 
     const { planId, email, cpf, paymentType } = referenceData
 
@@ -226,7 +236,7 @@ export async function POST(request: Request) {
     })
 
     if (existingLog) {
-      console.log('[WEBHOOK MP] Pagamento já processado anteriormente, ignorando')
+      logger.debug('[WEBHOOK MP] Pagamento já processado anteriormente, ignorando')
       return NextResponse.json({ received: true, duplicate: true })
     }
 
@@ -240,7 +250,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true })
     }
 
-    console.log('[WEBHOOK MP] Plano encontrado:', plan.name)
+    logger.log('[WEBHOOK MP] Plano encontrado:', plan.name)
 
     // Buscar cidade padrão (primeira cidade ativa)
     let defaultCity = await prisma.city.findFirst({
@@ -291,8 +301,8 @@ export async function POST(request: Request) {
 
     if (assinante) {
       // Atualizar assinante existente
-      console.log('[WEBHOOK MP] Atualizando assinante existente:', assinante.id)
-      
+      logger.log('[WEBHOOK MP] Atualizando assinante existente:', assinante.id)
+
       assinante = await prisma.assinante.update({
         where: { id: assinante.id },
         data: {
@@ -308,7 +318,7 @@ export async function POST(request: Request) {
         where: { id: assinante.userId },
       })
 
-      console.log('[WEBHOOK MP] Assinante atualizado:', assinante.id)
+      logger.log('[WEBHOOK MP] Assinante atualizado:', assinante.id)
     } else if (user) {
       // Verificar se o usuário já tem assinante
       assinante = await prisma.assinante.findUnique({
@@ -326,10 +336,10 @@ export async function POST(request: Request) {
             subscriptionStatus: 'ACTIVE',
           },
         })
-        console.log('[WEBHOOK MP] Assinante do usuário atualizado:', assinante.id)
+        logger.log('[WEBHOOK MP] Assinante do usuário atualizado:', assinante.id)
       } else {
         // Criar assinante para usuário existente
-        console.log('[WEBHOOK MP] Criando assinante para usuário existente')
+        logger.log('[WEBHOOK MP] Criando assinante para usuário existente')
         
         assinante = await prisma.assinante.create({
           data: {
@@ -355,11 +365,11 @@ export async function POST(request: Request) {
           },
         })
 
-        console.log('[WEBHOOK MP] Assinante criado:', assinante.id)
+        logger.log('[WEBHOOK MP] Assinante criado:', assinante.id)
       }
     } else {
       // Criar novo usuário e assinante
-      console.log('[WEBHOOK MP] Criando novo usuário e assinante')
+      logger.log('[WEBHOOK MP] Criando novo usuário e assinante')
       isNewUser = true
       senhaGerada = generatePassword(10)
       const hashedPassword = await bcrypt.hash(senhaGerada, 10)
@@ -375,7 +385,7 @@ export async function POST(request: Request) {
           },
         })
 
-        console.log('[WEBHOOK MP] Usuário criado:', newUser.id)
+        logger.log('[WEBHOOK MP] Usuário criado:', newUser.id)
 
         // Criar assinante
         const newAssinante = await tx.assinante.create({
@@ -402,7 +412,7 @@ export async function POST(request: Request) {
           },
         })
 
-        console.log('[WEBHOOK MP] Assinante criado:', newAssinante.id)
+        logger.log('[WEBHOOK MP] Assinante criado:', newAssinante.id)
 
         return { user: newUser, assinante: newAssinante }
       })
@@ -430,7 +440,7 @@ export async function POST(request: Request) {
       },
     })
 
-    console.log('[WEBHOOK MP] ✅ Assinante processado com sucesso:', assinante.id)
+    logger.log('[WEBHOOK MP] ✅ Assinante processado com sucesso:', assinante.id)
 
     // Enviar notificação WhatsApp
     const phoneToNotify = payerPhone || assinante.phone
@@ -455,7 +465,7 @@ export async function POST(request: Request) {
       await sendWhatsAppMessage(phoneToNotify, welcomeMessage)
     }
 
-    console.log('[WEBHOOK MP] ========================================')
+    logger.log('[WEBHOOK MP] ========================================')
 
     return NextResponse.json({ 
       received: true, 
@@ -488,7 +498,7 @@ export async function POST(request: Request) {
 
 // GET - Verificação do webhook (Mercado Pago pode fazer GET para verificar)
 export async function GET() {
-  console.log('[WEBHOOK MP] GET recebido - Verificação de saúde')
+  logger.debug('[WEBHOOK MP] GET recebido - Verificação de saúde')
   return NextResponse.json({ 
     status: 'ok', 
     message: 'Webhook do Mercado Pago ativo',

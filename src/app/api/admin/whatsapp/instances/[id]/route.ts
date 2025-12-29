@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 async function getEvolutionConfig() {
   const configs = await prisma.config.findMany({
@@ -41,7 +42,7 @@ export async function DELETE(
       await fetch(`${url}/instance/delete/${instance.instanceId}`, {
         method: 'DELETE',
         headers: { 'apikey': apiKey },
-      }).catch(err => console.log('Erro ao deletar na Evolution API:', err))
+      }).catch(err => logger.debug('Erro ao deletar na Evolution API:', err))
     }
 
     // Verificar se há notificações usando esta instância

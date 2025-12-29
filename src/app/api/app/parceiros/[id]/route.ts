@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 // Função para verificar se é um ID válido (cuid ou uuid)
 function isValidId(str: string): boolean {
@@ -28,11 +29,11 @@ export async function GET(
       return NextResponse.json({ error: 'ID não fornecido' }, { status: 400 })
     }
 
-    console.log('[API Parceiro] Buscando:', id)
+    logger.debug('[API Parceiro] Buscando:', id)
 
     // Verificar se o ID tem formato válido
     if (!isValidId(id)) {
-      console.log('[API Parceiro] ID inválido:', id)
+      logger.debug('[API Parceiro] ID inválido:', id)
       return NextResponse.json({
         error: 'Parceiro não encontrado',
         detail: 'ID com formato inválido'
@@ -79,7 +80,7 @@ export async function GET(
     })
 
     if (!parceiro) {
-      console.log('[API Parceiro] Não encontrado com ID:', id)
+      logger.debug('[API Parceiro] Não encontrado com ID:', id)
       return NextResponse.json({ error: 'Parceiro não encontrado' }, { status: 404 })
     }
 
@@ -88,7 +89,7 @@ export async function GET(
       return NextResponse.json({ error: 'Parceiro não disponível' }, { status: 404 })
     }
 
-    console.log('[API Parceiro] Encontrado:', parceiro.tradeName || parceiro.companyName)
+    logger.debug('[API Parceiro] Encontrado:', parceiro.tradeName || parceiro.companyName)
 
     // Formatar benefícios
     const beneficios = parceiro.benefitAccess.map(ba => {

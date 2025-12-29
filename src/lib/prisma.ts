@@ -6,10 +6,10 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient() {
   const databaseUrl = process.env.DATABASE_URL
-  
+
   if (!databaseUrl) {
     // Durante o build, retorna um client dummy que será substituído em runtime
-    console.warn('DATABASE_URL não disponível - isso é esperado durante o build')
+    // Não usar logger aqui pois pode causar problemas no build
     return new PrismaClient()
   }
 

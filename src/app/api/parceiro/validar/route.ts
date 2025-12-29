@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 // GET - Buscar assinante por QR Code ou CPF
 export async function GET(request: NextRequest) {
@@ -202,7 +203,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log da transação
-    console.log('[VALIDAR] Benefício validado:', {
+    logger.log('[VALIDAR] Benefício validado:', {
       assinanteId,
       assinanteNome: assinante.name || 'Assinante',
       beneficioId,

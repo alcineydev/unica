@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
 import { MercadoPagoConfig, Preference } from 'mercadopago'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -45,13 +46,13 @@ function formatPaymentType(type: string): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    console.log('=== CHECKOUT - Iniciando ===')
-    console.log('Dados recebidos:', JSON.stringify(body, null, 2))
+    logger.log('=== CHECKOUT - Iniciando ===')
+    logger.debug('Dados recebidos:', JSON.stringify(body, null, 2))
 
     // Validar dados
     const validationResult = checkoutSchema.safeParse(body)
     if (!validationResult.success) {
-      console.log('Erro de validação:', validationResult.error.flatten())
+      logger.debug('Erro de validação:', validationResult.error.flatten())
       return NextResponse.json(
         { error: 'Dados inválidos', details: validationResult.error.flatten().fieldErrors },
         { status: 400 }
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
 
     // Verificar se o valor está correto (com tolerância de 1 centavo)
     if (Math.abs(amount - expectedAmount) > 0.01) {
-      console.log(`Valor inválido: recebido ${amount}, esperado ${expectedAmount}`)
+      logger.debug(`Valor inválido: recebido ${amount}, esperado ${expectedAmount}`)
       return NextResponse.json(
         { error: 'Valor do pagamento não confere com o plano' },
         { status: 400 }
@@ -111,7 +112,7 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log('Modo Mercado Pago:', mode)
+    logger.debug('Modo Mercado Pago:', mode)
 
     // Configurar cliente Mercado Pago
     const client = new MercadoPagoConfig({ 
@@ -121,11 +122,11 @@ export async function POST(request: Request) {
     const preference = new Preference(client)
 
     // Determinar URL base
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
       : 'http://localhost:3000'
 
-    console.log('URL base:', baseUrl)
+    logger.debug('URL base:', baseUrl)
 
     // Criar referência externa com dados do pedido
     const externalReference = JSON.stringify({
@@ -176,18 +177,18 @@ export async function POST(request: Request) {
       },
     }
 
-    console.log('Criando preferência no Mercado Pago...')
+    logger.log('Criando preferência no Mercado Pago...')
     const result = await preference.create(preferenceData)
 
-    console.log('Preferência criada:', {
+    logger.log('Preferência criada:', {
       id: result.id,
       init_point: result.init_point?.substring(0, 50) + '...',
       sandbox_init_point: result.sandbox_init_point?.substring(0, 50) + '...',
     })
 
     // Retornar URL baseada no modo
-    const paymentUrl = mode === 'sandbox' 
-      ? result.sandbox_init_point 
+    const paymentUrl = mode === 'sandbox'
+      ? result.sandbox_init_point
       : result.init_point
 
     if (!paymentUrl) {
@@ -198,8 +199,8 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log('=== CHECKOUT - Sucesso ===')
-    console.log('URL de pagamento:', paymentUrl.substring(0, 80) + '...')
+    logger.log('=== CHECKOUT - Sucesso ===')
+    logger.log('URL de pagamento:', paymentUrl.substring(0, 80) + '...')
 
     return NextResponse.json({
       success: true,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 const confirmarSchema = z.object({
   assinanteId: z.string(),
@@ -140,7 +141,7 @@ export async function POST(request: Request) {
           }
         })
       } catch (e) {
-        console.log('Erro ao criar notificação de avaliação:', e)
+        logger.debug('Erro ao criar notificação de avaliação:', e)
       }
 
       return newTransaction

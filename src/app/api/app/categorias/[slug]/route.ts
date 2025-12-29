@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 // Função para verificar se é um UUID válido
 function isValidUUID(str: string): boolean {
@@ -31,7 +32,7 @@ export async function GET(
       return NextResponse.json({ error: 'Slug não fornecido' }, { status: 400 })
     }
 
-    console.log('[API Categoria] Buscando slug:', slug)
+    logger.debug('[API Categoria] Buscando slug:', slug)
 
     // STEP 3: Buscar categoria
     step = 'buscar_categoria'
@@ -54,7 +55,7 @@ export async function GET(
       })
     }
 
-    console.log('[API Categoria] Categoria encontrada:', category?.name || 'Não encontrada')
+    logger.debug('[API Categoria] Categoria encontrada:', category?.name || 'Não encontrada')
 
     if (!category) {
       // Listar todas as categorias para debug
@@ -62,7 +63,7 @@ export async function GET(
         where: { isActive: true },
         select: { id: true, slug: true, name: true }
       })
-      console.log('[API Categoria] Categorias disponíveis:', allCategories)
+      logger.debug('[API Categoria] Categorias disponíveis:', allCategories)
 
       return NextResponse.json({
         error: 'Categoria não encontrada',
@@ -127,7 +128,7 @@ export async function GET(
       ]
     })
 
-    console.log('[API Categoria] Parceiros encontrados:', parceiros.length)
+    logger.debug('[API Categoria] Parceiros encontrados:', parceiros.length)
 
     // STEP 6: Filtrar apenas parceiros com usuário ativo
     step = 'filtrar_parceiros'

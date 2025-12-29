@@ -3,6 +3,7 @@ import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { authConfig } from './auth.config'
 import prisma from './prisma'
+import { logger } from './logger'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -14,8 +15,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Senha', type: 'password' },
       },
       async authorize(credentials) {
-        console.log('========== [AUTH] INÍCIO AUTHORIZE ==========')
-        console.log('[AUTH] Credentials recebidas:', {
+        logger.debug('========== [AUTH] INÍCIO AUTHORIZE ==========')
+        logger.debug('[AUTH] Credentials recebidas:', {
           email: credentials?.email,
           passwordLength: (credentials?.password as string)?.length
         })
@@ -24,12 +25,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = credentials?.password as string
 
         if (!email || !password) {
-          console.log('[AUTH] ERRO: Credenciais faltando - email:', !!email, 'password:', !!password)
+          logger.debug('[AUTH] ERRO: Credenciais faltando - email:', !!email, 'password:', !!password)
           return null
         }
 
         try {
-          console.log('[AUTH] Buscando usuário no banco:', email)
+          logger.debug('[AUTH] Buscando usuário no banco:', email)
 
           const user = await prisma.user.findUnique({
             where: { email },
@@ -40,36 +41,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
           })
 
-          console.log('[AUTH] Usuário encontrado:', user ? {
+          logger.debug('[AUTH] Usuário encontrado:', user ? {
             id: user.id,
             email: user.email,
             role: user.role,
             isActive: user.isActive,
-            hasPassword: !!user.password,
-            passwordHash: user.password?.substring(0, 20) + '...'
+            hasPassword: !!user.password
           } : 'NÃO ENCONTRADO')
 
           if (!user) {
-            console.log('[AUTH] ERRO: Usuário não existe no banco')
+            logger.debug('[AUTH] ERRO: Usuário não existe no banco')
             return null
           }
 
           if (!user.password) {
-            console.log('[AUTH] ERRO: Usuário sem senha cadastrada')
+            logger.debug('[AUTH] ERRO: Usuário sem senha cadastrada')
             return null
           }
 
-          console.log('[AUTH] Comparando senhas...')
+          logger.debug('[AUTH] Comparando senhas...')
           const isPasswordValid = await bcrypt.compare(password, user.password)
-          console.log('[AUTH] Resultado bcrypt.compare:', isPasswordValid)
+          logger.debug('[AUTH] Resultado bcrypt.compare:', isPasswordValid)
 
           if (!isPasswordValid) {
-            console.log('[AUTH] ERRO: Senha incorreta para:', email)
+            logger.debug('[AUTH] ERRO: Senha incorreta para:', email)
             return null
           }
 
           if (!user.isActive) {
-            console.log('[AUTH] ERRO: Usuário desativado:', email)
+            logger.debug('[AUTH] ERRO: Usuário desativado:', email)
             return null
           }
 
@@ -83,8 +83,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name = user.assinante.name
           }
 
-          console.log('[AUTH] ✅ LOGIN BEM-SUCEDIDO:', email, 'Role:', user.role)
-          console.log('========== [AUTH] FIM AUTHORIZE ==========')
+          logger.debug('[AUTH] LOGIN BEM-SUCEDIDO:', email, 'Role:', user.role)
+          logger.debug('========== [AUTH] FIM AUTHORIZE ==========')
 
           return {
             id: user.id,
@@ -94,7 +94,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             avatar: user.avatar
           }
         } catch (error) {
-          console.error('[AUTH] ERRO CRÍTICO no authorize:', error)
+          logger.error('[AUTH] ERRO CRÍTICO no authorize:', error)
           return null
         }
       },
@@ -140,4 +140,3 @@ export async function verifyPassword(
 ): Promise<boolean> {
   return bcrypt.compare(password, hashedPassword)
 }
-
