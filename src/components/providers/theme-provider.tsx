@@ -132,11 +132,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('theme', newTheme)
   }
 
-  // Evitar flash de tema errado
-  if (!mounted) {
-    return null
-  }
-
   return (
     <ThemeContext.Provider value={{ theme, setTheme, colors, isLoading }}>
       {children}
