@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import type { JsonValue } from '@prisma/client/runtime/library'
 
 // Função para verificar se é um UUID válido
 function isValidUUID(str: string): boolean {
@@ -144,7 +145,7 @@ export async function GET(
 
       // Extrair desconto do primeiro benefício
       let desconto = null
-      const benefitAccess = 'benefitAccess' in p ? (p as typeof p & { benefitAccess?: Array<{ benefit: { type: string; value: Record<string, number> } }> }).benefitAccess : undefined
+      const benefitAccess = 'benefitAccess' in p ? (p as typeof p & { benefitAccess?: Array<{ benefit: { type: string; value: JsonValue } }> }).benefitAccess : undefined
       if (benefitAccess?.[0]?.benefit) {
         const benefit = benefitAccess[0].benefit
         const value = benefit.value as Record<string, number>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import type { JsonValue } from '@prisma/client/runtime/library'
 
 export const dynamic = 'force-dynamic'
 
@@ -156,7 +157,7 @@ export async function GET() {
       city: { name: string } | null
       categoryRef: { name: string } | null
       avaliacoes: { nota: number }[]
-      benefitAccess?: Array<{ benefit: { type: string; value: Record<string, number> } }>
+      benefitAccess?: Array<{ benefit: { type: string; value: JsonValue } }>
     }
     const processParceiro = (p: ParceiroComAvaliacoes) => {
       const avaliacoes = p.avaliacoes || []
