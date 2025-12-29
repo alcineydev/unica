@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 import {
   LayoutDashboard,
   MapPin,
@@ -318,8 +319,11 @@ export function AdminSidebar() {
             </Link>
           </div>
 
-          {/* Direita: Notificações + Avatar */}
+          {/* Direita: ThemeToggle + Notificações + Avatar */}
           <div className="flex items-center gap-2">
+            {/* Toggle de Tema */}
+            <ThemeToggle />
+
             {/* Sino de notificações */}
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />

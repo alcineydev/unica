@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Bell, LogOut, Building2, Users, ShoppingCart, ChevronDown, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export function ParceiroHeader() {
   const router = useRouter()
@@ -103,6 +104,9 @@ export function ParceiroHeader() {
 
         {/* Ações */}
         <div className="flex items-center gap-2">
+          {/* Toggle de Tema */}
+          <ThemeToggle />
+
           {/* Notificações */}
           <Link href="/parceiro/notificacoes">
             <Button variant="ghost" size="icon" className="relative">
