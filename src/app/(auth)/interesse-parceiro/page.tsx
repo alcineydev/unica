@@ -281,7 +281,7 @@ export default function InteresseParceiroPage() {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full h-12 mt-4" disabled={isLoading}>
+                  <Button type="submit" className="w-full h-12 mt-4 bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />

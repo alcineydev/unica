@@ -13,6 +13,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Bell, LogOut, User, Settings } from 'lucide-react'
 import { useAuth } from '@/hooks'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export function AdminHeader() {
   const { data: session } = useSession()
@@ -35,6 +36,9 @@ export function AdminHeader() {
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Toggle de Tema */}
+        <ThemeToggle />
+
         {/* Notificações */}
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />

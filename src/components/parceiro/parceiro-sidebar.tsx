@@ -31,7 +31,7 @@ export function ParceiroSidebar() {
   }
 
   return (
-    <aside className="hidden md:flex w-64 flex-col h-[calc(100vh-56px)] sticky top-14 border-r bg-zinc-50/50 dark:bg-zinc-900/50">
+    <aside className="hidden md:flex w-64 flex-col h-[calc(100vh-56px)] sticky top-14 border-r bg-background">
       {/* Menu Items */}
       <div className="flex-1 py-4 overflow-y-auto">
         <nav className="space-y-1 px-3">
@@ -46,8 +46,8 @@ export function ParceiroSidebar() {
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                    ? 'bg-emerald-600 text-white'
+                    : 'text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 dark:text-gray-300 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400'
                 )}
               >
                 <item.icon className="h-5 w-5" />

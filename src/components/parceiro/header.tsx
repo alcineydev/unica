@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export function ParceiroHeader() {
   const { data: session } = useSession()
@@ -25,6 +26,9 @@ export function ParceiroHeader() {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Toggle de Tema */}
+        <ThemeToggle />
+
         <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
           Ativo
         </Badge>

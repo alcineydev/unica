@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Bell, LogOut, User, ChevronDown, CreditCard, Star } from 'lucide-react'
 import { NotificationModal } from './notification-modal'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 interface AppHeaderProps {
   userName?: string
@@ -126,6 +127,9 @@ export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
 
           {/* Ações */}
           <div className="flex items-center gap-2">
+            {/* Toggle de Tema */}
+            <ThemeToggle />
+
             {/* Notificações */}
             <Link href="/app/notificacoes">
               <Button variant="ghost" size="icon" className="relative">

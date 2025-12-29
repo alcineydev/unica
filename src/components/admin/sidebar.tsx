@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 import {
   LayoutDashboard,
   MapPin,
@@ -168,8 +169,8 @@ export function AdminSidebar() {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
                   isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                    ? "bg-blue-600 text-white"
+                    : "hover:bg-blue-50 text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-slate-800"
                 )}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -190,8 +191,8 @@ export function AdminSidebar() {
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
                 hasActive
-                  ? "bg-primary/10 text-primary"
-                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                  ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                  : "hover:bg-blue-50 text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-slate-800"
               )}
             >
               <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -243,8 +244,8 @@ export function AdminSidebar() {
                         className={cn(
                           "flex items-center gap-3 pl-8 pr-3 py-2 rounded-lg transition-colors",
                           isChildActive
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                            ? "bg-blue-50 text-blue-600 font-medium dark:bg-blue-900/20 dark:text-blue-400"
+                            : "hover:bg-blue-50 text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-slate-800"
                         )}
                       >
                         {ChildIcon && <ChildIcon className="h-4 w-4 flex-shrink-0" />}
@@ -308,8 +309,8 @@ export function AdminSidebar() {
 
             {/* Logo */}
             <Link href="/admin" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-primary-foreground" />
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-white" />
               </div>
               <div className="hidden sm:block">
                 <span className="font-semibold text-lg">UNICA</span>
@@ -318,8 +319,11 @@ export function AdminSidebar() {
             </Link>
           </div>
 
-          {/* Direita: Notificações + Avatar */}
+          {/* Direita: ThemeToggle + Notificações + Avatar */}
           <div className="flex items-center gap-2">
+            {/* Toggle de Tema */}
+            <ThemeToggle />
+
             {/* Sino de notificações */}
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
@@ -329,7 +333,7 @@ export function AdminSidebar() {
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={displayAvatar} />
-                <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                <AvatarFallback className="bg-blue-50 text-blue-600 text-sm dark:bg-blue-900/20 dark:text-blue-400">
                   {displayName.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>

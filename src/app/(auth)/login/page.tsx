@@ -226,7 +226,7 @@ function LoginForm() {
                   </div>
                 )}
 
-                <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+                <Button type="submit" className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -300,17 +300,9 @@ function LoginForm() {
   )
 }
 
-function LoadingFallback() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  )
-}
-
 export default function LoginPage() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
+    <Suspense fallback={null}>
       <LoginForm />
     </Suspense>
   )
