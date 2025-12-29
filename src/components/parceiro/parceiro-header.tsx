@@ -93,8 +93,8 @@ export function ParceiroHeader() {
       <div className="flex h-14 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/parceiro" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <Building2 className="h-4 w-4 text-primary-foreground" />
+          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+            <Building2 className="h-4 w-4 text-white" />
           </div>
           <div className="hidden sm:block">
             <span className="font-semibold text-lg">UNICA</span>
@@ -128,7 +128,7 @@ export function ParceiroHeader() {
               <Button variant="ghost" className="flex items-center gap-2 px-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={displayAvatar} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                  <AvatarFallback className="bg-emerald-50 text-emerald-600 text-sm dark:bg-emerald-900/20 dark:text-emerald-400">
                     {displayName.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
