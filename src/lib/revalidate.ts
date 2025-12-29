@@ -1,13 +1,13 @@
-import { revalidateTag, revalidatePath } from 'next/cache'
+import { revalidatePath } from 'next/cache'
 
 /**
  * Revalidar cache de parceiros
  * Usar após criar/editar/deletar parceiro
  */
 export async function revalidateParceiros() {
-  revalidateTag('parceiros')
-  revalidatePath('/app')
-  revalidatePath('/app/parceiros')
+  revalidatePath('/app', 'layout')
+  revalidatePath('/app/parceiros', 'page')
+  revalidatePath('/admin/parceiros', 'page')
 }
 
 /**
@@ -15,8 +15,9 @@ export async function revalidateParceiros() {
  * Usar após criar/editar/deletar categoria
  */
 export async function revalidateCategorias() {
-  revalidateTag('categorias')
-  revalidatePath('/app')
+  revalidatePath('/app', 'layout')
+  revalidatePath('/app/categorias', 'page')
+  revalidatePath('/admin/categorias', 'page')
 }
 
 /**
@@ -24,9 +25,9 @@ export async function revalidateCategorias() {
  * Usar após criar/editar/deletar plano
  */
 export async function revalidatePlanos() {
-  revalidateTag('planos')
-  revalidatePath('/planos')
-  revalidatePath('/checkout')
+  revalidatePath('/planos', 'page')
+  revalidatePath('/checkout', 'page')
+  revalidatePath('/admin/planos', 'page')
 }
 
 /**
@@ -34,7 +35,8 @@ export async function revalidatePlanos() {
  * Usar após criar/editar/deletar cidade
  */
 export async function revalidateCidades() {
-  revalidateTag('cidades')
+  revalidatePath('/app', 'layout')
+  revalidatePath('/admin/cidades', 'page')
 }
 
 /**
@@ -42,8 +44,9 @@ export async function revalidateCidades() {
  * Usar após criar/editar/deletar benefício
  */
 export async function revalidateBeneficios() {
-  revalidateTag('beneficios')
-  revalidateTag('planos')
+  revalidatePath('/app', 'layout')
+  revalidatePath('/admin/beneficios', 'page')
+  revalidatePath('/admin/planos', 'page')
 }
 
 /**
@@ -51,7 +54,7 @@ export async function revalidateBeneficios() {
  * Usar após alterar configurações do sistema
  */
 export async function revalidateConfig() {
-  revalidateTag('config')
+  revalidatePath('/', 'layout')
 }
 
 /**
@@ -59,18 +62,12 @@ export async function revalidateConfig() {
  * Usar após criar/editar/deletar página
  */
 export async function revalidatePages() {
-  revalidateTag('pages')
+  revalidatePath('/', 'layout')
 }
 
 /**
  * Revalidar tudo (usar com cuidado)
  */
 export async function revalidateAll() {
-  revalidateTag('parceiros')
-  revalidateTag('categorias')
-  revalidateTag('planos')
-  revalidateTag('cidades')
-  revalidateTag('beneficios')
-  revalidateTag('config')
-  revalidateTag('pages')
+  revalidatePath('/', 'layout')
 }

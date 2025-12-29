@@ -28,10 +28,7 @@ export const getCachedParceiros = unstable_cache(
     })
   },
   ['parceiros'],
-  {
-    revalidate: 300,
-    tags: ['parceiros']
-  }
+  { revalidate: 300 }
 )
 
 /**
@@ -54,10 +51,7 @@ export const getCachedParceirosDestaque = unstable_cache(
     })
   },
   ['parceiros-destaque'],
-  {
-    revalidate: 300,
-    tags: ['parceiros', 'destaques']
-  }
+  { revalidate: 300 }
 )
 
 /**
@@ -77,10 +71,7 @@ export const getCachedCategorias = unstable_cache(
     })
   },
   ['categorias'],
-  {
-    revalidate: 3600,
-    tags: ['categorias']
-  }
+  { revalidate: 3600 }
 )
 
 /**
@@ -95,10 +86,7 @@ export const getCachedCidades = unstable_cache(
     })
   },
   ['cidades'],
-  {
-    revalidate: 3600,
-    tags: ['cidades']
-  }
+  { revalidate: 3600 }
 )
 
 /**
@@ -118,10 +106,7 @@ export const getCachedPlanos = unstable_cache(
     })
   },
   ['planos'],
-  {
-    revalidate: 600,
-    tags: ['planos']
-  }
+  { revalidate: 600 }
 )
 
 /**
@@ -136,10 +121,7 @@ export const getCachedBeneficios = unstable_cache(
     })
   },
   ['beneficios'],
-  {
-    revalidate: 600,
-    tags: ['beneficios']
-  }
+  { revalidate: 600 }
 )
 
 /**
@@ -154,10 +136,7 @@ export const getCachedSystemConfig = unstable_cache(
     })
   },
   ['system-config'],
-  {
-    revalidate: 1800,
-    tags: ['config']
-  }
+  { revalidate: 1800 }
 )
 
 /**
@@ -172,8 +151,5 @@ export const getCachedPages = unstable_cache(
     })
   },
   ['pages'],
-  {
-    revalidate: 3600,
-    tags: ['pages']
-  }
+  { revalidate: 3600 }
 )
