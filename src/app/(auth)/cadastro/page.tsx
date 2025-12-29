@@ -364,7 +364,7 @@ function CadastroForm() {
 
                       <Button
                         type="button"
-                        className="w-full h-11 mt-4"
+                        className="w-full h-11 mt-4 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-900"
                         onClick={() => {
                           if (!formData.nome || !formData.email || !formData.cpf || !formData.telefone) {
                             setError('Preencha todos os campos obrigatorios')
@@ -481,7 +481,7 @@ function CadastroForm() {
                         </Button>
                         <Button
                           type="button"
-                          className="flex-1 h-11"
+                          className="flex-1 h-11 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-900"
                           onClick={() => setStep(3)}
                         >
                           Continuar
