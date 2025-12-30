@@ -152,7 +152,7 @@
   *,
   *::before,
   *::after {
-    border-color: #e2e8f0; /* slate-200 como padrão */
+    border-color: rgb(226, 232, 240); /* slate-200 */
   }
 
   body {
@@ -168,33 +168,51 @@
     outline: none;
   }
 
-  /* Inputs e form elements */
+  /* CORREÇÃO AGRESSIVA DE INPUTS */
   input,
   textarea,
-  select {
-    border-color: #e2e8f0;
-    outline: none;
+  select,
+  [type="text"],
+  [type="email"],
+  [type="password"],
+  [type="number"],
+  [type="tel"],
+  [type="url"],
+  [type="search"],
+  [type="date"] {
+    border-color: rgb(226, 232, 240) !important;
+    outline: none !important;
   }
 
   input:focus,
   textarea:focus,
-  select:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  select:focus,
+  [type="text"]:focus,
+  [type="email"]:focus,
+  [type="password"]:focus,
+  [type="number"]:focus,
+  [type="tel"]:focus,
+  [type="url"]:focus,
+  [type="search"]:focus,
+  [type="date"]:focus {
+    border-color: rgb(37, 99, 235) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+    outline: none !important;
   }
 
   /* Botões */
   button {
-    outline: none;
+    outline: none !important;
   }
 
   button:focus {
-    outline: none;
+    outline: none !important;
   }
 
   /* Cards e containers com borda */
-  .border {
-    border-color: #e2e8f0;
+  .border,
+  [class*="border"] {
+    border-color: rgb(226, 232, 240);
   }
 }
 
@@ -430,4 +448,40 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* ===== OVERRIDE FINAL - Alta especificidade ===== */
+html body input,
+html body textarea,
+html body select,
+html body [data-slot="input"],
+html body [data-slot="textarea"] {
+  --tw-border-opacity: 1;
+  border-color: rgb(226 232 240 / var(--tw-border-opacity)) !important;
+}
+
+html body input:focus,
+html body textarea:focus,
+html body select:focus,
+html body [data-slot="input"]:focus,
+html body [data-slot="textarea"]:focus {
+  --tw-border-opacity: 1;
+  border-color: rgb(37 99 235 / var(--tw-border-opacity)) !important;
+  --tw-ring-color: rgb(37 99 235 / 0.2);
+  box-shadow: 0 0 0 3px var(--tw-ring-color) !important;
+}
+
+/* Remover qualquer borda preta/escura residual */
+.border-foreground,
+.border-black,
+.border-gray-900,
+.border-slate-900,
+.border-zinc-900,
+.border-input {
+  border-color: rgb(226 232 240) !important;
+}
+
+/* Garantir que cards tenham bordas claras */
+[data-slot="card"] {
+  border-color: rgb(241 245 249) !important;
 }
