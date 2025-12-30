@@ -1,91 +1,133 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
-  QrCode,
+  ShoppingCart,
+  Users,
+  Star,
+  BarChart3,
+  Building2,
   Wallet,
-  User,
-  Sparkles,
   LogOut,
+  Menu,
+  X,
+  Sparkles
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useAuth } from '@/hooks'
+import { signOut } from 'next-auth/react'
+import { cn } from '@/lib/utils'
 
-const menuItems = [
-  {
-    title: 'Dashboard',
-    href: '/parceiro',
-    icon: LayoutDashboard,
-  },
-  {
-    title: 'Registrar Venda',
-    href: '/parceiro/vendas',
-    icon: QrCode,
-  },
-  {
-    title: 'Meu Saldo',
-    href: '/parceiro/saldo',
-    icon: Wallet,
-  },
-  {
-    title: 'Meu Perfil',
-    href: '/parceiro/perfil',
-    icon: User,
-  },
+interface NavItem {
+  label: string
+  href: string
+  icon: React.ElementType
+}
+
+const navigation: NavItem[] = [
+  { label: 'Dashboard', href: '/parceiro', icon: LayoutDashboard },
+  { label: 'Vendas', href: '/parceiro/vendas', icon: ShoppingCart },
+  { label: 'Clientes', href: '/parceiro/clientes', icon: Users },
+  { label: 'Meu Saldo', href: '/parceiro/saldo', icon: Wallet },
+  { label: 'Avaliações', href: '/parceiro/avaliacoes', icon: Star },
+  { label: 'Relatórios', href: '/parceiro/relatorios', icon: BarChart3 },
+  { label: 'Perfil da Empresa', href: '/parceiro/perfil', icon: Building2 },
 ]
 
 export function ParceiroSidebar() {
   const pathname = usePathname()
-  const { logout } = useAuth()
+  const [mobileOpen, setMobileOpen] = useState(false)
 
-  return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-[250px] border-r bg-card">
+  const isActive = (href: string) => {
+    if (href === '/parceiro') return pathname === '/parceiro'
+    return pathname.startsWith(href)
+  }
+
+  const SidebarContent = () => (
+    <>
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b px-4">
-        <Link href="/parceiro" className="flex items-center gap-2">
-          <Sparkles className="h-7 w-7 text-primary" />
-          <span className="text-xl font-bold">Unica</span>
+      <div className="p-6 border-b border-white/10">
+        <Link href="/parceiro" className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <span className="text-white text-xl font-bold">UNICA</span>
+            <span className="text-slate-400 text-xs block">Parceiro</span>
+          </div>
         </Link>
       </div>
 
-      {/* Menu */}
-      <nav className="flex flex-col gap-1 p-3">
-        {menuItems.map((item) => {
-          const isActive = pathname === item.href
-          
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              )}
-            >
-              <item.icon className="h-5 w-5 flex-shrink-0" />
-              <span>{item.title}</span>
-            </Link>
-          )
-        })}
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        {navigation.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={() => setMobileOpen(false)}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+              isActive(item.href)
+                ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
+                : "text-slate-300 hover:bg-white/5 hover:text-white"
+            )}
+          >
+            <item.icon className="w-5 h-5" />
+            {item.label}
+          </Link>
+        ))}
       </nav>
 
-      {/* Logout */}
-      <div className="absolute bottom-4 left-0 right-0 px-4">
-        <Button
-          variant="outline"
-          className="w-full justify-start gap-2"
-          onClick={() => logout()}
+      {/* Footer */}
+      <div className="p-4 border-t border-white/10">
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="w-5 h-5" />
           Sair
-        </Button>
+        </button>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Mobile Toggle */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 rounded-xl text-white shadow-lg"
+      >
+        <Menu className="w-6 h-6" />
+      </button>
+
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Mobile */}
+      <aside className={cn(
+        "lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 flex flex-col transform transition-transform duration-300",
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white"
+        >
+          <X className="w-6 h-6" />
+        </button>
+        <SidebarContent />
+      </aside>
+
+      {/* Sidebar Desktop */}
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 flex-col shadow-xl">
+        <SidebarContent />
+      </aside>
+    </>
   )
 }
-

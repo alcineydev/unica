@@ -1,7 +1,25 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* TEMA: Apenas claro - Dark mode DESATIVADO */
+:root {
+  color-scheme: light only;
+}
+
+html {
+  color-scheme: light;
+}
+
+/* Prevenir dark mode em qualquer situação */
+html.dark,
+[data-theme="dark"] {
+  color-scheme: light;
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Desativar variante dark (não aplicar estilos dark) */
+@custom-variant dark (&:is(.never-dark *));
 
 @theme inline {
   --color-background: var(--background);
