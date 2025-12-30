@@ -485,3 +485,87 @@ html body [data-slot="textarea"]:focus {
 [data-slot="card"] {
   border-color: rgb(241 245 249) !important;
 }
+
+/* ===== RADIX UI COMPONENTS - Fallback CSS ===== */
+/* Garante que todos os portais do Radix tenham fundo branco e bordas claras */
+
+/* Select */
+[data-radix-popper-content-wrapper] [data-slot="select-content"],
+[data-radix-select-viewport] {
+  background-color: white !important;
+  border-color: rgb(226, 232, 240) !important;
+}
+
+[data-slot="select-item"]:hover,
+[data-slot="select-item"]:focus,
+[data-slot="select-item"][data-highlighted] {
+  background-color: rgb(241, 245, 249) !important;
+}
+
+/* Dialog / Modal */
+[data-radix-dialog-content],
+[data-slot="dialog-content"],
+[data-slot="alert-dialog-content"] {
+  background-color: white !important;
+  border-color: rgb(226, 232, 240) !important;
+}
+
+/* Dropdown Menu */
+[data-radix-popper-content-wrapper] [data-slot="dropdown-menu-content"],
+[data-radix-popper-content-wrapper] [data-slot="dropdown-menu-sub-content"] {
+  background-color: white !important;
+  border-color: rgb(226, 232, 240) !important;
+}
+
+[data-slot="dropdown-menu-item"]:hover,
+[data-slot="dropdown-menu-item"]:focus,
+[data-slot="dropdown-menu-item"][data-highlighted] {
+  background-color: rgb(241, 245, 249) !important;
+}
+
+/* Popover */
+[data-radix-popper-content-wrapper] [data-slot="popover-content"] {
+  background-color: white !important;
+  border-color: rgb(226, 232, 240) !important;
+}
+
+/* Context Menu */
+[data-radix-popper-content-wrapper] [data-slot="context-menu-content"],
+[data-radix-popper-content-wrapper] [data-slot="context-menu-sub-content"] {
+  background-color: white !important;
+  border-color: rgb(226, 232, 240) !important;
+}
+
+/* Tooltip */
+[data-radix-popper-content-wrapper] [data-slot="tooltip-content"] {
+  background-color: rgb(15, 23, 42) !important;
+  border-color: rgb(15, 23, 42) !important;
+}
+
+/* Separadores */
+[data-slot="select-separator"],
+[data-slot="dropdown-menu-separator"],
+[data-slot="context-menu-separator"] {
+  background-color: rgb(226, 232, 240) !important;
+}
+
+/* Radix Scroll Areas */
+[data-radix-scroll-area-viewport] {
+  background-color: white !important;
+}
+
+/* Todos os menus do Radix - regra geral de segurança */
+[role="menu"],
+[role="listbox"] {
+  background-color: white !important;
+  border-color: rgb(226, 232, 240) !important;
+}
+
+[role="menuitem"]:hover,
+[role="menuitem"]:focus,
+[role="option"]:hover,
+[role="option"]:focus,
+[role="menuitem"][data-highlighted],
+[role="option"][data-highlighted] {
+  background-color: rgb(241, 245, 249) !important;
+}
