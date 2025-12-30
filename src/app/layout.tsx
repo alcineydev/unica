@@ -21,7 +21,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: '#09090b',
+  themeColor: '#2563EB',
 }
 
 export const metadata: Metadata = {
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   manifest: '/api/manifest',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
     title: 'UNICA',
   },
   icons: {
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   other: {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'apple-mobile-web-app-status-bar-style': 'default',
   },
   formatDetection: {
     telephone: false,
@@ -61,32 +61,29 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" className="light">
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var theme = localStorage.getItem('theme');
-                  var systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                  var activeTheme = theme === 'system' || !theme ? systemTheme : theme;
-                  document.documentElement.classList.add(activeTheme);
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
+        <meta name="color-scheme" content="light" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-slate-50 text-slate-900`}
       >
         <Providers>
           <ServiceWorkerRegister />
           {children}
           <InstallPrompt />
         </Providers>
-        <Toaster richColors position="top-right" />
+        <Toaster
+          richColors
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: 'white',
+              border: '1px solid #e2e8f0',
+              color: '#0f172a',
+            },
+          }}
+        />
       </body>
     </html>
   )

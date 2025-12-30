@@ -2,25 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { UserAvatar } from '@/components/ui/user-avatar'
-import { 
-  Users, 
-  Building2, 
-  DollarSign, 
+import {
+  Users,
+  Building2,
+  CreditCard,
   TrendingUp,
-  TrendingDown,
+  ArrowUpRight,
+  ArrowDownRight,
+  Calendar,
+  Loader2,
   UserPlus,
   Gift,
-  CreditCard,
-  ArrowRight,
-  Loader2,
-  Activity,
-  BarChart3
+  DollarSign,
+  Activity
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface DashboardStats {
   totalAssinantes: number
@@ -49,7 +44,7 @@ interface ChartDataPoint {
   assinaturas: number
 }
 
-export default function DashboardPage() {
+export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [activities, setActivities] = useState<RecentActivity[]>([])
   const [chartData, setChartData] = useState<ChartDataPoint[]>([])
@@ -63,7 +58,7 @@ export default function DashboardPage() {
     try {
       const response = await fetch('/api/admin/dashboard')
       const data = await response.json()
-      
+
       if (data.stats) {
         setStats(data.stats)
         setActivities(data.recentActivities || [])
@@ -83,35 +78,62 @@ export default function DashboardPage() {
     }).format(value)
   }
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
+  const statsCards = [
+    {
+      title: 'Total Assinantes',
+      value: stats?.totalAssinantes || 0,
+      change: `${stats?.assinantesGrowth || 0}%`,
+      trend: (stats?.assinantesGrowth || 0) >= 0 ? 'up' : 'down',
+      icon: Users,
+      color: 'brand',
+      href: '/admin/assinantes'
+    },
+    {
+      title: 'Parceiros Ativos',
+      value: stats?.parceirosAtivos || 0,
+      change: `${stats?.parceirosGrowth || 0}%`,
+      trend: (stats?.parceirosGrowth || 0) >= 0 ? 'up' : 'down',
+      icon: Building2,
+      color: 'success',
+      href: '/admin/parceiros'
+    },
+    {
+      title: 'Receita Mensal',
+      value: formatCurrency(stats?.receitaMensal || 0),
+      change: `${stats?.receitaGrowth || 0}%`,
+      trend: (stats?.receitaGrowth || 0) >= 0 ? 'up' : 'down',
+      icon: DollarSign,
+      color: 'warning',
+      href: '/admin/assinantes'
+    },
+    {
+      title: 'Taxa Conversão',
+      value: `${stats?.taxaConversao || 0}%`,
+      change: `${stats?.assinantesAtivos || 0}/${stats?.totalAssinantes || 0}`,
+      trend: 'neutral',
+      icon: Activity,
+      color: 'purple',
+      href: '/admin/assinantes'
+    },
+  ]
 
-    if (diffMins < 1) return 'agora'
-    if (diffMins < 60) return `há ${diffMins}min`
-    if (diffHours < 24) return `há ${diffHours}h`
-    if (diffDays < 7) return `há ${diffDays}d`
-    return date.toLocaleDateString('pt-BR')
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return <Badge className="bg-green-100 text-green-700 border-0 text-[10px]">Ativo</Badge>
-      case 'PENDING':
-        return <Badge className="bg-yellow-100 text-yellow-700 border-0 text-[10px]">Pendente</Badge>
-      case 'CANCELLED':
-      case 'CANCELED':
-        return <Badge className="bg-red-100 text-red-700 border-0 text-[10px]">Cancelado</Badge>
-      case 'SUSPENDED':
-        return <Badge className="bg-orange-100 text-orange-700 border-0 text-[10px]">Suspenso</Badge>
-      default:
-        return <Badge variant="secondary" className="text-[10px]">{status}</Badge>
-    }
+  const colorClasses: Record<string, { bg: string; icon: string }> = {
+    brand: {
+      bg: 'bg-brand-100',
+      icon: 'text-brand-600',
+    },
+    success: {
+      bg: 'bg-success-100',
+      icon: 'text-success-600',
+    },
+    warning: {
+      bg: 'bg-warning-100',
+      icon: 'text-warning-600',
+    },
+    purple: {
+      bg: 'bg-purple-100',
+      icon: 'text-purple-600',
+    },
   }
 
   // Calcular máximo para o gráfico
@@ -121,274 +143,213 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Carregando dashboard...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-brand-600 mx-auto mb-4" />
+          <p className="text-slate-500">Carregando dashboard...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Header */}
+    <div className="space-y-6">
+      {/* Page Header */}
       <div>
-        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Visão geral do sistema</p>
+        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-slate-500 mt-1">Visão geral do sistema</p>
       </div>
 
-      {/* Cards de Estatísticas */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        {/* Total Assinantes */}
-        <Card className="overflow-hidden">
-          <CardContent className="p-3 md:p-4 lg:p-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground truncate">
-                  Total Assinantes
-                </p>
-                <p className="text-lg md:text-2xl lg:text-3xl font-bold mt-0.5">
-                  {stats?.totalAssinantes || 0}
-                </p>
-                <div className={cn(
-                  "flex items-center gap-1 mt-0.5 text-[10px] md:text-xs",
-                  (stats?.assinantesGrowth || 0) >= 0 ? "text-green-600" : "text-red-600"
-                )}>
-                  {(stats?.assinantesGrowth || 0) >= 0 ? (
-                    <TrendingUp className="h-2.5 w-2.5 md:h-3 md:w-3" />
-                  ) : (
-                    <TrendingDown className="h-2.5 w-2.5 md:h-3 md:w-3" />
-                  )}
-                  <span className="truncate">{stats?.assinantesGrowth || 0}%</span>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statsCards.map((stat) => {
+          const colors = colorClasses[stat.color]
+          return (
+            <Link
+              key={stat.title}
+              href={stat.href}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md hover:border-slate-200 transition-all group"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">{stat.title}</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">
+                    {typeof stat.value === 'number' ? stat.value.toLocaleString('pt-BR') : stat.value}
+                  </p>
+                  <div className="flex items-center gap-1 mt-2">
+                    {stat.trend === 'up' ? (
+                      <ArrowUpRight className="w-4 h-4 text-success-500" />
+                    ) : stat.trend === 'down' ? (
+                      <ArrowDownRight className="w-4 h-4 text-red-500" />
+                    ) : null}
+                    <span className={`text-sm font-medium ${
+                      stat.trend === 'up' ? 'text-success-600' :
+                      stat.trend === 'down' ? 'text-red-600' :
+                      'text-slate-500'
+                    }`}>
+                      {stat.change}
+                    </span>
+                  </div>
+                </div>
+                <div className={`w-12 h-12 ${colors.bg} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                  <stat.icon className={`w-6 h-6 ${colors.icon}`} />
                 </div>
               </div>
-              <div className="p-1.5 md:p-2 lg:p-3 rounded-lg bg-blue-100 flex-shrink-0">
-                <Users className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Parceiros Ativos */}
-        <Card className="overflow-hidden">
-          <CardContent className="p-3 md:p-4 lg:p-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground truncate">
-                  Parceiros Ativos
-                </p>
-                <p className="text-lg md:text-2xl lg:text-3xl font-bold mt-0.5">
-                  {stats?.parceirosAtivos || 0}
-                </p>
-                <div className={cn(
-                  "flex items-center gap-1 mt-0.5 text-[10px] md:text-xs",
-                  (stats?.parceirosGrowth || 0) >= 0 ? "text-green-600" : "text-red-600"
-                )}>
-                  {(stats?.parceirosGrowth || 0) >= 0 ? (
-                    <TrendingUp className="h-2.5 w-2.5 md:h-3 md:w-3" />
-                  ) : (
-                    <TrendingDown className="h-2.5 w-2.5 md:h-3 md:w-3" />
-                  )}
-                  <span className="truncate">{stats?.parceirosGrowth || 0}%</span>
-                </div>
-              </div>
-              <div className="p-1.5 md:p-2 lg:p-3 rounded-lg bg-purple-100 flex-shrink-0">
-                <Building2 className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Receita Mensal */}
-        <Card className="overflow-hidden">
-          <CardContent className="p-3 md:p-4 lg:p-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground truncate">
-                  Receita Mensal
-                </p>
-                <p className="text-sm md:text-xl lg:text-2xl font-bold mt-0.5 truncate">
-                  {formatCurrency(stats?.receitaMensal || 0)}
-                </p>
-                <div className={cn(
-                  "flex items-center gap-1 mt-0.5 text-[10px] md:text-xs",
-                  (stats?.receitaGrowth || 0) >= 0 ? "text-green-600" : "text-red-600"
-                )}>
-                  {(stats?.receitaGrowth || 0) >= 0 ? (
-                    <TrendingUp className="h-2.5 w-2.5 md:h-3 md:w-3" />
-                  ) : (
-                    <TrendingDown className="h-2.5 w-2.5 md:h-3 md:w-3" />
-                  )}
-                  <span className="truncate">{stats?.receitaGrowth || 0}%</span>
-                </div>
-              </div>
-              <div className="p-1.5 md:p-2 lg:p-3 rounded-lg bg-green-100 flex-shrink-0">
-                <DollarSign className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Taxa de Conversão */}
-        <Card className="overflow-hidden">
-          <CardContent className="p-3 md:p-4 lg:p-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground truncate">
-                  Taxa Conversão
-                </p>
-                <p className="text-lg md:text-2xl lg:text-3xl font-bold mt-0.5">
-                  {stats?.taxaConversao || 0}%
-                </p>
-                <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 truncate">
-                  {stats?.assinantesAtivos || 0}/{stats?.totalAssinantes || 0}
-                </p>
-              </div>
-              <div className="p-1.5 md:p-2 lg:p-3 rounded-lg bg-orange-100 flex-shrink-0">
-                <Activity className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </Link>
+          )
+        })}
       </div>
 
-      {/* Gráfico e Atividades */}
-      <div className="grid gap-4 lg:grid-cols-5">
-        {/* Gráfico de Assinaturas */}
-        <Card className="lg:col-span-3">
-          <CardHeader className="p-3 md:p-4 lg:p-6 pb-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm md:text-base lg:text-lg">Novas Assinaturas</CardTitle>
-                <CardDescription className="text-xs md:text-sm">Últimos 30 dias</CardDescription>
-              </div>
-              <BarChart3 className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Chart Area */}
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Novas Assinaturas</h2>
+              <p className="text-sm text-slate-500">Últimos 30 dias</p>
             </div>
-          </CardHeader>
-          <CardContent className="p-3 md:p-4 lg:p-6 pt-0">
-            {chartData.length > 0 ? (
-              <div className="h-40 md:h-56 lg:h-64">
-                {/* Gráfico de barras simples */}
-                <div className="flex items-end justify-between h-32 md:h-44 lg:h-52 gap-0.5">
-                  {chartData.map((data, index) => (
-                    <div
-                      key={index}
-                      className="flex-1 bg-primary/20 hover:bg-primary/40 transition-colors rounded-t relative group cursor-pointer"
-                      style={{
-                        height: `${Math.max((data.assinaturas / maxAssinaturas) * 100, data.assinaturas > 0 ? 5 : 0)}%`,
-                        minHeight: data.assinaturas > 0 ? '4px' : '0'
-                      }}
-                    >
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-foreground text-background text-[10px] md:text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
-                        {new Date(data.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                        <br />
-                        {data.assinaturas}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {/* Labels */}
-                <div className="flex justify-between mt-2 text-[10px] md:text-xs text-muted-foreground">
-                  <span>{chartData[0] && new Date(chartData[0].date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
-                  <span>{chartData[chartData.length - 1] && new Date(chartData[chartData.length - 1].date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="h-40 md:h-56 lg:h-64 flex items-center justify-center text-muted-foreground text-sm">
-                Nenhum dado disponível
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            <button className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all">
+              <Calendar className="w-5 h-5" />
+            </button>
+          </div>
 
-        {/* Atividades Recentes */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="p-3 md:p-4 lg:p-6 pb-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm md:text-base lg:text-lg">Últimos Assinantes</CardTitle>
-                <CardDescription className="text-xs md:text-sm">Cadastros recentes</CardDescription>
-              </div>
-              <Link href="/admin/assinantes">
-                <Button variant="ghost" size="sm" className="h-8 px-2 text-xs md:text-sm">
-                  Ver todos
-                  <ArrowRight className="ml-1 h-3 w-3 md:h-4 md:w-4" />
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent className="p-3 md:p-4 lg:p-6 pt-0">
-            {activities.length > 0 ? (
-              <div className="space-y-3 max-h-48 md:max-h-64 overflow-y-auto">
-                {activities.slice(0, 5).map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-2 md:gap-3">
-                    <UserAvatar 
-                      src={activity.avatar}
-                      name={activity.name}
-                      size="sm"
-                      className="h-7 w-7 md:h-8 md:w-8"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-xs md:text-sm truncate">{activity.name}</p>
-                      <p className="text-[10px] md:text-xs text-muted-foreground truncate">{activity.email}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        {getStatusBadge(activity.status)}
-                        <span className="text-[10px] md:text-xs text-muted-foreground">
-                          {formatDate(activity.createdAt)}
-                        </span>
-                      </div>
+          {chartData.length > 0 ? (
+            <div className="h-64">
+              {/* Gráfico de barras simples */}
+              <div className="flex items-end justify-between h-52 gap-0.5">
+                {chartData.map((data, index) => (
+                  <div
+                    key={index}
+                    className="flex-1 bg-brand-200 hover:bg-brand-400 transition-colors rounded-t relative group cursor-pointer"
+                    style={{
+                      height: `${Math.max((data.assinaturas / maxAssinaturas) * 100, data.assinaturas > 0 ? 5 : 0)}%`,
+                      minHeight: data.assinaturas > 0 ? '4px' : '0'
+                    }}
+                  >
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                      {new Date(data.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                      <br />
+                      {data.assinaturas} {data.assinaturas === 1 ? 'assinatura' : 'assinaturas'}
                     </div>
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-6 md:py-8 text-muted-foreground">
-                <Users className="h-6 w-6 md:h-8 md:w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-xs md:text-sm">Nenhum assinante ainda</p>
+              {/* Labels */}
+              <div className="flex justify-between mt-2 text-xs text-slate-500">
+                <span>{chartData[0] && new Date(chartData[0].date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+                <span>{chartData[chartData.length - 1] && new Date(chartData[chartData.length - 1].date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+              <p className="text-slate-400">Nenhum dado disponível</p>
+            </div>
+          )}
+        </div>
 
-      {/* Ações Rápidas */}
-      <Card>
-        <CardHeader className="p-3 md:p-4 lg:p-6 pb-2">
-          <CardTitle className="text-sm md:text-base lg:text-lg">Ações Rápidas</CardTitle>
-          <CardDescription className="text-xs md:text-sm">Acesse as funcionalidades mais usadas</CardDescription>
-        </CardHeader>
-        <CardContent className="p-3 md:p-4 lg:p-6 pt-0">
-          <div className="grid gap-2 md:gap-3 grid-cols-2 md:grid-cols-4">
-            <Link href="/admin/assinantes">
-              <Button variant="outline" className="w-full h-auto py-2.5 md:py-3 lg:py-4 flex flex-col gap-1 md:gap-2">
-                <UserPlus className="h-4 w-4 md:h-5 md:w-5" />
-                <span className="text-[10px] md:text-xs lg:text-sm font-medium">Novo Assinante</span>
-              </Button>
-            </Link>
-            
-            <Link href="/admin/parceiros/novo">
-              <Button variant="outline" className="w-full h-auto py-2.5 md:py-3 lg:py-4 flex flex-col gap-1 md:gap-2">
-                <Building2 className="h-4 w-4 md:h-5 md:w-5" />
-                <span className="text-[10px] md:text-xs lg:text-sm font-medium">Novo Parceiro</span>
-              </Button>
-            </Link>
-            
-            <Link href="/admin/beneficios">
-              <Button variant="outline" className="w-full h-auto py-2.5 md:py-3 lg:py-4 flex flex-col gap-1 md:gap-2">
-                <Gift className="h-4 w-4 md:h-5 md:w-5" />
-                <span className="text-[10px] md:text-xs lg:text-sm font-medium">Benefícios</span>
-              </Button>
-            </Link>
-            
-            <Link href="/admin/planos">
-              <Button variant="outline" className="w-full h-auto py-2.5 md:py-3 lg:py-4 flex flex-col gap-1 md:gap-2">
-                <CreditCard className="h-4 w-4 md:h-5 md:w-5" />
-                <span className="text-[10px] md:text-xs lg:text-sm font-medium">Planos</span>
-              </Button>
+        {/* Recent Subscribers */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Últimos Assinantes</h2>
+              <p className="text-sm text-slate-500">Cadastros recentes</p>
+            </div>
+            <Link
+              href="/admin/assinantes"
+              className="text-sm text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
+            >
+              Ver todos
+              <ArrowUpRight className="w-4 h-4" />
             </Link>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="space-y-4">
+            {activities.length > 0 ? (
+              activities.slice(0, 5).map((activity) => (
+                <div key={activity.id} className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-sm font-medium">
+                      {activity.name?.charAt(0) || 'A'}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900 truncate">
+                      {activity.name}
+                    </p>
+                    <p className="text-xs text-slate-500 truncate">
+                      {activity.email}
+                    </p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    activity.status === 'ACTIVE'
+                      ? 'bg-success-100 text-success-700'
+                      : activity.status === 'PENDING'
+                      ? 'bg-warning-100 text-warning-700'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {activity.status === 'ACTIVE' ? 'Ativo' :
+                     activity.status === 'PENDING' ? 'Pendente' : activity.status}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-sm text-slate-500 py-8">
+                Nenhum assinante cadastrado
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-slate-900">Ações Rápidas</h2>
+          <p className="text-sm text-slate-500">Acesse as funcionalidades mais usadas</p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link
+            href="/admin/assinantes"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl border border-slate-200 hover:border-brand-300 hover:bg-brand-50 transition-all group"
+          >
+            <div className="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <UserPlus className="w-6 h-6 text-brand-600" />
+            </div>
+            <span className="text-sm font-medium text-slate-700">Novo Assinante</span>
+          </Link>
+
+          <Link
+            href="/admin/parceiros/novo"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl border border-slate-200 hover:border-success-300 hover:bg-success-50 transition-all group"
+          >
+            <div className="w-12 h-12 bg-success-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Building2 className="w-6 h-6 text-success-600" />
+            </div>
+            <span className="text-sm font-medium text-slate-700">Novo Parceiro</span>
+          </Link>
+
+          <Link
+            href="/admin/beneficios"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl border border-slate-200 hover:border-warning-300 hover:bg-warning-50 transition-all group"
+          >
+            <div className="w-12 h-12 bg-warning-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Gift className="w-6 h-6 text-warning-600" />
+            </div>
+            <span className="text-sm font-medium text-slate-700">Benefícios</span>
+          </Link>
+
+          <Link
+            href="/admin/planos"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50 transition-all group"
+          >
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <CreditCard className="w-6 h-6 text-purple-600" />
+            </div>
+            <span className="text-sm font-medium text-slate-700">Planos</span>
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }

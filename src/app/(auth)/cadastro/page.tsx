@@ -170,11 +170,11 @@ function CadastroForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
+    <div className="min-h-screen bg-slate-50">
       <div className="container max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/login" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+          <Link href="/login" className="inline-flex items-center text-sm text-slate-500 hover:text-slate-700">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar para login
           </Link>
@@ -184,58 +184,58 @@ function CadastroForm() {
           {/* Lado Esquerdo - Beneficios */}
           <div className="hidden lg:block">
             <div className="sticky top-8">
-              <h1 className="text-4xl font-bold mb-4">
-                Junte-se ao <span className="text-primary">UNICA</span>
+              <h1 className="text-4xl font-bold text-slate-900 mb-4">
+                Junte-se ao <span className="text-brand-600">UNICA</span>
               </h1>
-              <p className="text-xl text-muted-foreground mb-8">
+              <p className="text-xl text-slate-500 mb-8">
                 Acesse descontos exclusivos em centenas de estabelecimentos parceiros.
               </p>
 
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
-                    <Percent className="h-6 w-6 text-primary" />
+                  <div className="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center shrink-0">
+                    <Percent className="h-6 w-6 text-brand-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Descontos de ate 50%</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Em restaurantes, lojas, servicos e muito mais.
+                    <h3 className="font-semibold text-slate-900 mb-1">Descontos de até 50%</h3>
+                    <p className="text-slate-500 text-sm">
+                      Em restaurantes, lojas, serviços e muito mais.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center shrink-0">
-                    <Gift className="h-6 w-6 text-green-600" />
+                  <div className="w-12 h-12 bg-success-100 rounded-xl flex items-center justify-center shrink-0">
+                    <Gift className="h-6 w-6 text-success-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Cashback em compras</h3>
-                    <p className="text-muted-foreground text-sm">
+                    <h3 className="font-semibold text-slate-900 mb-1">Cashback em compras</h3>
+                    <p className="text-slate-500 text-sm">
                       Receba parte do seu dinheiro de volta a cada compra.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center shrink-0">
-                    <Store className="h-6 w-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center shrink-0">
+                    <Store className="h-6 w-6 text-brand-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">500+ Parceiros</h3>
-                    <p className="text-muted-foreground text-sm">
+                    <h3 className="font-semibold text-slate-900 mb-1">500+ Parceiros</h3>
+                    <p className="text-slate-500 text-sm">
                       Rede crescente de estabelecimentos na sua cidade.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-12 p-6 bg-primary/5 rounded-2xl border border-primary/10">
+              <div className="mt-12 p-6 bg-brand-50 rounded-2xl border border-brand-100">
                 <div className="flex items-center gap-3 mb-3">
-                  <CheckCircle className="h-5 w-5 text-primary" />
-                  <span className="font-medium">Cadastro rapido e gratuito</span>
+                  <CheckCircle className="h-5 w-5 text-brand-600" />
+                  <span className="font-medium text-slate-900">Cadastro rápido e gratuito</span>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Crie sua conta em menos de 2 minutos e escolha o plano ideal para voce.
+                <p className="text-sm text-slate-500">
+                  Crie sua conta em menos de 2 minutos e escolha o plano ideal para você.
                 </p>
               </div>
             </div>
@@ -243,14 +243,14 @@ function CadastroForm() {
 
           {/* Lado Direito - Formulario */}
           <div>
-            <Card className="shadow-xl">
+            <Card className="shadow-xl rounded-3xl border-0">
               <CardHeader className="text-center pb-2">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <User className="h-8 w-8 text-primary" />
+                <div className="w-16 h-16 bg-brand-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <User className="h-8 w-8 text-brand-600" />
                 </div>
-                <CardTitle className="text-2xl">Criar sua conta</CardTitle>
-                <CardDescription>
-                  Preencha seus dados para comecar a economizar
+                <CardTitle className="text-2xl text-slate-900">Criar sua conta</CardTitle>
+                <CardDescription className="text-slate-500">
+                  Preencha seus dados para começar a economizar
                 </CardDescription>
               </CardHeader>
 
@@ -575,9 +575,9 @@ function CadastroForm() {
                   )}
                 </form>
 
-                <p className="text-center text-sm text-muted-foreground mt-6">
-                  Ja tem uma conta?{' '}
-                  <Link href="/login" className="text-primary font-medium hover:underline">
+                <p className="text-center text-sm text-slate-500 mt-6">
+                  Já tem uma conta?{' '}
+                  <Link href="/login" className="text-brand-600 font-medium hover:underline">
                     Fazer login
                   </Link>
                 </p>

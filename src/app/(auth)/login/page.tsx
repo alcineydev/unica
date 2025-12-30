@@ -4,9 +4,6 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -110,112 +107,128 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex">
       {/* Lado Esquerdo - Branding (apenas desktop) */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 text-white p-12 flex-col justify-between">
-        <div>
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-              <span className="text-zinc-900 font-bold text-xl">U</span>
-            </div>
-            <span className="text-2xl font-bold">UNICA</span>
-          </Link>
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-hero relative overflow-hidden">
+        {/* Padrão de fundo */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-brand-500 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-brand-600 rounded-full blur-3xl" />
         </div>
 
-        <div className="space-y-8">
+        <div className="relative z-10 flex flex-col justify-between p-12 w-full text-white">
           <div>
-            <h1 className="text-4xl font-bold mb-4">
-              Bem-vindo de volta!
-            </h1>
-            <p className="text-xl text-zinc-400">
-              Acesse sua conta e aproveite todos os beneficios exclusivos.
-            </p>
+            <Link href="/" className="inline-flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-brand rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-xl">U</span>
+              </div>
+              <span className="text-2xl font-bold">UNICA</span>
+            </Link>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white/5 backdrop-blur rounded-2xl p-6">
-              <Gift className="h-8 w-8 text-primary mb-3" />
-              <h3 className="font-semibold mb-1">Descontos</h3>
-              <p className="text-sm text-zinc-400">Ate 50% em parceiros</p>
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-4xl lg:text-5xl font-bold leading-tight">
+                Bem-vindo de volta!
+              </h1>
+              <p className="text-slate-400 text-lg mt-4 max-w-md">
+                Acesse sua conta e aproveite todos os benefícios exclusivos do clube.
+              </p>
             </div>
-            <div className="bg-white/5 backdrop-blur rounded-2xl p-6">
-              <TrendingUp className="h-8 w-8 text-green-400 mb-3" />
-              <h3 className="font-semibold mb-1">Cashback</h3>
-              <p className="text-sm text-zinc-400">Dinheiro de volta</p>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
+                <div className="w-10 h-10 bg-gradient-brand rounded-lg flex items-center justify-center mb-3">
+                  <Gift className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="font-semibold">Descontos</h3>
+                <p className="text-slate-400 text-sm mt-1">Até 50% em parceiros</p>
+              </div>
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
+                <div className="w-10 h-10 bg-gradient-success rounded-lg flex items-center justify-center mb-3">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="font-semibold">Cashback</h3>
+                <p className="text-slate-400 text-sm mt-1">Dinheiro de volta</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-4 text-sm text-zinc-500">
-          <Shield className="h-4 w-4" />
-          <span>Seus dados estao protegidos</span>
+          <div className="flex items-center gap-2 text-slate-500 text-sm">
+            <Shield className="w-4 h-4" />
+            <span>Seus dados estão protegidos</span>
+          </div>
         </div>
       </div>
 
       {/* Lado Direito - Formulario */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-950">
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-slate-50">
         <div className="w-full max-w-md">
           {/* Logo Mobile */}
           <div className="lg:hidden text-center mb-8">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-2xl">U</span>
+            <div className="inline-flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-brand rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-xl">U</span>
               </div>
-            </Link>
-            <h1 className="text-2xl font-bold mt-4">UNICA</h1>
-            <p className="text-muted-foreground">Clube de Beneficios</p>
+              <span className="text-slate-900 text-2xl font-bold">UNICA</span>
+            </div>
           </div>
 
           {/* Card de Login */}
-          <Card className="shadow-xl border-0">
+          <Card className="shadow-xl border-0 rounded-3xl">
             <CardHeader className="text-center pb-2">
-              <CardTitle className="text-2xl">Entrar</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-2xl text-slate-900">Entrar</CardTitle>
+              <CardDescription className="text-slate-500">
                 Acesse sua conta para continuar
               </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-6">
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <label className="text-sm font-medium text-slate-700">Email</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
                       id="email"
                       name="email"
                       type="email"
                       placeholder="seu@email.com"
-                      className="pl-10 h-12"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 outline-none transition-all disabled:opacity-50"
                       required
                       disabled={isLoading}
                     />
                   </div>
                 </div>
 
+                {/* Senha */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Senha</Label>
-                    <Link href="/recuperar-senha" className="text-xs text-primary hover:underline">
+                    <label className="text-sm font-medium text-slate-700">Senha</label>
+                    <Link
+                      href="/recuperar-senha"
+                      className="text-sm text-brand-600 hover:text-brand-700 font-medium"
+                    >
                       Esqueci minha senha
                     </Link>
                   </div>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
                       id="password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      className="pl-10 pr-10 h-12"
+                      className="w-full pl-12 pr-12 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 outline-none transition-all disabled:opacity-50"
                       required
                       disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 outline-none"
                       tabIndex={-1}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
@@ -226,19 +239,20 @@ function LoginForm() {
                   </div>
                 )}
 
-                <Button type="submit" className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white font-medium py-3 px-6 rounded-xl shadow-sm hover:from-brand-700 hover:to-brand-800 hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:ring-2 focus:ring-brand-500/50 focus:ring-offset-2 border-none"
+                >
                   {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Entrando...
-                    </>
+                    <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
                       Entrar
-                      <ArrowRight className="h-4 w-4 ml-2" />
+                      <ArrowRight className="w-5 h-5" />
                     </>
                   )}
-                </Button>
+                </button>
               </form>
 
               <div className="relative">
@@ -252,36 +266,36 @@ function LoginForm() {
                 </div>
               </div>
 
-              {/* Botoes de Cadastro */}
+              {/* Links de Cadastro */}
               <div className="space-y-3">
                 <Link href="/cadastro" className="block">
-                  <Button variant="outline" className="w-full h-12 justify-between group">
+                  <div className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-white hover:border-brand-300 hover:bg-slate-50 transition-all cursor-pointer group">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <User className="h-4 w-4 text-primary" />
+                      <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center">
+                        <User className="w-5 h-5 text-brand-600" />
                       </div>
                       <div className="text-left">
-                        <div className="font-medium">Seja um Assinante</div>
-                        <div className="text-xs text-muted-foreground">Economize com descontos exclusivos</div>
+                        <div className="font-semibold text-slate-900">Seja um Assinante</div>
+                        <div className="text-xs text-slate-500">Economize com descontos exclusivos</div>
                       </div>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </Button>
+                    <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-brand-600 group-hover:translate-x-1 transition-all" />
+                  </div>
                 </Link>
 
                 <Link href="/interesse-parceiro" className="block">
-                  <Button variant="outline" className="w-full h-12 justify-between group">
+                  <div className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-white hover:border-warning-300 hover:bg-slate-50 transition-all cursor-pointer group">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
-                        <Store className="h-4 w-4 text-orange-600" />
+                      <div className="w-10 h-10 bg-warning-100 rounded-xl flex items-center justify-center">
+                        <Store className="w-5 h-5 text-warning-600" />
                       </div>
                       <div className="text-left">
-                        <div className="font-medium">Seja um Parceiro</div>
-                        <div className="text-xs text-muted-foreground">Aumente suas vendas conosco</div>
+                        <div className="font-semibold text-slate-900">Seja um Parceiro</div>
+                        <div className="text-xs text-slate-500">Aumente suas vendas conosco</div>
                       </div>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-orange-600 transition-colors" />
-                  </Button>
+                    <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-warning-600 group-hover:translate-x-1 transition-all" />
+                  </div>
                 </Link>
               </div>
             </CardContent>

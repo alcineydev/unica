@@ -1,93 +1,126 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
-import { Button } from '@/components/ui/button'
+import { useState } from 'react'
+import Link from 'next/link'
+import { useSession, signOut } from 'next-auth/react'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Bell, LogOut, User, Settings } from 'lucide-react'
-import { useAuth } from '@/hooks'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
+  Bell,
+  Search,
+  ChevronDown,
+  User,
+  Settings,
+  LogOut,
+  Sun
+} from 'lucide-react'
 
 export function AdminHeader() {
   const { data: session } = useSession()
-  const { logout } = useAuth()
-
-  const user = session?.user
-  const initials = user?.name
-    ? user.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : 'AD'
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
-      <div>
-        <h2 className="text-lg font-semibold">Painel Administrativo</h2>
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-30">
+      {/* Search */}
+      <div className="flex-1 max-w-md">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Buscar..."
+            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all"
+          />
+        </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        {/* Toggle de Tema */}
-        <ThemeToggle />
+      {/* Right Side */}
+      <div className="flex items-center gap-2">
+        {/* Theme Toggle (visual only - tema fixo) */}
+        <button className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all">
+          <Sun className="w-5 h-5" />
+        </button>
 
-        {/* Notificações */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-            3
-          </span>
-        </Button>
+        {/* Notifications */}
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all relative"
+          >
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+          </button>
 
-        {/* Menu do usuário */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user?.name}</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {user?.email}
-                </p>
+          {showNotifications && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+              <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
+                <div className="p-4 border-b border-slate-100">
+                  <h3 className="font-semibold text-slate-900">Notificações</h3>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  <div className="p-4 text-center text-sm text-slate-500">
+                    Nenhuma notificação nova
+                  </div>
+                </div>
               </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>Meu Perfil</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Configurações</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => logout()}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Sair</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </>
+          )}
+        </div>
+
+        {/* User Menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 transition-all"
+          >
+            <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-brand-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-medium">
+                {session?.user?.name?.charAt(0) || 'A'}
+              </span>
+            </div>
+            <div className="hidden md:block text-left">
+              <p className="text-sm font-medium text-slate-900 truncate max-w-[120px]">
+                {session?.user?.name || 'Administrador'}
+              </p>
+              <p className="text-xs text-slate-500">Admin</p>
+            </div>
+            <ChevronDown className="w-4 h-4 text-slate-400" />
+          </button>
+
+          {showUserMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+              <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
+                <div className="p-2">
+                  <Link
+                    href="/admin/perfil"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate-700 hover:bg-slate-100 transition-all"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    <User className="w-4 h-4" />
+                    Meu Perfil
+                  </Link>
+                  <Link
+                    href="/admin/configuracoes"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate-700 hover:bg-slate-100 transition-all"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    <Settings className="w-4 h-4" />
+                    Configurações
+                  </Link>
+                  <hr className="my-2 border-slate-100" />
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/login' })}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-600 hover:bg-red-50 transition-all"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </header>
   )
 }
-

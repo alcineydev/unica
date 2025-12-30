@@ -1,5 +1,8 @@
 import { Metadata } from 'next'
-import { AdminSidebar } from '@/components/admin'
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { AdminSidebar } from '@/components/admin/sidebar'
+import { AdminHeader } from '@/components/admin/header'
 
 export const metadata: Metadata = {
   title: {
@@ -9,21 +12,32 @@ export const metadata: Metadata = {
   description: 'Painel Administrativo - Unica Clube de Benefícios',
 }
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const session = await auth()
+
+  if (!session) {
+    redirect('/login')
+  }
+
+  if (session.user.role !== 'ADMIN' && session.user.role !== 'DEVELOPER') {
+    redirect('/app')
+  }
+
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-slate-50">
       <AdminSidebar />
-      
-      {/* Main Content - pt-14 para compensar header fixo */}
-      <main className="lg:ml-64 min-h-screen pt-14 transition-all duration-300">
-        <div className="p-4 md:p-6">
+
+      <div className="lg:pl-72">
+        <AdminHeader />
+
+        <main className="p-6">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   )
 }
