@@ -28,6 +28,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { PageHeader } from '@/components/admin/page-header'
+import { StatusBadge, getSubscriptionStatus } from '@/components/admin/status-badge'
 import {
   Table,
   TableBody,
@@ -174,34 +176,6 @@ interface Subscriber {
   _count?: {
     transactions: number
   }
-}
-
-// Função para obter label do status com fallback seguro
-function getStatusLabel(status: string | undefined | null): string {
-  if (!status) return 'Pendente'
-  const statusMap: Record<string, string> = {
-    'ACTIVE': 'Ativo',
-    'PENDING': 'Pendente',
-    'INACTIVE': 'Inativo',
-    'EXPIRED': 'Expirado',
-    'SUSPENDED': 'Suspenso',
-    'CANCELED': 'Cancelado',
-  }
-  return statusMap[status] || status
-}
-
-// Função para obter cor do status com fallback seguro
-function getStatusColor(status: string | undefined | null): string {
-  if (!status) return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
-  const colorMap: Record<string, string> = {
-    'ACTIVE': 'bg-green-500/10 text-green-600 border-green-500/20',
-    'PENDING': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
-    'INACTIVE': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
-    'EXPIRED': 'bg-red-500/10 text-red-600 border-red-500/20',
-    'SUSPENDED': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-    'CANCELED': 'bg-red-500/10 text-red-600 border-red-500/20',
-  }
-  return colorMap[status] || 'bg-gray-500/10 text-gray-600 border-gray-500/20'
 }
 
 // Componente principal da página (envolvido no ErrorBoundary)
@@ -499,18 +473,18 @@ function AssinantesContent() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight">Assinantes</h1>
-          <p className="text-sm text-muted-foreground">
-            Gerencie os clientes do clube de benefícios
-          </p>
-        </div>
-        <Button onClick={handleCreate} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Assinante
-        </Button>
-      </div>
+      <PageHeader
+        title="Assinantes"
+        description="Gerencie os clientes do clube de benefícios"
+        breadcrumbs={[
+          { label: 'Admin', href: '/admin' },
+          { label: 'Assinantes' }
+        ]}
+        action={{
+          label: 'Novo Assinante',
+          onClick: handleCreate
+        }}
+      />
 
       {/* Filtros */}
       <div className="flex flex-col gap-3">
@@ -596,12 +570,10 @@ function AssinantesContent() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-medium truncate">{subscriber.name || 'Sem nome'}</p>
-                        <Badge 
-                          variant="outline" 
-                          className={getStatusColor(subscriber.subscriptionStatus)}
-                        >
-                          {getStatusLabel(subscriber.subscriptionStatus)}
-                        </Badge>
+                        {(() => {
+                          const { type, label } = getSubscriptionStatus(subscriber.subscriptionStatus)
+                          return <StatusBadge status={type} label={label} />
+                        })()}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{subscriber.user?.email}</p>
                       <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
@@ -714,12 +686,10 @@ function AssinantesContent() {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge 
-                        variant="outline" 
-                        className={getStatusColor(subscriber.subscriptionStatus)}
-                      >
-                        {getStatusLabel(subscriber.subscriptionStatus)}
-                      </Badge>
+                      {(() => {
+                        const { type, label } = getSubscriptionStatus(subscriber.subscriptionStatus)
+                        return <StatusBadge status={type} label={label} />
+                      })()}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

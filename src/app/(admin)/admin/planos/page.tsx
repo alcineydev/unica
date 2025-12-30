@@ -28,6 +28,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
+import { PageHeader } from '@/components/admin/page-header'
+import { StatusBadge, getParceiroStatus } from '@/components/admin/status-badge'
 import {
   Table,
   TableBody,
@@ -361,17 +363,19 @@ function PlanosContent() {
 
   return (
     <div className="space-y-6">
-      {/* Header responsivo */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold">Planos</h1>
-          <p className="text-sm text-muted-foreground">Crie planos combinando benefícios e definindo preços</p>
-        </div>
-        <Button onClick={handleCreate} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Plano
-        </Button>
-      </div>
+      {/* Header */}
+      <PageHeader
+        title="Planos"
+        description="Crie planos combinando benefícios e definindo preços"
+        breadcrumbs={[
+          { label: 'Admin', href: '/admin' },
+          { label: 'Planos' }
+        ]}
+        action={{
+          label: 'Novo Plano',
+          onClick: handleCreate
+        }}
+      />
 
       {/* Filtros responsivos */}
       <div className="relative">
@@ -409,9 +413,10 @@ function PlanosContent() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <p className="font-semibold truncate">{plan.name}</p>
-                        <Badge variant={plan.isActive ? "default" : "secondary"} className={plan.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
-                          {plan.isActive ? 'Ativo' : 'Inativo'}
-                        </Badge>
+                        {(() => {
+                          const { type, label } = getParceiroStatus(plan.isActive)
+                          return <StatusBadge status={type} label={label} />
+                        })()}
                       </div>
                       {plan.description && (
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{plan.description}</p>
@@ -519,9 +524,10 @@ function PlanosContent() {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={plan.isActive ? 'default' : 'secondary'} className={plan.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
-                        {plan.isActive ? 'Ativo' : 'Inativo'}
-                      </Badge>
+                      {(() => {
+                        const { type, label } = getParceiroStatus(plan.isActive)
+                        return <StatusBadge status={type} label={label} />
+                      })()}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

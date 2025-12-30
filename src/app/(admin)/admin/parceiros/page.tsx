@@ -28,6 +28,8 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
+import { PageHeader } from '@/components/admin/page-header'
+import { StatusBadge, getParceiroStatus } from '@/components/admin/status-badge'
 import {
   Table,
   TableBody,
@@ -350,19 +352,19 @@ export default function ParceirosPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header responsivo */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold">Parceiros</h1>
-          <p className="text-sm text-muted-foreground">Gerencie as empresas parceiras do clube</p>
-        </div>
-        <Link href="/admin/parceiros/novo">
-          <Button className="w-full sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Parceiro
-          </Button>
-        </Link>
-      </div>
+      {/* Header */}
+      <PageHeader
+        title="Parceiros"
+        description="Gerencie as empresas parceiras do clube"
+        breadcrumbs={[
+          { label: 'Admin', href: '/admin' },
+          { label: 'Parceiros' }
+        ]}
+        action={{
+          label: 'Novo Parceiro',
+          href: '/admin/parceiros/novo'
+        }}
+      />
 
       {/* Filtros responsivos */}
       <div className="flex flex-col gap-3">
@@ -443,9 +445,10 @@ export default function ParceirosPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <p className="font-semibold truncate">{partner.tradeName || partner.companyName}</p>
-                        <Badge variant={partner.isActive ? "default" : "secondary"} className={partner.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
-                          {partner.isActive ? 'Ativo' : 'Inativo'}
-                        </Badge>
+                        {(() => {
+                          const { type, label } = getParceiroStatus(partner.isActive)
+                          return <StatusBadge status={type} label={label} />
+                        })()}
                       </div>
                       <Badge variant="outline" className="mb-2">{getCategoryLabel(partner.category)}</Badge>
                       <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -568,9 +571,10 @@ export default function ParceirosPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={partner.isActive ? 'default' : 'secondary'} className={partner.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
-                        {partner.isActive ? 'Ativo' : 'Inativo'}
-                      </Badge>
+                      {(() => {
+                        const { type, label } = getParceiroStatus(partner.isActive)
+                        return <StatusBadge status={type} label={label} />
+                      })()}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
