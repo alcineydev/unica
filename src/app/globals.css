@@ -149,13 +149,32 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground antialiased;
   }
   html {
     color-scheme: light;
+  }
+
+  /* Remover outline padrão de todos os elementos focáveis */
+  *:focus {
+    outline: none;
+  }
+
+  /* Garantir que inputs não tenham borda estranha */
+  input, button, textarea, select {
+    outline: none;
+  }
+
+  input {
+    border-color: #e2e8f0; /* slate-200 */
+  }
+
+  input:focus {
+    border-color: #2563eb; /* brand-600 */
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   }
 }
 
@@ -286,53 +305,67 @@
   background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
 }
 
-/* Input estilizado */
+/* Input estilizado - CORRIGIDO */
 .input-styled {
   width: 100%;
   padding: 0.75rem 1rem;
+  padding-left: 3rem;
   border-radius: 0.75rem;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #E2E8F0 !important;
   background-color: white;
+  color: #0f172a;
   transition: all 0.2s;
-  outline: none;
+  outline: none !important;
 }
 .input-styled:focus {
-  border-color: #3B82F6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+  outline: none !important;
 }
 .input-styled::placeholder {
   color: #94A3B8;
 }
 
-/* Botão primário com gradiente */
+/* Botão primário com gradiente - CORRIGIDO */
 .btn-primary {
   background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
   color: white;
   font-weight: 500;
   padding: 0.75rem 1.5rem;
   border-radius: 0.75rem;
+  border: none !important;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.2s;
+  outline: none !important;
 }
 .btn-primary:hover {
   opacity: 0.9;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
+.btn-primary:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
 
-/* Botão secundário */
+/* Botão secundário - CORRIGIDO */
 .btn-secondary {
   background-color: white;
   color: #334155;
   font-weight: 500;
   padding: 0.75rem 1.5rem;
   border-radius: 0.75rem;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #E2E8F0 !important;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.2s;
+  outline: none !important;
 }
 .btn-secondary:hover {
-  border-color: #CBD5E1;
+  border-color: #CBD5E1 !important;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.btn-secondary:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 /* Cards elevados */

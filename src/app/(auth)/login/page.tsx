@@ -4,9 +4,6 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -186,47 +183,52 @@ function LoginForm() {
 
             <CardContent className="space-y-6">
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <label className="text-sm font-medium text-slate-700">Email</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
                       id="email"
                       name="email"
                       type="email"
                       placeholder="seu@email.com"
-                      className="pl-10 h-12"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 outline-none transition-all disabled:opacity-50"
                       required
                       disabled={isLoading}
                     />
                   </div>
                 </div>
 
+                {/* Senha */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Senha</Label>
-                    <Link href="/recuperar-senha" className="text-xs text-primary hover:underline">
+                    <label className="text-sm font-medium text-slate-700">Senha</label>
+                    <Link
+                      href="/recuperar-senha"
+                      className="text-sm text-brand-600 hover:text-brand-700 font-medium"
+                    >
                       Esqueci minha senha
                     </Link>
                   </div>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
                       id="password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      className="pl-10 pr-10 h-12"
+                      className="w-full pl-12 pr-12 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 outline-none transition-all disabled:opacity-50"
                       required
                       disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 outline-none"
                       tabIndex={-1}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
@@ -237,19 +239,20 @@ function LoginForm() {
                   </div>
                 )}
 
-                <Button type="submit" className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white font-medium py-3 px-6 rounded-xl shadow-sm hover:from-brand-700 hover:to-brand-800 hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:ring-2 focus:ring-brand-500/50 focus:ring-offset-2 border-none"
+                >
                   {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Entrando...
-                    </>
+                    <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
                       Entrar
-                      <ArrowRight className="h-4 w-4 ml-2" />
+                      <ArrowRight className="w-5 h-5" />
                     </>
                   )}
-                </Button>
+                </button>
               </form>
 
               <div className="relative">
@@ -263,36 +266,36 @@ function LoginForm() {
                 </div>
               </div>
 
-              {/* Botoes de Cadastro */}
+              {/* Links de Cadastro */}
               <div className="space-y-3">
                 <Link href="/cadastro" className="block">
-                  <Button variant="outline" className="w-full h-12 justify-between group">
+                  <div className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-white hover:border-brand-300 hover:bg-slate-50 transition-all cursor-pointer group">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <User className="h-4 w-4 text-primary" />
+                      <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center">
+                        <User className="w-5 h-5 text-brand-600" />
                       </div>
                       <div className="text-left">
-                        <div className="font-medium">Seja um Assinante</div>
-                        <div className="text-xs text-muted-foreground">Economize com descontos exclusivos</div>
+                        <div className="font-semibold text-slate-900">Seja um Assinante</div>
+                        <div className="text-xs text-slate-500">Economize com descontos exclusivos</div>
                       </div>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </Button>
+                    <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-brand-600 group-hover:translate-x-1 transition-all" />
+                  </div>
                 </Link>
 
                 <Link href="/interesse-parceiro" className="block">
-                  <Button variant="outline" className="w-full h-12 justify-between group">
+                  <div className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-white hover:border-warning-300 hover:bg-slate-50 transition-all cursor-pointer group">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-warning-100 rounded-lg flex items-center justify-center">
-                        <Store className="h-4 w-4 text-warning-600" />
+                      <div className="w-10 h-10 bg-warning-100 rounded-xl flex items-center justify-center">
+                        <Store className="w-5 h-5 text-warning-600" />
                       </div>
                       <div className="text-left">
-                        <div className="font-medium text-slate-900">Seja um Parceiro</div>
+                        <div className="font-semibold text-slate-900">Seja um Parceiro</div>
                         <div className="text-xs text-slate-500">Aumente suas vendas conosco</div>
                       </div>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-warning-600 transition-colors" />
-                  </Button>
+                    <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-warning-600 group-hover:translate-x-1 transition-all" />
+                  </div>
                 </Link>
               </div>
             </CardContent>
