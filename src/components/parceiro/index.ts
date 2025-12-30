@@ -1,3 +1,5 @@
 export { ParceiroHeader } from './parceiro-header'
 export { ParceiroSidebar } from './parceiro-sidebar'
 export { ParceiroBottomNav } from './parceiro-bottom-nav'
+export { ParceiroPageHeader } from './page-header'
+export { StatsCard } from './stats-card'
