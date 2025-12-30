@@ -15,19 +15,20 @@ export async function GET() {
 
     const assinante = await prisma.assinante.findFirst({
       where: {
-        user: {
-          id: session.user.id,
-        }
+        userId: session.user.id,
       },
       include: {
         user: {
           select: {
-            name: true,
             email: true,
-            image: true,
+            avatar: true,
           }
         },
-        plan: true,
+        plan: {
+          select: {
+            name: true,
+          }
+        },
       }
     })
 
@@ -41,13 +42,13 @@ export async function GET() {
     return NextResponse.json({
       data: {
         id: assinante.id,
-        odontogram: assinante.odontogram,
-        nome: assinante.user?.name || 'Assinante',
+        odontogram: assinante.cpf || '',
+        nome: assinante.name || 'Assinante',
         email: assinante.user?.email || '',
-        image: assinante.user?.image,
+        image: assinante.user?.avatar || null,
         plano: assinante.plan?.name || 'Sem plano',
         status: assinante.subscriptionStatus,
-        validadeAssinatura: assinante.subscriptionEnd?.toISOString() || null,
+        validadeAssinatura: assinante.planEndDate?.toISOString() || null,
       }
     })
   } catch (error) {
