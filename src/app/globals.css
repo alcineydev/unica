@@ -137,8 +137,8 @@
   --chart-5: 340 75% 55%;
 
   /* Sidebar */
-  --sidebar: 210 40% 98%;
-  --sidebar-foreground: 222 47% 11%;
+  --sidebar: 222 47% 11%;
+  --sidebar-foreground: 210 40% 98%;
   --sidebar-primary: 221 83% 53%;
   --sidebar-primary-foreground: 210 40% 98%;
   --sidebar-accent: 210 40% 96%;
@@ -148,12 +148,17 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
+  /* Reset de bordas para todo o projeto */
+  *,
+  *::before,
+  *::after {
+    border-color: #e2e8f0; /* slate-200 como padrão */
   }
+
   body {
     @apply bg-background text-foreground antialiased;
   }
+
   html {
     color-scheme: light;
   }
@@ -163,18 +168,33 @@
     outline: none;
   }
 
-  /* Garantir que inputs não tenham borda estranha */
-  input, button, textarea, select {
+  /* Inputs e form elements */
+  input,
+  textarea,
+  select {
+    border-color: #e2e8f0;
     outline: none;
   }
 
-  input {
-    border-color: #e2e8f0; /* slate-200 */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   }
 
-  input:focus {
-    border-color: #2563eb; /* brand-600 */
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  /* Botões */
+  button {
+    outline: none;
+  }
+
+  button:focus {
+    outline: none;
+  }
+
+  /* Cards e containers com borda */
+  .border {
+    border-color: #e2e8f0;
   }
 }
 
