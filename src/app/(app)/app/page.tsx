@@ -38,6 +38,8 @@ interface ParceiroDestaque {
   id: string
   nomeFantasia: string
   logo: string | null
+  banner: string | null
+  bannerDestaque: string | null
   category: string
   city: { name: string } | null
   categoryRef: { name: string } | null
@@ -279,13 +281,13 @@ export default function AppHomePage() {
           </div>
         </div>
 
-        {/* Parceiros em Destaque - Slider Horizontal */}
+        {/* Parceiros em Destaque - Slider Horizontal com Banner Grande */}
         {parceirosDestaque.length > 0 && (
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-                Parceiros em Destaque
+                Em Destaque
               </h2>
               <Link href="/app/parceiros?destaque=true" className="text-sm text-brand-600 font-medium flex items-center gap-1">
                 Ver todos
@@ -293,56 +295,66 @@ export default function AppHomePage() {
               </Link>
             </div>
 
-            {/* Slider Horizontal */}
+            {/* Slider Horizontal com Cards Grandes */}
             <div className="overflow-x-auto -mx-4 px-4 scrollbar-hide">
               <div className="flex gap-4" style={{ width: 'max-content' }}>
                 {parceirosDestaque.map((parceiro) => (
                   <Link
                     key={parceiro.id}
                     href={`/app/parceiros/${parceiro.id}`}
-                    className="w-44 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md hover:border-brand-200 transition-all flex-shrink-0"
+                    className="w-72 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg hover:border-brand-200 transition-all flex-shrink-0 group"
                   >
-                    {/* Imagem/Logo */}
-                    <div className="h-28 bg-slate-100 relative">
-                      {parceiro.logo ? (
+                    {/* Imagem de Banner/Destaque */}
+                    <div className="h-36 bg-slate-100 relative overflow-hidden">
+                      {parceiro.bannerDestaque || parceiro.banner || parceiro.logo ? (
                         <img
-                          src={parceiro.logo}
+                          src={parceiro.bannerDestaque || parceiro.banner || parceiro.logo || ''}
                           alt={parceiro.nomeFantasia}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-                          <span className="text-4xl font-bold text-slate-300">
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-100 to-brand-200">
+                          <span className="text-5xl font-bold text-brand-300">
                             {parceiro.nomeFantasia?.charAt(0)}
                           </span>
                         </div>
                       )}
-                      {/* Badge de desconto */}
-                      {parceiro.desconto && (
-                        <span className="absolute top-2 right-2 px-2 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full shadow-sm">
-                          {parceiro.desconto}
-                        </span>
-                      )}
+
+                      {/* Overlay gradiente */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
                       {/* Estrela de destaque */}
-                      <div className="absolute top-2 left-2 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center shadow-sm">
-                        <Star className="w-3.5 h-3.5 text-white fill-white" />
+                      <div className="absolute top-3 left-3 w-8 h-8 bg-amber-400 rounded-full flex items-center justify-center shadow-lg">
+                        <Star className="w-4 h-4 text-white fill-white" />
+                      </div>
+
+                      {/* Badge de Cashback */}
+                      <div className="absolute top-3 right-3 px-3 py-1.5 bg-emerald-500 text-white text-xs font-bold rounded-full shadow-lg flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3" />
+                        5% Cashback
+                      </div>
+
+                      {/* Nome sobre a imagem */}
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <h3 className="font-bold text-white text-lg truncate drop-shadow-lg">
+                          {parceiro.nomeFantasia}
+                        </h3>
                       </div>
                     </div>
 
-                    {/* Info */}
-                    <div className="p-3">
-                      <h3 className="font-semibold text-slate-900 text-sm truncate">
-                        {parceiro.nomeFantasia}
-                      </h3>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">
-                        {parceiro.categoryRef?.name || parceiro.category || 'Parceiro'}
-                      </p>
-                      {parceiro.city && (
-                        <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
-                          <MapPin className="w-3 h-3" />
-                          <span className="truncate">{parceiro.city.name}</span>
-                        </div>
-                      )}
+                    {/* Info abaixo da imagem */}
+                    <div className="p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-600">
+                          {parceiro.categoryRef?.name || parceiro.category || 'Parceiro'}
+                        </span>
+                        {parceiro.city && (
+                          <div className="flex items-center gap-1 text-xs text-slate-400">
+                            <MapPin className="w-3 h-3" />
+                            <span>{parceiro.city.name}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </Link>
                 ))}
