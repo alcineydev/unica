@@ -279,6 +279,78 @@ export default function AppHomePage() {
           </div>
         </div>
 
+        {/* Parceiros em Destaque - Slider Horizontal */}
+        {parceirosDestaque.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                Parceiros em Destaque
+              </h2>
+              <Link href="/app/parceiros?destaque=true" className="text-sm text-brand-600 font-medium flex items-center gap-1">
+                Ver todos
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {/* Slider Horizontal */}
+            <div className="overflow-x-auto -mx-4 px-4 scrollbar-hide">
+              <div className="flex gap-4" style={{ width: 'max-content' }}>
+                {parceirosDestaque.map((parceiro) => (
+                  <Link
+                    key={parceiro.id}
+                    href={`/app/parceiros/${parceiro.id}`}
+                    className="w-44 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md hover:border-brand-200 transition-all flex-shrink-0"
+                  >
+                    {/* Imagem/Logo */}
+                    <div className="h-28 bg-slate-100 relative">
+                      {parceiro.logo ? (
+                        <img
+                          src={parceiro.logo}
+                          alt={parceiro.nomeFantasia}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+                          <span className="text-4xl font-bold text-slate-300">
+                            {parceiro.nomeFantasia?.charAt(0)}
+                          </span>
+                        </div>
+                      )}
+                      {/* Badge de desconto */}
+                      {parceiro.desconto && (
+                        <span className="absolute top-2 right-2 px-2 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full shadow-sm">
+                          {parceiro.desconto}
+                        </span>
+                      )}
+                      {/* Estrela de destaque */}
+                      <div className="absolute top-2 left-2 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center shadow-sm">
+                        <Star className="w-3.5 h-3.5 text-white fill-white" />
+                      </div>
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-3">
+                      <h3 className="font-semibold text-slate-900 text-sm truncate">
+                        {parceiro.nomeFantasia}
+                      </h3>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">
+                        {parceiro.categoryRef?.name || parceiro.category || 'Parceiro'}
+                      </p>
+                      {parceiro.city && (
+                        <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
+                          <MapPin className="w-3 h-3" />
+                          <span className="truncate">{parceiro.city.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Ações Rápidas */}
         <div className="grid grid-cols-4 gap-3">
           <Link href="/app/parceiros" className="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all">
