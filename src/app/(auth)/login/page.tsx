@@ -205,7 +205,7 @@ function LoginForm() {
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-medium text-slate-700">Senha</label>
                     <Link
-                      href="/recuperar-senha"
+                      href="/esqueci-senha"
                       className="text-sm text-brand-600 hover:text-brand-700 font-medium"
                     >
                       Esqueci minha senha
