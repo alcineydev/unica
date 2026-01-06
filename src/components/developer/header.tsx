@@ -1,76 +1,55 @@
 'use client'
 
-import { signOut, useSession } from 'next-auth/react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { LogOut, User, Shield } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { Bell, Search } from 'lucide-react'
+import Link from 'next/link'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export function DeveloperHeader() {
   const { data: session } = useSession()
 
-  const userInitials = session?.user?.email
-    ?.split('@')[0]
-    .substring(0, 2)
-    .toUpperCase() || 'DV'
-
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-zinc-950 px-6">
-      <div className="flex items-center gap-2">
-        <Shield className="h-5 w-5 text-red-500" />
-        <h1 className="text-lg font-semibold text-white">
-          Painel Developer
-        </h1>
-      </div>
+    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-slate-200">
+      <div className="flex items-center justify-between h-16 px-4 lg:px-6">
+        {/* Spacer for mobile menu button */}
+        <div className="w-10 lg:hidden" />
 
-      <div className="flex items-center gap-4">
-        {/* Toggle de Tema */}
-        <ThemeToggle />
+        {/* Search - Desktop */}
+        <div className="hidden md:flex flex-1 max-w-md">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar..."
+              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none"
+            />
+          </div>
+        </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              <Avatar className="h-10 w-10 border-2 border-red-500">
-                <AvatarFallback className="bg-red-600 text-white">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Developer</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {session?.user?.email}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>Perfil</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-red-600 focus:text-red-600"
-              onClick={() => signOut({ callbackUrl: '/login' })}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Sair</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Right Side */}
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+
+          <button className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-all">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+          </button>
+
+          <Link href="/developer/conta/email" className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 transition-all">
+            <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl flex items-center justify-center">
+              <span className="text-white text-sm font-semibold">
+                {session?.user?.name?.charAt(0) || session?.user?.email?.charAt(0)?.toUpperCase() || 'D'}
+              </span>
+            </div>
+            <div className="hidden sm:block text-left">
+              <p className="text-sm font-medium text-slate-900">
+                {session?.user?.name || 'Developer'}
+              </p>
+              <p className="text-xs text-slate-500">Developer</p>
+            </div>
+          </Link>
+        </div>
       </div>
     </header>
   )
 }
-
