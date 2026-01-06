@@ -10,13 +10,10 @@ import {
   ShoppingCart,
   DollarSign,
   QrCode,
-  ArrowRight,
   Loader2,
-  TrendingDown
+  ArrowUpRight
 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { StatsCard } from '@/components/parceiro/stats-card'
 
 interface DashboardData {
   totalSales: number
@@ -85,8 +82,8 @@ export default function ParceiroDashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Carregando dashboard...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mx-auto mb-4" />
+          <p className="text-slate-500">Carregando dashboard...</p>
         </div>
       </div>
     )
@@ -97,202 +94,151 @@ export default function ParceiroDashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            Bem-vindo, {session?.user?.name}!
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+          <p className="text-slate-500">Bem-vindo, {session?.user?.name}!</p>
         </div>
-        <Link href="/parceiro/vendas">
-          <Button className="w-full sm:w-auto">
-            <QrCode className="mr-2 h-4 w-4" />
-            Registrar Venda
-          </Button>
+        <Link
+          href="/parceiro/vendas"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl text-sm font-medium hover:from-emerald-600 hover:to-emerald-700 shadow-sm hover:shadow-md transition-all"
+        >
+          <QrCode className="w-4 h-4" />
+          Registrar Venda
         </Link>
       </div>
 
-      {/* Cards de Estatísticas */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        {/* Vendas do Mês */}
-        <Card>
-          <CardContent className="p-3 md:p-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] md:text-sm text-muted-foreground truncate">
-                  Vendas do Mês
-                </p>
-                <p className="text-lg md:text-3xl font-bold mt-0.5">
-                  {data?.totalSales ?? 0}
-                </p>
-                {data?.salesGrowth !== undefined && (
-                  <div className={cn(
-                    "flex items-center gap-1 mt-0.5 text-[10px] md:text-xs",
-                    data.salesGrowth >= 0 ? "text-green-600" : "text-red-600"
-                  )}>
-                    {data.salesGrowth >= 0 ? (
-                      <TrendingUp className="h-2.5 w-2.5 md:h-3 md:w-3" />
-                    ) : (
-                      <TrendingDown className="h-2.5 w-2.5 md:h-3 md:w-3" />
-                    )}
-                    <span>{data.salesGrowth}%</span>
-                  </div>
-                )}
-              </div>
-              <div className="p-1.5 md:p-3 rounded-lg md:rounded-full bg-blue-100 flex-shrink-0">
-                <ShoppingCart className="h-4 w-4 md:h-6 md:w-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Faturamento */}
-        <Card>
-          <CardContent className="p-3 md:p-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] md:text-sm text-muted-foreground truncate">
-                  Faturamento
-                </p>
-                <p className="text-lg md:text-3xl font-bold mt-0.5">
-                  {formatCurrency(data?.salesAmount ?? 0)}
-                </p>
-                <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
-                  Este mês
-                </p>
-              </div>
-              <div className="p-1.5 md:p-3 rounded-lg md:rounded-full bg-green-100 flex-shrink-0">
-                <DollarSign className="h-4 w-4 md:h-6 md:w-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Visualizações */}
-        <Card>
-          <CardContent className="p-3 md:p-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] md:text-sm text-muted-foreground truncate">
-                  Visualizações
-                </p>
-                <p className="text-lg md:text-3xl font-bold mt-0.5">
-                  {data?.pageViews ?? 0}
-                </p>
-                <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
-                  Perfil da empresa
-                </p>
-              </div>
-              <div className="p-1.5 md:p-3 rounded-lg md:rounded-full bg-purple-100 flex-shrink-0">
-                <Eye className="h-4 w-4 md:h-6 md:w-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Avaliações */}
-        <Card>
-          <CardContent className="p-3 md:p-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] md:text-sm text-muted-foreground truncate">
-                  Avaliações
-                </p>
-                <p className="text-lg md:text-3xl font-bold mt-0.5">
-                  {data?.avaliacoes?.media ?? 0}
-                </p>
-                <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
-                  {data?.avaliacoes?.total ?? 0} avaliações
-                </p>
-              </div>
-              <div className="p-1.5 md:p-3 rounded-lg md:rounded-full bg-yellow-100 flex-shrink-0">
-                <Star className="h-4 w-4 md:h-6 md:w-6 text-yellow-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatsCard
+          title="Vendas do Mês"
+          value={data?.totalSales ?? 0}
+          icon={ShoppingCart}
+          color="emerald"
+          trend={data?.salesGrowth !== undefined ? {
+            value: `${Math.abs(data.salesGrowth)}%`,
+            isPositive: data.salesGrowth >= 0
+          } : undefined}
+        />
+        <StatsCard
+          title="Faturamento"
+          value={formatCurrency(data?.salesAmount ?? 0)}
+          subtitle="Este mês"
+          icon={DollarSign}
+          color="blue"
+        />
+        <StatsCard
+          title="Visualizações"
+          value={data?.pageViews ?? 0}
+          subtitle="Perfil da empresa"
+          icon={Eye}
+          color="purple"
+        />
+        <StatsCard
+          title="Avaliações"
+          value={(data?.avaliacoes?.media ?? 0).toFixed(1)}
+          subtitle={`${data?.avaliacoes?.total ?? 0} avaliações`}
+          icon={Star}
+          color="amber"
+        />
       </div>
 
-      {/* Vendas Recentes e Ações */}
-      <div className="grid gap-4 lg:gap-6 lg:grid-cols-5">
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Vendas Recentes */}
-        <Card className="lg:col-span-3">
-          <CardHeader className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base md:text-lg">Vendas Recentes</CardTitle>
-                <CardDescription>Últimas transações realizadas</CardDescription>
-              </div>
-              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Vendas Recentes</h2>
+              <p className="text-sm text-slate-500">Últimas transações realizadas</p>
             </div>
-          </CardHeader>
-          <CardContent className="p-4 md:p-6 pt-0">
+            <Link
+              href="/parceiro/vendas"
+              className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1"
+            >
+              Ver todas
+              <ArrowUpRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="divide-y divide-slate-100">
             {data?.recentTransactions && data.recentTransactions.length > 0 ? (
-              <div className="space-y-3">
-                {data.recentTransactions.slice(0, 5).map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm truncate">{tx.assinante.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(tx.createdAt)}
-                      </p>
+              data.recentTransactions.slice(0, 5).map((tx) => (
+                <div key={tx.id} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <span className="text-emerald-600 text-sm font-medium">
+                        {tx.assinante.name.charAt(0)}
+                      </span>
                     </div>
-                    <span className="font-semibold text-green-600 flex-shrink-0 ml-2">
-                      {formatCurrency(tx.amount)}
-                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{tx.assinante.name}</p>
+                      <p className="text-xs text-slate-500">{formatDate(tx.createdAt)}</p>
+                    </div>
                   </div>
-                ))}
-              </div>
+                  <span className="text-sm font-semibold text-emerald-600">
+                    {formatCurrency(tx.amount)}
+                  </span>
+                </div>
+              ))
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Nenhuma venda ainda</p>
-                <Link href="/parceiro/vendas">
-                  <Button variant="link" className="mt-2">
-                    Registrar primeira venda
-                    <ArrowRight className="ml-1 h-4 w-4" />
-                  </Button>
+              <div className="px-6 py-12 text-center">
+                <ShoppingCart className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-500">Nenhuma venda registrada</p>
+                <Link
+                  href="/parceiro/vendas"
+                  className="text-emerald-600 hover:underline text-sm mt-2 inline-block"
+                >
+                  Registrar primeira venda
                 </Link>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Ações Rápidas */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg">Ações Rápidas</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 md:p-6 pt-0 space-y-3">
-            <Link href="/parceiro/vendas" className="block">
-              <Button className="w-full justify-start h-auto py-3" variant="default">
-                <QrCode className="mr-3 h-5 w-5" />
-                <div className="text-left">
-                  <p className="font-medium">Escanear QR Code</p>
-                  <p className="text-xs opacity-80">Registrar venda com QR do cliente</p>
-                </div>
-              </Button>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Ações Rápidas</h2>
+
+          <div className="space-y-3">
+            <Link
+              href="/parceiro/vendas"
+              className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 transition-all"
+            >
+              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                <QrCode className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-medium">Escanear QR Code</p>
+                <p className="text-sm text-emerald-100">Registrar venda com QR do cliente</p>
+              </div>
             </Link>
-            
-            <Link href="/parceiro/saldo" className="block">
-              <Button className="w-full justify-start h-auto py-3" variant="outline">
-                <DollarSign className="mr-3 h-5 w-5" />
-                <div className="text-left">
-                  <p className="font-medium">Ver Saldo</p>
-                  <p className="text-xs text-muted-foreground">Consultar créditos acumulados</p>
-                </div>
-              </Button>
+
+            <Link
+              href="/parceiro/saldo"
+              className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition-all group"
+            >
+              <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                <DollarSign className="w-5 h-5 text-slate-600 group-hover:text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-medium text-slate-900">Ver Saldo</p>
+                <p className="text-sm text-slate-500">Consultar créditos acumulados</p>
+              </div>
             </Link>
-            
-            <Link href="/parceiro/perfil" className="block">
-              <Button className="w-full justify-start h-auto py-3" variant="outline">
-                <TrendingUp className="mr-3 h-5 w-5" />
-                <div className="text-left">
-                  <p className="font-medium">Minha Empresa</p>
-                  <p className="text-xs text-muted-foreground">Atualizar informações</p>
-                </div>
-              </Button>
+
+            <Link
+              href="/parceiro/perfil"
+              className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition-all group"
+            >
+              <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                <TrendingUp className="w-5 h-5 text-slate-600 group-hover:text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-medium text-slate-900">Minha Empresa</p>
+                <p className="text-sm text-slate-500">Atualizar informações</p>
+              </div>
             </Link>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   )

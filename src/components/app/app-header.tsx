@@ -1,28 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Bell, LogOut, User, ChevronDown, CreditCard, Star } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { Bell, MapPin } from 'lucide-react'
 import { NotificationModal } from './notification-modal'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 interface AppHeaderProps {
-  userName?: string
-  userEmail?: string
-  userAvatar?: string
+  showLocation?: boolean
 }
 
 interface NewNotification {
@@ -32,20 +17,15 @@ interface NewNotification {
   link?: string
 }
 
-export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
-  const router = useRouter()
+export function AppHeader({ showLocation = true }: AppHeaderProps) {
   const { data: session } = useSession()
-  const [notificationCount, setNotificationCount] = useState(0)
+  const [notifications, setNotifications] = useState(0)
   const [lastCount, setLastCount] = useState(0)
   const isFirstRender = useRef(true)
-
-  // Modal state
   const [showModal, setShowModal] = useState(false)
   const [newNotification, setNewNotification] = useState<NewNotification | null>(null)
 
-  const displayName = userName || session?.user?.name || session?.user?.email?.split('@')[0] || 'Usuário'
-  const displayEmail = userEmail || session?.user?.email || ''
-  const displayAvatar = userAvatar || (session?.user as any)?.avatar || ''
+  const firstName = session?.user?.name?.split(' ')[0] || 'Olá'
 
   // Polling de notificações
   useEffect(() => {
@@ -55,9 +35,7 @@ export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
         const data = await response.json()
         const newCount = data.count || 0
 
-        // Se não é a primeira renderização e tem novas notificações
         if (!isFirstRender.current && newCount > lastCount) {
-          // Buscar a última notificação para mostrar no modal
           try {
             const notifResponse = await fetch('/api/app/notifications?limit=1')
             const notifData = await notifResponse.json()
@@ -66,7 +44,6 @@ export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
               const lastNotif = notifData.notifications[0]
               let link = undefined
 
-              // Tentar extrair link dos dados
               if (lastNotif.dados) {
                 try {
                   const parsedData = typeof lastNotif.dados === 'string'
@@ -92,111 +69,60 @@ export function AppHeader({ userName, userEmail, userAvatar }: AppHeaderProps) {
         }
 
         setLastCount(newCount)
-        setNotificationCount(newCount)
+        setNotifications(newCount)
         isFirstRender.current = false
       } catch (error) {
-        // Silently fail - notifications are not critical
+        // Silently fail
       }
     }
 
-    // Buscar imediatamente
     fetchNotifications()
-
-    // Polling a cada 30 segundos
     const interval = setInterval(fetchNotifications, 30000)
-
     return () => clearInterval(interval)
   }, [lastCount])
 
-  const handleLogout = async () => {
-    await signOut({ callbackUrl: '/login' })
-  }
-
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-4 lg:px-6">
-          {/* Logo */}
-          <Link href="/app" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">U</span>
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-100">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Left - Greeting */}
+            <div>
+              <p className="text-sm text-slate-500">Olá, {firstName}!</p>
+              {showLocation && (
+                <button className="flex items-center gap-1 text-slate-900 font-medium mt-0.5">
+                  <MapPin className="w-4 h-4 text-brand-600" />
+                  <span className="text-sm">Sinop, MT</span>
+                </button>
+              )}
             </div>
-            <span className="font-semibold">UNICA</span>
-            <Badge variant="secondary" className="text-xs hidden sm:inline-flex">Assinante</Badge>
-          </Link>
 
-          {/* Ações */}
-          <div className="flex items-center gap-2">
-            {/* Toggle de Tema */}
-            <ThemeToggle />
-
-            {/* Notificações */}
-            <Link href="/app/notificacoes">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                {notificationCount > 0 && (
-                  <Badge
-                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs animate-pulse"
-                    variant="destructive"
-                  >
-                    {notificationCount > 9 ? '9+' : notificationCount}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
-
-            {/* Menu do Usuário */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 px-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={displayAvatar} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                      {displayName.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="hidden sm:inline text-sm font-medium max-w-[120px] truncate">
-                    {displayName}
+            {/* Right - Actions */}
+            <div className="flex items-center gap-2">
+              <Link
+                href="/app/notificacoes"
+                className="relative p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all"
+              >
+                <Bell className="w-5 h-5" />
+                {notifications > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                    {notifications > 9 ? '9+' : notifications}
                   </span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{displayName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/app/perfil" className="flex items-center cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    Meu Perfil
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/app/carteira" className="flex items-center cursor-pointer">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Carteira
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/app/minhas-avaliacoes" className="flex items-center cursor-pointer">
-                    <Star className="mr-2 h-4 w-4" />
-                    Minhas Avaliações
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="text-destructive focus:text-destructive cursor-pointer"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sair
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                )}
+              </Link>
+              <Link
+                href="/app/perfil"
+                className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/25"
+              >
+                {session?.user?.image ? (
+                  <img src={session.user.image} alt="" className="w-10 h-10 rounded-xl object-cover" />
+                ) : (
+                  <span className="text-white font-semibold">
+                    {session?.user?.name?.charAt(0) || 'U'}
+                  </span>
+                )}
+              </Link>
+            </div>
           </div>
         </div>
       </header>
