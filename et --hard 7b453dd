@@ -1,0 +1,40 @@
+[33m89efd6f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix: todos os botões de formulários visíveis
+[33m631754c[m fix: corrigir botões Continuar no formulário de cadastro
+[33mc91ad52[m fix: botões visíveis nos formulários públicos
+[33m6435b7c[m fix: forçar cores visíveis nos botões de formulários públicos
+[33me4d4e00[m fix: ThemeToggle em todos painéis + botão login
+[33m1eb1302[m fix: remover flash de loading na página de login
+[33m94576fc[m fix: adicionar ThemeToggle nos painéis Admin e Parceiro
+[33mac5f3de[m fix: sistema de temas completo
+[33m0b8084f[m[33m ([m[1;31morigin/claude/add-prisma-category-model-V00z5[m[33m)[m fix: corrigir sistema de temas completo
+[33m2015d12[m fix: simplificar query de push subscriptions
+[33m1490bc1[m fix: corrigir query de pushSubscription no admin
+[33m4cda93e[m fix: corrigir ThemeToggle não aparecendo nos headers
+[33m9f717bd[m feat: implementar sistema de tema claro/escuro dinâmico
+[33m7b453dd[m feat: criar sistema de páginas institucionais
+[33mce583c5[m feat: criar sistema de configuração no painel developer
+[33m16f0d8e[m feat: modal obrigatório de permissão de notificações no primeiro acesso
+[33m700b1f4[m feat: ativar crop de imagem no formulário de categorias
+[33m958395a[m fix: validar formato de ID antes de buscar parceiro
+[33mf001059[m fix: verificar UUID válido antes de buscar categoria por ID
+[33m67d5ebc[m fix: melhorar tratamento de erro na API de categoria
+[33m6c12ad7[m fix: usar ID como fallback se slug estiver vazio nas categorias
+[33m9eb211f[m fix: corrigir busca de categoria por slug e layout horizontal
+[33md785028[m fix: mostrar imagens nas categorias em vez de ícones
+[33m9f539c6[m feat: criar tela de parceiros por categoria
+[33maa32133[m feat: adicionar dados do assinante na mensagem do WhatsApp
+[33m5971d4a[m fix: corrigir loop infinito na página de parceiros
+[33mcec202b[m feat: criar tela de parceiros com busca e filtros
+[33m61c933b[m feat: completar home do app com menu inferior e atalhos rápidos
+[33m8269a98[m feat: redesign da home do app assinante
+[33m1b25992[m feat: adicionar header fixo no Admin igual ao Parceiro
+[33mbace5ae[m feat: padronizar botão Sair no Admin igual ao Parceiro
+[33mf2a3eb8[m fix: remover restrição de largura nas páginas de parceiro
+[33m7dc4c6a[m feat: adicionar categoria e destaque no formulário de parceiro
+[33m1fcba32[m feat: criar API de categorias e simplificar formulário
+[33m067b110[m fix: envolver useSearchParams em Suspense na página de planos
+[33mde3b78f[m fix: usar cast para resolver erro de tipos no zodResolver
+[33m52e6214[m fix: corrigir tipo displayOrder com z.preprocess
+[33mbe0d784[m fix: remover default do displayOrder para corrigir inferência de tipo
+[33mf4a4ef4[m fix: corrigir tipos TypeScript no formulário de categorias
+[33m36a571d[m feat: reorganizar menu admin com submenus expansíveis
