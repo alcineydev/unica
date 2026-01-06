@@ -1,11 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -23,16 +21,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Plus, Trash2, Power, PowerOff, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Power, PowerOff, Loader2, Pencil, Terminal, Shield } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 interface Admin {
   id: string
@@ -51,11 +42,12 @@ interface Admin {
 export default function AdminsPage() {
   const [admins, setAdmins] = useState<Admin[]>([])
   const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null)
-  
+  const [editMode, setEditMode] = useState(false)
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -82,31 +74,74 @@ export default function AdminsPage() {
     }
   }
 
-  async function handleCreateAdmin(e: React.FormEvent) {
+  function openCreateDialog() {
+    setEditMode(false)
+    setSelectedAdmin(null)
+    setFormData({ email: '', password: '', name: '', phone: '' })
+    setDialogOpen(true)
+  }
+
+  function openEditDialog(admin: Admin) {
+    setEditMode(true)
+    setSelectedAdmin(admin)
+    setFormData({
+      email: admin.user.email,
+      password: '',
+      name: admin.name,
+      phone: admin.phone,
+    })
+    setDialogOpen(true)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setCreating(true)
+    setSaving(true)
 
     try {
-      const response = await fetch('/api/developer/admins', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
+      if (editMode && selectedAdmin) {
+        // Update existing admin
+        const response = await fetch(`/api/developer/admins/${selectedAdmin.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            phone: formData.phone,
+            email: formData.email,
+            ...(formData.password && { password: formData.password }),
+          }),
+        })
 
-      if (response.ok) {
-        toast.success('Administrador criado com sucesso!')
-        setDialogOpen(false)
-        setFormData({ email: '', password: '', name: '', phone: '' })
-        loadAdmins()
+        if (response.ok) {
+          toast.success('Administrador atualizado com sucesso!')
+          setDialogOpen(false)
+          loadAdmins()
+        } else {
+          const data = await response.json()
+          toast.error(data.error || 'Erro ao atualizar administrador')
+        }
       } else {
-        const data = await response.json()
-        toast.error(data.error || 'Erro ao criar administrador')
+        // Create new admin
+        const response = await fetch('/api/developer/admins', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        })
+
+        if (response.ok) {
+          toast.success('Administrador criado com sucesso!')
+          setDialogOpen(false)
+          setFormData({ email: '', password: '', name: '', phone: '' })
+          loadAdmins()
+        } else {
+          const data = await response.json()
+          toast.error(data.error || 'Erro ao criar administrador')
+        }
       }
     } catch (error) {
-      console.error('Erro ao criar admin:', error)
-      toast.error('Erro ao criar administrador')
+      console.error('Erro:', error)
+      toast.error(editMode ? 'Erro ao atualizar administrador' : 'Erro ao criar administrador')
     } finally {
-      setCreating(false)
+      setSaving(false)
     }
   }
 
@@ -158,85 +193,99 @@ export default function AdminsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Administradores</h1>
-          <p className="text-zinc-400 mt-1">
-            Gerencie os administradores do sistema
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
+              <Shield className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white font-mono">admins[]</h1>
+              <p className="text-slate-500 text-sm font-mono">// gerenciar administradores do sistema</p>
+            </div>
+          </div>
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-red-600 hover:bg-red-700">
+            <Button
+              onClick={openCreateDialog}
+              className="bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-mono font-semibold"
+            >
               <Plus className="h-4 w-4 mr-2" />
-              Novo Admin
+              new_admin()
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-900 border-zinc-700">
+          <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader>
-              <DialogTitle className="text-white">Criar Administrador</DialogTitle>
+              <DialogTitle className="text-white font-mono flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-emerald-400" />
+                {editMode ? 'edit_admin()' : 'create_admin()'}
+              </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleCreateAdmin} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-zinc-300">Nome</Label>
+                <Label className="text-slate-400 font-mono text-sm">name:</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Nome completo"
-                  className="bg-zinc-800 border-zinc-700 text-white"
+                  className="bg-slate-800 border-slate-700 text-white font-mono focus:border-emerald-500 focus:ring-emerald-500/20"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-zinc-300">Email</Label>
+                <Label className="text-slate-400 font-mono text-sm">email:</Label>
                 <Input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="email@exemplo.com"
-                  className="bg-zinc-800 border-zinc-700 text-white"
+                  className="bg-slate-800 border-slate-700 text-white font-mono focus:border-emerald-500 focus:ring-emerald-500/20"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-zinc-300">Senha</Label>
+                <Label className="text-slate-400 font-mono text-sm">
+                  password: {editMode && <span className="text-slate-600">(deixe vazio para manter)</span>}
+                </Label>
                 <Input
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder="Mínimo 6 caracteres"
-                  className="bg-zinc-800 border-zinc-700 text-white"
-                  required
+                  className="bg-slate-800 border-slate-700 text-white font-mono focus:border-emerald-500 focus:ring-emerald-500/20"
+                  required={!editMode}
                   minLength={6}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-zinc-300">Telefone</Label>
+                <Label className="text-slate-400 font-mono text-sm">phone:</Label>
                 <Input
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="(00) 00000-0000"
-                  className="bg-zinc-800 border-zinc-700 text-white"
+                  className="bg-slate-800 border-slate-700 text-white font-mono focus:border-emerald-500 focus:ring-emerald-500/20"
                   required
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-800">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setDialogOpen(false)}
-                  className="border-zinc-700 text-zinc-300"
+                  className="border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white font-mono"
                 >
-                  Cancelar
+                  cancel()
                 </Button>
                 <Button
                   type="submit"
-                  disabled={creating}
-                  className="bg-red-600 hover:bg-red-700"
+                  disabled={saving}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-mono font-semibold"
                 >
-                  {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Criar Admin
+                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {editMode ? 'update()' : 'create()'}
                 </Button>
               </div>
             </form>
@@ -244,117 +293,133 @@ export default function AdminsPage() {
         </Dialog>
       </div>
 
-      <Card className="bg-zinc-800 border-zinc-700">
-        <CardHeader>
-          <CardTitle className="text-white">Lista de Administradores</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
-            </div>
-          ) : admins.length === 0 ? (
-            <div className="text-center py-8 text-zinc-400">
-              Nenhum administrador cadastrado
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-zinc-700">
-                  <TableHead className="text-zinc-400">Nome</TableHead>
-                  <TableHead className="text-zinc-400">Email</TableHead>
-                  <TableHead className="text-zinc-400">Telefone</TableHead>
-                  <TableHead className="text-zinc-400">Status</TableHead>
-                  <TableHead className="text-zinc-400">Criado em</TableHead>
-                  <TableHead className="text-zinc-400 text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {admins.map((admin) => (
-                  <TableRow key={admin.id} className="border-zinc-700">
-                    <TableCell className="text-white font-medium">
-                      {admin.name}
-                    </TableCell>
-                    <TableCell className="text-zinc-300">
-                      {admin.user.email}
-                    </TableCell>
-                    <TableCell className="text-zinc-300">
-                      {admin.phone}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={admin.user.isActive ? 'default' : 'secondary'}
-                        className={
+      {/* Admin List */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="p-4 border-b border-slate-800">
+          <h2 className="text-white font-mono flex items-center gap-2">
+            <span className="text-emerald-400">&gt;</span> list_admins()
+            <span className="text-slate-500 text-sm">// {admins.length} registros</span>
+          </h2>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
+          </div>
+        ) : admins.length === 0 ? (
+          <div className="text-center py-12">
+            <Terminal className="w-12 h-12 text-slate-700 mx-auto mb-3" />
+            <p className="text-slate-500 font-mono">// nenhum admin encontrado</p>
+            <p className="text-slate-600 text-sm font-mono mt-1">execute new_admin() para criar</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-800">
+            {admins.map((admin, index) => (
+              <div
+                key={admin.id}
+                className="p-4 hover:bg-slate-800/50 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center border border-slate-700">
+                      <span className="text-emerald-400 font-mono font-bold">
+                        {admin.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-white font-medium font-mono">{admin.name}</p>
+                        <span className={cn(
+                          "px-2 py-0.5 text-xs rounded font-mono",
                           admin.user.isActive
-                            ? 'bg-green-600'
-                            : 'bg-zinc-600'
-                        }
-                      >
-                        {admin.user.isActive ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-zinc-300">
-                      {new Date(admin.createdAt).toLocaleDateString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleToggleStatus(admin)}
-                          className="text-zinc-400 hover:text-white"
-                          title={admin.user.isActive ? 'Desativar' : 'Ativar'}
-                        >
-                          {admin.user.isActive ? (
-                            <PowerOff className="h-4 w-4" />
-                          ) : (
-                            <Power className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedAdmin(admin)
-                            setDeleteDialogOpen(true)
-                          }}
-                          className="text-red-400 hover:text-red-300"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            : "bg-slate-700 text-slate-400 border border-slate-600"
+                        )}>
+                          {admin.user.isActive ? 'ACTIVE' : 'INACTIVE'}
+                        </span>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                      <p className="text-slate-500 text-sm font-mono">{admin.user.email}</p>
+                      <div className="flex items-center gap-4 mt-1">
+                        <span className="text-slate-600 text-xs font-mono">phone: {admin.phone}</span>
+                        <span className="text-slate-600 text-xs font-mono">
+                          created: {new Date(admin.createdAt).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEditDialog(admin)}
+                      className="text-slate-400 hover:text-emerald-400 hover:bg-slate-800"
+                      title="Editar"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleToggleStatus(admin)}
+                      className={cn(
+                        "hover:bg-slate-800",
+                        admin.user.isActive
+                          ? "text-slate-400 hover:text-yellow-400"
+                          : "text-slate-400 hover:text-emerald-400"
+                      )}
+                      title={admin.user.isActive ? 'Desativar' : 'Ativar'}
+                    >
+                      {admin.user.isActive ? (
+                        <PowerOff className="h-4 w-4" />
+                      ) : (
+                        <Power className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setSelectedAdmin(admin)
+                        setDeleteDialogOpen(true)
+                      }}
+                      className="text-slate-400 hover:text-red-400 hover:bg-slate-800"
+                      title="Remover"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-zinc-900 border-zinc-700">
+        <AlertDialogContent className="bg-slate-900 border-slate-700">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">
-              Remover Administrador
+            <AlertDialogTitle className="text-white font-mono flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-400" />
+              delete_admin()
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-zinc-400">
+            <AlertDialogDescription className="text-slate-400 font-mono">
+              <span className="text-slate-500">// ATENÇÃO: esta ação não pode ser desfeita</span>
+              <br /><br />
               Tem certeza que deseja remover o administrador{' '}
               <strong className="text-white">{selectedAdmin?.name}</strong>?
-              <br />
-              Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-zinc-700 text-zinc-300">
-              Cancelar
+            <AlertDialogCancel className="border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white font-mono">
+              cancel()
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteAdmin}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 font-mono"
             >
-              Remover
+              confirm_delete()
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -362,4 +427,3 @@ export default function AdminsPage() {
     </div>
   )
 }
-

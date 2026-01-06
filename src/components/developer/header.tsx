@@ -1,76 +1,50 @@
 'use client'
 
-import { signOut, useSession } from 'next-auth/react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { LogOut, User, Shield } from 'lucide-react'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { useSession } from 'next-auth/react'
+import { Bell, Search, Terminal } from 'lucide-react'
+import Link from 'next/link'
 
 export function DeveloperHeader() {
   const { data: session } = useSession()
 
-  const userInitials = session?.user?.email
-    ?.split('@')[0]
-    .substring(0, 2)
-    .toUpperCase() || 'DV'
-
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-zinc-950 px-6">
-      <div className="flex items-center gap-2">
-        <Shield className="h-5 w-5 text-red-500" />
-        <h1 className="text-lg font-semibold text-white">
-          Painel Developer
-        </h1>
-      </div>
+    <header className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-lg border-b border-slate-800">
+      <div className="flex items-center justify-between h-16 px-4 lg:px-6">
+        {/* Spacer for mobile menu button */}
+        <div className="w-10 lg:hidden" />
 
-      <div className="flex items-center gap-4">
-        {/* Toggle de Tema */}
-        <ThemeToggle />
+        {/* Search - Desktop */}
+        <div className="hidden md:flex flex-1 max-w-md">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+            <input
+              type="text"
+              placeholder="buscar..."
+              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-700 bg-slate-800 text-sm text-slate-300 placeholder:text-slate-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none font-mono"
+            />
+          </div>
+        </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              <Avatar className="h-10 w-10 border-2 border-red-500">
-                <AvatarFallback className="bg-red-600 text-white">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Developer</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {session?.user?.email}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>Perfil</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-red-600 focus:text-red-600"
-              onClick={() => signOut({ callbackUrl: '/login' })}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Sair</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Right Side */}
+        <div className="flex items-center gap-3">
+          <button className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-800 hover:text-emerald-400 transition-all">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+          </button>
+
+          <Link href="/developer/conta/email" className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800 transition-all group">
+            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Terminal className="w-4 h-4 text-slate-900" />
+            </div>
+            <div className="hidden sm:block text-left">
+              <p className="text-sm font-medium text-slate-300 group-hover:text-emerald-400 transition-colors font-mono">
+                {session?.user?.name || 'developer'}
+              </p>
+              <p className="text-xs text-slate-500 font-mono">// root</p>
+            </div>
+          </Link>
+        </div>
       </div>
     </header>
   )
 }
-
