@@ -19,7 +19,11 @@ export default async function DeveloperLayout({
   }
 
   return (
+<<<<<<< HEAD
     <div className="min-h-screen bg-slate-50">
+=======
+    <div className="min-h-screen bg-slate-950">
+>>>>>>> origin/claude/fix-login-theme-toggle-Xo55B
       <DeveloperSidebar />
 
       <div className="lg:pl-72">
