@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createBenefitSchema, validateBenefitConfig } from '@/lib/validations/benefit'
+import { logger } from '@/lib/logger'
 
 // GET - Listar todos os benefícios
 export async function GET(request: Request) {
@@ -88,6 +89,9 @@ export async function POST(request: Request) {
         isActive,
       },
     })
+
+    // Registrar log
+    await logger.benefitCreated(session.user.id!, benefit.id, benefit.name)
 
     return NextResponse.json(
       { message: 'Benefício criado com sucesso', data: benefit },

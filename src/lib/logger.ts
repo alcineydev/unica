@@ -189,6 +189,217 @@ export const logger = {
       details: { configKey }
     }),
 
+  // Benefícios
+  benefitCreated: (userId: string, benefitId: string, benefitName: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'CREATE',
+      message: `Benefício criado: ${benefitName}`,
+      userId,
+      targetId: benefitId,
+      details: { benefitName }
+    }),
+
+  benefitUpdated: (userId: string, benefitId: string, benefitName: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'UPDATE',
+      message: `Benefício atualizado: ${benefitName}`,
+      userId,
+      targetId: benefitId,
+      details: { benefitName }
+    }),
+
+  benefitDeleted: (userId: string, benefitName: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'DELETE',
+      message: `Benefício excluído: ${benefitName}`,
+      userId,
+      details: { benefitName }
+    }),
+
+  // Planos
+  planCreated: (userId: string, planId: string, planName: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'CREATE',
+      message: `Plano criado: ${planName}`,
+      userId,
+      targetId: planId,
+      details: { planName }
+    }),
+
+  planUpdated: (userId: string, planId: string, planName: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'UPDATE',
+      message: `Plano atualizado: ${planName}`,
+      userId,
+      targetId: planId,
+      details: { planName }
+    }),
+
+  planDeleted: (userId: string, planName: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'DELETE',
+      message: `Plano excluído: ${planName}`,
+      userId,
+      details: { planName }
+    }),
+
+  // Parceiros
+  partnerCreated: (userId: string, partnerId: string, partnerName: string) =>
+    createLog({
+      type: 'PARTNER',
+      action: 'CREATE',
+      message: `Parceiro criado: ${partnerName}`,
+      userId,
+      targetId: partnerId,
+      details: { partnerName }
+    }),
+
+  partnerUpdated: (userId: string, partnerId: string, partnerName: string) =>
+    createLog({
+      type: 'PARTNER',
+      action: 'UPDATE',
+      message: `Parceiro atualizado: ${partnerName}`,
+      userId,
+      targetId: partnerId,
+      details: { partnerName }
+    }),
+
+  partnerDeleted: (userId: string, partnerName: string) =>
+    createLog({
+      type: 'PARTNER',
+      action: 'DELETE',
+      message: `Parceiro excluído: ${partnerName}`,
+      userId,
+      details: { partnerName }
+    }),
+
+  partnerActivated: (userId: string, partnerId: string, partnerName: string) =>
+    createLog({
+      type: 'PARTNER',
+      action: 'ACTIVATE',
+      message: `Parceiro ativado: ${partnerName}`,
+      userId,
+      targetId: partnerId,
+      details: { partnerName }
+    }),
+
+  partnerDeactivated: (userId: string, partnerId: string, partnerName: string) =>
+    createLog({
+      type: 'PARTNER',
+      action: 'DEACTIVATE',
+      message: `Parceiro desativado: ${partnerName}`,
+      userId,
+      targetId: partnerId,
+      details: { partnerName }
+    }),
+
+  // Assinantes
+  subscriberCreated: (userId: string, subscriberId: string, subscriberName: string) =>
+    createLog({
+      type: 'SUBSCRIBER',
+      action: 'CREATE',
+      message: `Assinante criado: ${subscriberName}`,
+      userId,
+      targetId: subscriberId,
+      details: { subscriberName }
+    }),
+
+  subscriberUpdated: (userId: string, subscriberId: string, subscriberName: string) =>
+    createLog({
+      type: 'SUBSCRIBER',
+      action: 'UPDATE',
+      message: `Assinante atualizado: ${subscriberName}`,
+      userId,
+      targetId: subscriberId,
+      details: { subscriberName }
+    }),
+
+  subscriberDeleted: (userId: string, subscriberName: string) =>
+    createLog({
+      type: 'SUBSCRIBER',
+      action: 'DELETE',
+      message: `Assinante excluído: ${subscriberName}`,
+      userId,
+      details: { subscriberName }
+    }),
+
+  // Categorias
+  categoryCreated: (userId: string, categoryId: string, categoryName: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'CREATE',
+      message: `Categoria criada: ${categoryName}`,
+      userId,
+      targetId: categoryId,
+      details: { categoryName }
+    }),
+
+  categoryUpdated: (userId: string, categoryId: string, categoryName: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'UPDATE',
+      message: `Categoria atualizada: ${categoryName}`,
+      userId,
+      targetId: categoryId,
+      details: { categoryName }
+    }),
+
+  categoryDeleted: (userId: string, categoryName: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'DELETE',
+      message: `Categoria excluída: ${categoryName}`,
+      userId,
+      details: { categoryName }
+    }),
+
+  // Cidades
+  cityCreated: (userId: string, cityId: string, cityName: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'CREATE',
+      message: `Cidade criada: ${cityName}`,
+      userId,
+      targetId: cityId,
+      details: { cityName }
+    }),
+
+  cityUpdated: (userId: string, cityId: string, cityName: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'UPDATE',
+      message: `Cidade atualizada: ${cityName}`,
+      userId,
+      targetId: cityId,
+      details: { cityName }
+    }),
+
+  cityDeleted: (userId: string, cityName: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'DELETE',
+      message: `Cidade excluída: ${cityName}`,
+      userId,
+      details: { cityName }
+    }),
+
+  // Notificações
+  notificationSent: (userId: string, notificationId: string, title: string, targetType: string) =>
+    createLog({
+      type: 'SYSTEM',
+      action: 'CREATE',
+      message: `Notificação enviada: ${title} para ${targetType}`,
+      userId,
+      targetId: notificationId,
+      details: { title, targetType }
+    }),
+
   // Error (salva no banco)
   logError: (message: string, error: unknown, userId?: string) =>
     createLog({

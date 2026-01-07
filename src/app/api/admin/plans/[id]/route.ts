@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { updatePlanSchema } from '@/lib/validations/plan'
 import { generateSlug } from '@/lib/utils/slug'
+import { logger } from '@/lib/logger'
 
 // Forçar rota dinâmica
 export const dynamic = 'force-dynamic'
@@ -165,6 +166,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       },
     })
 
+    // Registrar log
+    await logger.planUpdated(session.user.id!, id, plan.name)
+
     return NextResponse.json(
       { message: 'Plano atualizado com sucesso', data: plan }
     )
@@ -229,6 +233,9 @@ export async function DELETE(request: Request, { params }: RouteParams) {
         where: { id },
       }),
     ])
+
+    // Registrar log
+    await logger.planDeleted(session.user.id!, plan.name)
 
     return NextResponse.json(
       { message: 'Plano excluído com sucesso' }

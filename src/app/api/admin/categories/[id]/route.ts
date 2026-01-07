@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -97,6 +98,9 @@ export async function PATCH(
       data: updateData
     })
 
+    // Registrar log
+    await logger.categoryUpdated(session.user.id!, id, category.name)
+
     return NextResponse.json({ data: category })
   } catch (error) {
     console.error('[API Categories] Erro PATCH:', error)
@@ -118,6 +122,12 @@ export async function DELETE(
 
     const { id } = await params
 
+    // Buscar categoria para obter o nome antes de excluir
+    const category = await prisma.category.findUnique({ where: { id } })
+    if (!category) {
+      return NextResponse.json({ error: 'Categoria não encontrada' }, { status: 404 })
+    }
+
     // Verificar se há parceiros usando esta categoria
     const parceirosCount = await prisma.parceiro.count({
       where: { categoryId: id }
@@ -132,6 +142,9 @@ export async function DELETE(
     await prisma.category.delete({
       where: { id }
     })
+
+    // Registrar log
+    await logger.categoryDeleted(session.user.id!, category.name)
 
     return NextResponse.json({ message: 'Categoria excluída com sucesso' })
   } catch (error) {

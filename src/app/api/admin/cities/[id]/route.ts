@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { updateCitySchema } from '@/lib/validations/city'
+import { logger } from '@/lib/logger'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -104,6 +105,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       data: validationResult.data,
     })
 
+    // Registrar log
+    await logger.cityUpdated(session.user.id!, id, city.name)
+
     return NextResponse.json(
       { message: 'Cidade atualizada com sucesso', data: city }
     )
@@ -163,6 +167,9 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     await prisma.city.delete({
       where: { id },
     })
+
+    // Registrar log
+    await logger.cityDeleted(session.user.id!, city.name)
 
     return NextResponse.json(
       { message: 'Cidade excluída com sucesso' }

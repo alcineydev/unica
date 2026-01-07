@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 // GET - Listar categorias
 export async function GET(request: Request) {
@@ -77,6 +78,9 @@ export async function POST(request: Request) {
         isActive: true
       }
     })
+
+    // Registrar log
+    await logger.categoryCreated(session.user.id!, category.id, category.name)
 
     return NextResponse.json({ data: category }, { status: 201 })
   } catch (error) {

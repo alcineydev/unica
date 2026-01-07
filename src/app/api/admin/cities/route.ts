@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { createCitySchema } from '@/lib/validations/city'
+import { logger } from '@/lib/logger'
 
 // GET - Listar todas as cidades
 export async function GET(request: Request) {
@@ -84,6 +85,9 @@ export async function POST(request: Request) {
         isActive,
       },
     })
+
+    // Registrar log
+    await logger.cityCreated(session.user.id!, city.id, city.name)
 
     return NextResponse.json(
       { message: 'Cidade criada com sucesso', data: city },
