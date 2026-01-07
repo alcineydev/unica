@@ -1,19 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-<<<<<<< HEAD
 import bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { sendEmailChangeConfirmation } from '@/lib/email'
-=======
 import { logger } from '@/lib/logger'
->>>>>>> origin/claude/fix-admin-modal-typescript-AKY8B
 
 export const runtime = 'nodejs'
 
-// GET - Buscar admin por ID
+// GET - Buscar admin específico
 export async function GET(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -25,37 +22,32 @@ export async function GET(
 
     const { id } = await params
 
-    const admin = await prisma.admin.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            isActive: true,
-            createdAt: true,
-          },
-        },
-      },
+    const admin = await prisma.user.findUnique({
+      where: { id, role: 'ADMIN' },
+      include: { admin: true },
     })
 
     if (!admin) {
       return NextResponse.json({ error: 'Admin não encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json(admin)
+    return NextResponse.json({
+      id: admin.id,
+      name: admin.admin?.name || admin.email.split('@')[0],
+      email: admin.email,
+      phone: admin.admin?.phone || admin.phone,
+      isActive: admin.isActive,
+      createdAt: admin.createdAt,
+    })
   } catch (error) {
     console.error('Erro ao buscar admin:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
 // PATCH - Atualizar admin
 export async function PATCH(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -66,22 +58,50 @@ export async function PATCH(
     }
 
     const { id } = await params
-    const { name, email, phone, password, isActive } = await request.json()
+    const body = await request.json()
 
-    const admin = await prisma.admin.findUnique({
-      where: { id },
-      include: { user: true },
+    // Verificar se é toggle de status
+    if (body.isActive !== undefined && Object.keys(body).length === 1) {
+      const admin = await prisma.user.findUnique({
+        where: { id, role: 'ADMIN' },
+        include: { admin: true },
+      })
+
+      if (!admin) {
+        return NextResponse.json({ error: 'Admin não encontrado' }, { status: 404 })
+      }
+
+      await prisma.user.update({
+        where: { id },
+        data: { isActive: body.isActive },
+      })
+
+      if (body.isActive) {
+        await logger.adminActivated(session.user.id!, id, admin.email)
+      } else {
+        await logger.adminDeactivated(session.user.id!, id, admin.email)
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: body.isActive ? 'Admin ativado' : 'Admin desativado',
+      })
+    }
+
+    const { name, email, phone, password } = body
+
+    const admin = await prisma.user.findUnique({
+      where: { id, role: 'ADMIN' },
+      include: { admin: true },
     })
 
     if (!admin) {
       return NextResponse.json({ error: 'Admin não encontrado' }, { status: 404 })
     }
 
-    // Verificar se o e-mail está sendo alterado
-    const emailChanged = email && email !== admin.user.email
+    const emailChanged = email && email !== admin.email
 
     if (emailChanged) {
-      // Verificar se novo e-mail já existe
       const existingUser = await prisma.user.findUnique({
         where: { email },
       })
@@ -93,117 +113,92 @@ export async function PATCH(
         )
       }
 
-      // Cancelar mudanças pendentes anteriores
       await prisma.pendingEmailChange.deleteMany({
-        where: { userId: admin.userId },
+        where: { userId: id },
       })
 
-      // Criar token de confirmação
       const token = randomBytes(32).toString('hex')
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 horas
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
-      // Salvar mudança pendente
       await prisma.pendingEmailChange.create({
         data: {
-          userId: admin.userId,
-          oldEmail: admin.user.email,
+          userId: id,
+          oldEmail: admin.email,
           newEmail: email,
           token,
           expiresAt,
         },
       })
 
-      // Enviar e-mail de confirmação
       await sendEmailChangeConfirmation(
         email,
-        admin.name || 'Administrador',
-        admin.user.email,
+        admin.admin?.name || 'Administrador',
+        admin.email,
         token
       )
+
+      await logger.emailChangeRequested(session.user.id!, admin.email, email)
     }
 
-    // Atualizar status do usuário se informado
-    if (isActive !== undefined) {
-      await prisma.user.update({
-        where: { id: admin.userId },
-        data: { isActive },
-      })
+    const userUpdateData: Record<string, unknown> = {}
+    const adminUpdateData: Record<string, unknown> = {}
+    const changes: string[] = []
 
-      // Registrar log
-<<<<<<< HEAD
-      await prisma.systemLog.create({
-        data: {
-          level: 'info',
-          action: isActive ? 'ACTIVATE_ADMIN' : 'DEACTIVATE_ADMIN',
-          userId: session.user.id!,
-          details: { entity: 'Admin', entityId: id, adminEmail: admin.user.email },
-        },
-      })
-=======
-      if (body.isActive) {
-        await logger.adminActivated(session.user.id!, id, admin.user.email)
-      } else {
-        await logger.adminDeactivated(session.user.id!, id, admin.user.email)
-      }
->>>>>>> origin/claude/fix-admin-modal-typescript-AKY8B
+    if (name && name !== admin.admin?.name) {
+      adminUpdateData.name = name
+      changes.push('nome')
     }
 
-    // Preparar dados para atualização do usuário (sem o e-mail se foi alterado)
-    const userUpdateData: any = {}
-    if (password && password.length >= 6) {
-      userUpdateData.password = await bcrypt.hash(password, 12)
-    }
     if (phone !== undefined) {
-      userUpdateData.phone = phone
+      userUpdateData.phone = phone || null
+      adminUpdateData.phone = phone || null
+      changes.push('telefone')
     }
 
-    // Atualizar dados do usuário se houver campos
+    if (password && typeof password === 'string' && password.length >= 6) {
+      userUpdateData.password = await bcrypt.hash(password, 12)
+      changes.push('senha')
+      await logger.passwordChanged(session.user.id!, id, admin.email)
+    }
+
     if (Object.keys(userUpdateData).length > 0) {
       await prisma.user.update({
-        where: { id: admin.userId },
+        where: { id },
         data: userUpdateData,
       })
     }
 
-    // Atualizar dados do admin
-    const updatedAdmin = await prisma.admin.update({
-      where: { id },
-      data: {
-        name: name || admin.name,
-        phone: phone !== undefined ? phone : admin.phone,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            isActive: true,
-            createdAt: true,
-          },
-        },
-      },
-    })
+    if (Object.keys(adminUpdateData).length > 0 && admin.admin) {
+      await prisma.admin.update({
+        where: { id: admin.admin.id },
+        data: adminUpdateData,
+      })
+    }
+
+    if (changes.length > 0) {
+      await logger.adminUpdated(session.user.id!, id, admin.email, changes)
+    }
 
     return NextResponse.json({
       success: true,
-      data: updatedAdmin,
       emailPending: emailChanged,
+      passwordChanged: changes.includes('senha'),
+      changes,
       message: emailChanged
         ? `Link de confirmação enviado para ${email}`
-        : 'Admin atualizado com sucesso'
+        : changes.length > 0
+        ? `${changes.join(', ')} atualizado(s)`
+        : 'Nenhuma alteração',
     })
   } catch (error) {
     console.error('Erro ao atualizar admin:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
-// DELETE - Remover admin
+// DELETE - Excluir admin
 export async function DELETE(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -215,35 +210,31 @@ export async function DELETE(
 
     const { id } = await params
 
-    const admin = await prisma.admin.findUnique({
-      where: { id },
-      include: { user: true },
+    const admin = await prisma.user.findUnique({
+      where: { id, role: 'ADMIN' },
     })
 
     if (!admin) {
       return NextResponse.json({ error: 'Admin não encontrado' }, { status: 404 })
     }
 
-    // Deletar mudanças de e-mail pendentes
     await prisma.pendingEmailChange.deleteMany({
-      where: { userId: admin.userId },
+      where: { userId: id },
     })
 
-    // Deletar admin e usuário
-    await prisma.$transaction([
-      prisma.admin.delete({ where: { id } }),
-      prisma.user.delete({ where: { id: admin.userId } }),
-    ])
+    await prisma.admin.deleteMany({
+      where: { userId: id },
+    })
 
-    // Registrar log
-    await logger.adminDeleted(session.user.id!, admin.user.email)
+    await prisma.user.delete({
+      where: { id },
+    })
 
-    return NextResponse.json({ message: 'Admin removido com sucesso' })
+    await logger.adminDeleted(session.user.id!, admin.email)
+
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Erro ao deletar admin:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    console.error('Erro ao excluir admin:', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
