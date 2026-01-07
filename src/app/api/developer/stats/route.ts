@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { subDays, startOfDay, format } from 'date-fns'
+import { subDays, startOfDay, format, eachDayOfInterval } from 'date-fns'
 
 export const runtime = 'nodejs'
 
@@ -49,27 +49,34 @@ export async function GET() {
       _count: true,
     })
 
-    // Logs por dia (últimos 7 dias)
-    const logsByDay = await prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
-      SELECT DATE(created_at) as date, COUNT(*) as count
-      FROM system_logs
-      WHERE created_at >= ${sevenDaysAgo}
-      GROUP BY DATE(created_at)
-      ORDER BY date ASC
-    `
+    // Logs por dia (últimos 7 dias) - usando Prisma
+    const days = eachDayOfInterval({
+      start: subDays(new Date(), 6),
+      end: new Date(),
+    })
 
-    // Formatar logs por dia
-    const activityByDay = []
-    for (let i = 6; i >= 0; i--) {
-      const date = subDays(new Date(), i)
-      const dateStr = format(date, 'yyyy-MM-dd')
-      const dayData = logsByDay.find((l: { date: string; count: bigint }) => format(new Date(l.date), 'yyyy-MM-dd') === dateStr)
-      activityByDay.push({
-        date: format(date, 'dd/MM'),
-        day: format(date, 'EEE'),
-        count: dayData ? Number(dayData.count) : 0,
+    const activityByDay = await Promise.all(
+      days.map(async (day) => {
+        const dayStart = startOfDay(day)
+        const dayEnd = new Date(dayStart)
+        dayEnd.setDate(dayEnd.getDate() + 1)
+
+        const count = await prisma.systemLog.count({
+          where: {
+            createdAt: {
+              gte: dayStart,
+              lt: dayEnd,
+            },
+          },
+        })
+
+        return {
+          date: format(day, 'dd/MM'),
+          day: format(day, 'EEE'),
+          count,
+        }
       })
-    }
+    )
 
     // Últimos 5 logs
     const recentLogs = await prisma.systemLog.findMany({
