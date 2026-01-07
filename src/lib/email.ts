@@ -2,6 +2,7 @@ import { resend, emailConfig } from './resend'
 import { VerificationCodeEmail } from '@/emails/verification-code'
 import { WelcomeEmail } from '@/emails/welcome'
 import { PasswordResetEmail } from '@/emails/password-reset'
+import { EmailChangeConfirmation } from '@/emails/email-change-confirmation'
 
 export async function sendVerificationCode(
   email: string,
@@ -79,6 +80,40 @@ export async function sendPasswordResetEmail(
     return { success: true, data }
   } catch (error) {
     console.error('Erro ao enviar e-mail:', error)
+    return { success: false, error }
+  }
+}
+
+export async function sendEmailChangeConfirmation(
+  newEmail: string,
+  userName: string,
+  oldEmail: string,
+  token: string
+) {
+  try {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.unicabeneficios.com.br'
+    const confirmUrl = `${appUrl}/confirmar-email?token=${token}`
+
+    const { data, error } = await resend.emails.send({
+      from: emailConfig.from,
+      to: newEmail,
+      subject: 'Confirme a alteração do seu e-mail - UNICA',
+      react: EmailChangeConfirmation({
+        userName,
+        oldEmail,
+        newEmail,
+        confirmUrl,
+      }),
+    })
+
+    if (error) {
+      console.error('Erro ao enviar e-mail de confirmação:', error)
+      return { success: false, error }
+    }
+
+    return { success: true, data }
+  } catch (error) {
+    console.error('Erro ao enviar e-mail de confirmação:', error)
     return { success: false, error }
   }
 }

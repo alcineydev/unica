@@ -42,6 +42,7 @@ model User {
   parceiro      Parceiro?
   pushSubscriptions      PushSubscription[]
   adminPushNotifications AdminPushNotification[]
+  pendingEmailChanges    PendingEmailChange[]
 
   @@index([role])
   @@index([isActive])
@@ -90,6 +91,23 @@ model PasswordResetToken {
   @@index([email])
   @@index([token])
   @@map("password_reset_tokens")
+}
+
+/// Mudança de e-mail pendente (aguardando confirmação)
+model PendingEmailChange {
+  id        String   @id @default(cuid())
+  userId    String
+  oldEmail  String
+  newEmail  String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("pending_email_changes")
 }
 
 /// Benefício modular (peça/componente)

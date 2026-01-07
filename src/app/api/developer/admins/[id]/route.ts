@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
+import { randomBytes } from 'crypto'
+import { sendEmailChangeConfirmation } from '@/lib/email'
 
 export const runtime = 'nodejs'
 
@@ -11,7 +14,7 @@ export async function GET(
 ) {
   try {
     const session = await auth()
-    
+
     if (!session || session.user.role !== 'DEVELOPER') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -46,20 +49,20 @@ export async function GET(
   }
 }
 
-// PATCH - Atualizar admin (ativar/desativar)
+// PATCH - Atualizar admin
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
-    
+
     if (!session || session.user.role !== 'DEVELOPER') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
     const { id } = await params
-    const body = await request.json()
+    const { name, email, phone, password, isActive } = await request.json()
 
     const admin = await prisma.admin.findUnique({
       where: { id },
@@ -70,21 +73,83 @@ export async function PATCH(
       return NextResponse.json({ error: 'Admin não encontrado' }, { status: 404 })
     }
 
-    // Atualizar status do usuário
-    if (body.isActive !== undefined) {
+    // Verificar se o e-mail está sendo alterado
+    const emailChanged = email && email !== admin.user.email
+
+    if (emailChanged) {
+      // Verificar se novo e-mail já existe
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+      })
+
+      if (existingUser) {
+        return NextResponse.json(
+          { error: 'Este e-mail já está em uso' },
+          { status: 400 }
+        )
+      }
+
+      // Cancelar mudanças pendentes anteriores
+      await prisma.pendingEmailChange.deleteMany({
+        where: { userId: admin.userId },
+      })
+
+      // Criar token de confirmação
+      const token = randomBytes(32).toString('hex')
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 horas
+
+      // Salvar mudança pendente
+      await prisma.pendingEmailChange.create({
+        data: {
+          userId: admin.userId,
+          oldEmail: admin.user.email,
+          newEmail: email,
+          token,
+          expiresAt,
+        },
+      })
+
+      // Enviar e-mail de confirmação
+      await sendEmailChangeConfirmation(
+        email,
+        admin.name || 'Administrador',
+        admin.user.email,
+        token
+      )
+    }
+
+    // Atualizar status do usuário se informado
+    if (isActive !== undefined) {
       await prisma.user.update({
         where: { id: admin.userId },
-        data: { isActive: body.isActive },
+        data: { isActive },
       })
 
       // Registrar log
       await prisma.systemLog.create({
         data: {
           level: 'info',
-          action: body.isActive ? 'ACTIVATE_ADMIN' : 'DEACTIVATE_ADMIN',
+          action: isActive ? 'ACTIVATE_ADMIN' : 'DEACTIVATE_ADMIN',
           userId: session.user.id!,
           details: { entity: 'Admin', entityId: id, adminEmail: admin.user.email },
         },
+      })
+    }
+
+    // Preparar dados para atualização do usuário (sem o e-mail se foi alterado)
+    const userUpdateData: any = {}
+    if (password && password.length >= 6) {
+      userUpdateData.password = await bcrypt.hash(password, 12)
+    }
+    if (phone !== undefined) {
+      userUpdateData.phone = phone
+    }
+
+    // Atualizar dados do usuário se houver campos
+    if (Object.keys(userUpdateData).length > 0) {
+      await prisma.user.update({
+        where: { id: admin.userId },
+        data: userUpdateData,
       })
     }
 
@@ -92,9 +157,8 @@ export async function PATCH(
     const updatedAdmin = await prisma.admin.update({
       where: { id },
       data: {
-        name: body.name || admin.name,
-        phone: body.phone || admin.phone,
-        permissions: body.permissions || admin.permissions,
+        name: name || admin.name,
+        phone: phone !== undefined ? phone : admin.phone,
       },
       include: {
         user: {
@@ -108,7 +172,14 @@ export async function PATCH(
       },
     })
 
-    return NextResponse.json(updatedAdmin)
+    return NextResponse.json({
+      success: true,
+      data: updatedAdmin,
+      emailPending: emailChanged,
+      message: emailChanged
+        ? `Link de confirmação enviado para ${email}`
+        : 'Admin atualizado com sucesso'
+    })
   } catch (error) {
     console.error('Erro ao atualizar admin:', error)
     return NextResponse.json(
@@ -125,7 +196,7 @@ export async function DELETE(
 ) {
   try {
     const session = await auth()
-    
+
     if (!session || session.user.role !== 'DEVELOPER') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -140,6 +211,11 @@ export async function DELETE(
     if (!admin) {
       return NextResponse.json({ error: 'Admin não encontrado' }, { status: 404 })
     }
+
+    // Deletar mudanças de e-mail pendentes
+    await prisma.pendingEmailChange.deleteMany({
+      where: { userId: admin.userId },
+    })
 
     // Deletar admin e usuário
     await prisma.$transaction([
@@ -166,4 +242,3 @@ export async function DELETE(
     )
   }
 }
-
