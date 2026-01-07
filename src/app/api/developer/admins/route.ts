@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -102,14 +103,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Registrar log
-    await prisma.systemLog.create({
-      data: {
-        level: 'info',
-        action: 'CREATE_ADMIN',
-        userId: session.user.id!,
-        details: { entity: 'Admin', entityId: result.admin?.id || '', email: validatedData.email, name: validatedData.name },
-      },
-    })
+    await logger.adminCreated(session.user.id!, result.id, validatedData.email)
 
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
