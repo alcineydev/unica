@@ -7,6 +7,22 @@ import { logger } from './logger'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
+  events: {
+    async signIn({ user }) {
+      // Registrar login bem-sucedido
+      if (user?.id && user?.email) {
+        await logger.login(user.id, user.email)
+      }
+    },
+    async signOut(message) {
+      // Registrar logout
+      // NextAuth v5 pode passar token ou session
+      const token = 'token' in message ? message.token : null
+      if (token?.sub && token?.email) {
+        await logger.logout(token.sub, token.email as string)
+      }
+    },
+  },
   providers: [
     Credentials({
       name: 'credentials',
@@ -26,6 +42,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!email || !password) {
           logger.debug('[AUTH] ERRO: Credenciais faltando - email:', !!email, 'password:', !!password)
+          await logger.loginFailed(email || 'desconhecido', 'Credenciais não fornecidas')
           return null
         }
 
@@ -51,11 +68,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           if (!user) {
             logger.debug('[AUTH] ERRO: Usuário não existe no banco')
+            await logger.loginFailed(email, 'Usuário não encontrado')
             return null
           }
 
           if (!user.password) {
             logger.debug('[AUTH] ERRO: Usuário sem senha cadastrada')
+            await logger.loginFailed(email, 'Usuário sem senha cadastrada')
             return null
           }
 
@@ -65,11 +84,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           if (!isPasswordValid) {
             logger.debug('[AUTH] ERRO: Senha incorreta para:', email)
+            await logger.loginFailed(email, 'Senha incorreta')
             return null
           }
 
           if (!user.isActive) {
             logger.debug('[AUTH] ERRO: Usuário desativado:', email)
+            await logger.loginFailed(email, 'Usuário desativado')
             return null
           }
 
