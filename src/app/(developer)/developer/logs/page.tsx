@@ -18,7 +18,9 @@ import {
   Power,
   Clock,
   Terminal,
-  Settings
+  Settings,
+  FileJson,
+  FileSpreadsheet
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -96,6 +98,47 @@ export default function LogsPage() {
     endDate: '',
   })
   const [showFilters, setShowFilters] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = async (format: 'json' | 'csv') => {
+    setExporting(true)
+    try {
+      const params = new URLSearchParams()
+      params.set('format', format)
+      if (filters.type) params.set('type', filters.type)
+      if (filters.action) params.set('action', filters.action)
+      if (filters.startDate) params.set('startDate', filters.startDate)
+      if (filters.endDate) params.set('endDate', filters.endDate)
+      params.set('limit', '10000')
+
+      const response = await fetch(`/api/developer/logs/export?${params.toString()}`)
+
+      if (!response.ok) {
+        throw new Error('Erro ao exportar')
+      }
+
+      // Obter o nome do arquivo do header ou usar padrão
+      const contentDisposition = response.headers.get('content-disposition')
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/)
+      const filename = filenameMatch ? filenameMatch[1] : `logs.${format}`
+
+      // Criar blob e fazer download
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Erro ao exportar:', error)
+      alert('Erro ao exportar logs')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const fetchLogs = useCallback(async () => {
     setLoading(true)
@@ -166,7 +209,28 @@ export default function LogsPage() {
           </h1>
           <p className="text-slate-500 font-mono text-sm">// historico de acoes do sistema</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Botões de exportação */}
+          <button
+            onClick={() => handleExport('csv')}
+            disabled={exporting}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-sm font-mono hover:bg-amber-500/30 transition-all disabled:opacity-50"
+            title="Exportar CSV"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span className="hidden sm:inline">.csv</span>
+          </button>
+          <button
+            onClick={() => handleExport('json')}
+            disabled={exporting}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl text-sm font-mono hover:bg-blue-500/30 transition-all disabled:opacity-50"
+            title="Exportar JSON"
+          >
+            <FileJson className="w-4 h-4" />
+            <span className="hidden sm:inline">.json</span>
+          </button>
+
+          {/* Botões existentes */}
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all font-mono ${
