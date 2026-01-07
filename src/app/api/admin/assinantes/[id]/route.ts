@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 // GET - Buscar assinante por ID
 export async function GET(
@@ -117,6 +118,9 @@ export async function PUT(
       })
     }
 
+    // Registrar log
+    await logger.subscriberUpdated(session.user.id!, id, assinante.name)
+
     return NextResponse.json({
       success: true,
       message: 'Assinante atualizado com sucesso',
@@ -157,6 +161,9 @@ export async function DELETE(
       prisma.assinante.delete({ where: { id } }),
       prisma.user.delete({ where: { id: assinante.userId } })
     ])
+
+    // Registrar log
+    await logger.subscriberDeleted(session.user.id!, assinante.name)
 
     return NextResponse.json({
       success: true,

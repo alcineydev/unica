@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { updateBenefitSchema, validateBenefitConfig } from '@/lib/validations/benefit'
+import { logger } from '@/lib/logger'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -129,6 +130,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       data: updateData,
     })
 
+    // Registrar log
+    await logger.benefitUpdated(session.user.id!, id, benefit.name)
+
     return NextResponse.json(
       { message: 'Benefício atualizado com sucesso', data: benefit }
     )
@@ -187,6 +191,9 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     await prisma.benefit.delete({
       where: { id },
     })
+
+    // Registrar log
+    await logger.benefitDeleted(session.user.id!, benefit.name)
 
     return NextResponse.json(
       { message: 'Benefício excluído com sucesso' }

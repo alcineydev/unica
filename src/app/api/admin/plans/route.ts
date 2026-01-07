@@ -164,6 +164,9 @@ export async function POST(request: Request) {
       },
     })
 
+    // Registrar log
+    await logger.planCreated(session.user.id!, plan.id, plan.name)
+
     return NextResponse.json(
       { message: 'Plano criado com sucesso', data: plan },
       { status: 201 }
