@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Plus, Trash2, Power, PowerOff, Loader2, Pencil, Terminal, Shield } from 'lucide-react'
+import { Plus, Trash2, Power, PowerOff, Loader2, Pencil, Terminal, Shield, Mail, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -54,6 +54,7 @@ export default function AdminsPage() {
     name: '',
     phone: '',
   })
+  const [emailPendingMessage, setEmailPendingMessage] = useState<string | null>(null)
 
   useEffect(() => {
     loadAdmins()
@@ -78,6 +79,7 @@ export default function AdminsPage() {
     setEditMode(false)
     setSelectedAdmin(null)
     setFormData({ email: '', password: '', name: '', phone: '' })
+    setEmailPendingMessage(null)
     setDialogOpen(true)
   }
 
@@ -90,6 +92,7 @@ export default function AdminsPage() {
       name: admin.name,
       phone: admin.phone,
     })
+    setEmailPendingMessage(null)
     setDialogOpen(true)
   }
 
@@ -112,9 +115,19 @@ export default function AdminsPage() {
         })
 
         if (response.ok) {
-          toast.success('Administrador atualizado com sucesso!')
-          setDialogOpen(false)
-          loadAdmins()
+          const data = await response.json()
+
+          // Se o e-mail foi alterado, mostrar mensagem de pendente
+          if (data.emailPending) {
+            setEmailPendingMessage(data.message)
+            toast.success(data.message)
+            loadAdmins()
+            // Não fechar o modal, mostrar a mensagem
+          } else {
+            toast.success('Administrador atualizado com sucesso!')
+            setDialogOpen(false)
+            loadAdmins()
+          }
         } else {
           const data = await response.json()
           toast.error(data.error || 'Erro ao atualizar administrador')
@@ -240,11 +253,28 @@ export default function AdminsPage() {
                 <Input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, email: e.target.value })
+                    setEmailPendingMessage(null)
+                  }}
                   placeholder="email@exemplo.com"
                   className="bg-slate-800 border-slate-700 text-white font-mono focus:border-emerald-500 focus:ring-emerald-500/20"
                   required
                 />
+                {/* Aviso quando e-mail está sendo alterado */}
+                {editMode && selectedAdmin && formData.email !== selectedAdmin.user.email && !emailPendingMessage && (
+                  <div className="flex items-center gap-2 text-amber-400 text-xs font-mono bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>// ATENÇÃO: Um link de confirmação será enviado para o novo e-mail</span>
+                  </div>
+                )}
+                {/* Mensagem de e-mail pendente */}
+                {emailPendingMessage && (
+                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2">
+                    <Mail className="w-4 h-4 flex-shrink-0" />
+                    <span>{emailPendingMessage}</span>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 font-mono text-sm">
