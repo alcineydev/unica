@@ -62,7 +62,10 @@ export async function PATCH(
     }
 
     const { id } = await params
-    const { name, email, phone, password, isActive } = await request.json()
+    const body = await request.json()
+    const { name, email, phone, password, isActive } = body
+
+    console.log('[ADMIN UPDATE] Iniciando atualização:', { id, name, email, phone, hasPassword: !!password, passwordLength: password?.length })
 
     const admin = await prisma.admin.findUnique({
       where: { id },
@@ -136,14 +139,30 @@ export async function PATCH(
       })
     }
 
-    // Preparar dados para atualização do usuário (sem o e-mail se foi alterado)
+    // Preparar dados para atualização do usuário
     const userUpdateData: any = {}
-    if (password && password.length >= 6) {
-      userUpdateData.password = await bcrypt.hash(password, 12)
+    const changes: string[] = []
+
+    // CORREÇÃO: Verificar se a senha foi fornecida e tem tamanho válido
+    if (password && typeof password === 'string' && password.length >= 6) {
+      console.log('[ADMIN UPDATE] Gerando hash da nova senha...')
+      const hashedPassword = await bcrypt.hash(password, 12)
+      userUpdateData.password = hashedPassword
+      changes.push('senha')
+      console.log('[ADMIN UPDATE] Hash gerado com sucesso')
+    } else if (password && password.length > 0 && password.length < 6) {
+      return NextResponse.json(
+        { error: 'A senha deve ter pelo menos 6 caracteres' },
+        { status: 400 }
+      )
     }
-    if (phone !== undefined) {
-      userUpdateData.phone = phone
+
+    if (phone !== undefined && phone !== admin.phone) {
+      userUpdateData.phone = phone || null
+      changes.push('telefone')
     }
+
+    console.log('[ADMIN UPDATE] Campos do user a atualizar:', Object.keys(userUpdateData))
 
     // Atualizar dados do usuário se houver campos
     if (Object.keys(userUpdateData).length > 0) {
@@ -151,6 +170,12 @@ export async function PATCH(
         where: { id: admin.userId },
         data: userUpdateData,
       })
+      console.log('[ADMIN UPDATE] User atualizado com sucesso')
+    }
+
+    // Verificar se nome foi alterado
+    if (name && name !== admin.name) {
+      changes.push('nome')
     }
 
     // Atualizar dados do admin
@@ -172,16 +197,30 @@ export async function PATCH(
       },
     })
 
+    console.log('[ADMIN UPDATE] Admin atualizado. Changes:', changes)
+
+    // Montar mensagem de resposta
+    let message = ''
+    if (emailChanged && changes.length > 0) {
+      message = `Link de confirmação enviado para ${email}. ${changes.join(', ')} atualizado(s) com sucesso.`
+    } else if (emailChanged) {
+      message = `Link de confirmação enviado para ${email}`
+    } else if (changes.length > 0) {
+      message = `${changes.join(', ')} atualizado(s) com sucesso`
+    } else {
+      message = 'Nenhuma alteração realizada'
+    }
+
     return NextResponse.json({
       success: true,
       data: updatedAdmin,
       emailPending: emailChanged,
-      message: emailChanged
-        ? `Link de confirmação enviado para ${email}`
-        : 'Admin atualizado com sucesso'
+      passwordChanged: changes.includes('senha'),
+      changes,
+      message
     })
   } catch (error) {
-    console.error('Erro ao atualizar admin:', error)
+    console.error('[ADMIN UPDATE] Erro:', error)
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

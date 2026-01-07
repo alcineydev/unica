@@ -2,15 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,9 +12,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Plus, Trash2, Power, PowerOff, Loader2, Pencil, Terminal, Shield, Mail, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, Power, PowerOff, Loader2, Pencil, Terminal, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { AdminModal } from './admin-modal'
 
 interface Admin {
   id: string
@@ -42,19 +34,9 @@ interface Admin {
 export default function AdminsPage() {
   const [admins, setAdmins] = useState<Admin[]>([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null)
-  const [editMode, setEditMode] = useState(false)
-
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    name: '',
-    phone: '',
-  })
-  const [emailPendingMessage, setEmailPendingMessage] = useState<string | null>(null)
 
   useEffect(() => {
     loadAdmins()
@@ -75,87 +57,25 @@ export default function AdminsPage() {
     }
   }
 
-  function openCreateDialog() {
-    setEditMode(false)
+  function openCreateModal() {
     setSelectedAdmin(null)
-    setFormData({ email: '', password: '', name: '', phone: '' })
-    setEmailPendingMessage(null)
-    setDialogOpen(true)
+    setModalOpen(true)
   }
 
-  function openEditDialog(admin: Admin) {
-    setEditMode(true)
+  function openEditModal(admin: Admin) {
     setSelectedAdmin(admin)
-    setFormData({
-      email: admin.user.email,
-      password: '',
-      name: admin.name,
-      phone: admin.phone,
-    })
-    setEmailPendingMessage(null)
-    setDialogOpen(true)
+    setModalOpen(true)
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
+  function handleModalClose() {
+    setModalOpen(false)
+    setSelectedAdmin(null)
+  }
 
-    try {
-      if (editMode && selectedAdmin) {
-        // Update existing admin
-        const response = await fetch(`/api/developer/admins/${selectedAdmin.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: formData.name,
-            phone: formData.phone,
-            email: formData.email,
-            ...(formData.password && { password: formData.password }),
-          }),
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-
-          // Se o e-mail foi alterado, mostrar mensagem de pendente
-          if (data.emailPending) {
-            setEmailPendingMessage(data.message)
-            toast.success(data.message)
-            loadAdmins()
-            // Não fechar o modal, mostrar a mensagem
-          } else {
-            toast.success('Administrador atualizado com sucesso!')
-            setDialogOpen(false)
-            loadAdmins()
-          }
-        } else {
-          const data = await response.json()
-          toast.error(data.error || 'Erro ao atualizar administrador')
-        }
-      } else {
-        // Create new admin
-        const response = await fetch('/api/developer/admins', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        })
-
-        if (response.ok) {
-          toast.success('Administrador criado com sucesso!')
-          setDialogOpen(false)
-          setFormData({ email: '', password: '', name: '', phone: '' })
-          loadAdmins()
-        } else {
-          const data = await response.json()
-          toast.error(data.error || 'Erro ao criar administrador')
-        }
-      }
-    } catch (error) {
-      console.error('Erro:', error)
-      toast.error(editMode ? 'Erro ao atualizar administrador' : 'Erro ao criar administrador')
-    } finally {
-      setSaving(false)
-    }
+  function handleModalSuccess() {
+    setModalOpen(false)
+    setSelectedAdmin(null)
+    loadAdmins()
   }
 
   async function handleToggleStatus(admin: Admin) {
@@ -204,6 +124,15 @@ export default function AdminsPage() {
     }
   }
 
+  // Adaptar admin para o formato do modal
+  const modalAdmin = selectedAdmin ? {
+    id: selectedAdmin.id,
+    name: selectedAdmin.name,
+    email: selectedAdmin.user.email,
+    phone: selectedAdmin.phone,
+    isActive: selectedAdmin.user.isActive,
+  } : null
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -220,108 +149,22 @@ export default function AdminsPage() {
           </div>
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={openCreateDialog}
-              className="bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-mono font-semibold"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              new_admin()
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-slate-900 border-slate-700">
-            <DialogHeader>
-              <DialogTitle className="text-white font-mono flex items-center gap-2">
-                <Terminal className="w-5 h-5 text-emerald-400" />
-                {editMode ? 'edit_admin()' : 'create_admin()'}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-slate-400 font-mono text-sm">name:</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Nome completo"
-                  className="bg-slate-800 border-slate-700 text-white font-mono focus:border-emerald-500 focus:ring-emerald-500/20"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-slate-400 font-mono text-sm">email:</Label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => {
-                    setFormData({ ...formData, email: e.target.value })
-                    setEmailPendingMessage(null)
-                  }}
-                  placeholder="email@exemplo.com"
-                  className="bg-slate-800 border-slate-700 text-white font-mono focus:border-emerald-500 focus:ring-emerald-500/20"
-                  required
-                />
-                {/* Aviso quando e-mail está sendo alterado */}
-                {editMode && selectedAdmin && formData.email !== selectedAdmin.user.email && !emailPendingMessage && (
-                  <div className="flex items-center gap-2 text-amber-400 text-xs font-mono bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>// ATENÇÃO: Um link de confirmação será enviado para o novo e-mail</span>
-                  </div>
-                )}
-                {/* Mensagem de e-mail pendente */}
-                {emailPendingMessage && (
-                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2">
-                    <Mail className="w-4 h-4 flex-shrink-0" />
-                    <span>{emailPendingMessage}</span>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label className="text-slate-400 font-mono text-sm">
-                  password: {editMode && <span className="text-slate-600">(deixe vazio para manter)</span>}
-                </Label>
-                <Input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Mínimo 6 caracteres"
-                  className="bg-slate-800 border-slate-700 text-white font-mono focus:border-emerald-500 focus:ring-emerald-500/20"
-                  required={!editMode}
-                  minLength={6}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-slate-400 font-mono text-sm">phone:</Label>
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="(00) 00000-0000"
-                  className="bg-slate-800 border-slate-700 text-white font-mono focus:border-emerald-500 focus:ring-emerald-500/20"
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-4 border-t border-slate-800">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                  className="border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white font-mono"
-                >
-                  cancel()
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-mono font-semibold"
-                >
-                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  {editMode ? 'update()' : 'create()'}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button
+          onClick={openCreateModal}
+          className="bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-mono font-semibold"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          new_admin()
+        </Button>
       </div>
+
+      {/* Admin Modal */}
+      <AdminModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+        admin={modalAdmin}
+      />
 
       {/* Admin List */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -344,7 +187,7 @@ export default function AdminsPage() {
           </div>
         ) : (
           <div className="divide-y divide-slate-800">
-            {admins.map((admin, index) => (
+            {admins.map((admin) => (
               <div
                 key={admin.id}
                 className="p-4 hover:bg-slate-800/50 transition-colors"
@@ -382,7 +225,7 @@ export default function AdminsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => openEditDialog(admin)}
+                      onClick={() => openEditModal(admin)}
                       className="text-slate-400 hover:text-emerald-400 hover:bg-slate-800"
                       title="Editar"
                     >
