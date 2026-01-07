@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -58,14 +59,7 @@ export async function PUT(request: NextRequest) {
     await Promise.all(updates)
 
     // Registrar log
-    await prisma.systemLog.create({
-      data: {
-        level: 'info',
-        action: 'UPDATE_CONFIGS',
-        userId: session.user.id!,
-        details: { keys: Object.keys(body) },
-      },
-    })
+    await logger.configUpdated(session.user.id!, Object.keys(body).join(', '))
 
     return NextResponse.json({ success: true })
   } catch (error) {

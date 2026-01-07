@@ -185,13 +185,14 @@ export async function POST(request: Request) {
       // Logar para debug
       await prisma.systemLog.create({
         data: {
-          level: 'INFO',
+          type: 'SYSTEM',
           action: 'WEBHOOK_MERCADOPAGO',
-          details: {
+          message: `Webhook MP - Pagamento ${paymentId} não aprovado: ${payment.status}`,
+          details: JSON.stringify({
             paymentId,
             status: payment.status,
             external_reference: payment.external_reference,
-          },
+          }),
         },
       })
 
@@ -229,8 +230,7 @@ export async function POST(request: Request) {
       where: {
         action: 'PAGAMENTO_PROCESSADO',
         details: {
-          path: ['paymentId'],
-          equals: paymentId,
+          contains: `"paymentId":"${paymentId}"`,
         },
       },
     })
@@ -424,10 +424,12 @@ export async function POST(request: Request) {
     // Registrar log de pagamento processado
     await prisma.systemLog.create({
       data: {
-        level: 'INFO',
+        type: 'SYSTEM',
         action: 'PAGAMENTO_PROCESSADO',
+        message: `Pagamento processado - Plano ${plan.name} para assinante ${assinante.id}`,
         userId: user?.id,
-        details: {
+        targetId: assinante.id,
+        details: JSON.stringify({
           paymentId,
           status: 'approved',
           planId: plan.id,
@@ -436,7 +438,7 @@ export async function POST(request: Request) {
           paymentType,
           amount: payment.transaction_amount,
           isNewUser,
-        },
+        }),
       },
     })
 
@@ -479,12 +481,13 @@ export async function POST(request: Request) {
     // Logar erro
     await prisma.systemLog.create({
       data: {
-        level: 'ERROR',
+        type: 'ERROR',
         action: 'WEBHOOK_MERCADOPAGO_ERROR',
-        details: {
+        message: `Erro no webhook MP: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+        details: JSON.stringify({
           error: error instanceof Error ? error.message : 'Erro desconhecido',
           stack: error instanceof Error ? error.stack : undefined,
-        },
+        }),
       },
     }).catch(console.error)
 

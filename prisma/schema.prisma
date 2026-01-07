@@ -42,7 +42,8 @@ model User {
   parceiro      Parceiro?
   pushSubscriptions      PushSubscription[]
   adminPushNotifications AdminPushNotification[]
-  pendingEmailChanges    PendingEmailChange[]
+pendingEmailChanges    PendingEmailChange[]
+  systemLogs             SystemLog[]
 
   @@index([role])
   @@index([isActive])
@@ -359,15 +360,19 @@ model Integration {
 /// Logs do sistema (para developer)
 model SystemLog {
   id        String   @id @default(cuid())
-  level     String
-  action    String
-  userId    String?
-  details   Json?
+  type      String   // AUTH, ADMIN, USER, CONFIG, ERROR, SYSTEM
+  action    String   // LOGIN, LOGOUT, CREATE, UPDATE, DELETE, etc.
+  message   String
+  details   String?  @db.Text // JSON com detalhes extras
+  userId    String?  // Quem realizou a ação (pode ser null para erros de sistema)
+  targetId  String?  // ID do recurso afetado (user, config, etc.)
   ip        String?
   userAgent String?
   createdAt DateTime @default(now())
 
-  @@index([level])
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([type])
   @@index([action])
   @@index([userId])
   @@index([createdAt])

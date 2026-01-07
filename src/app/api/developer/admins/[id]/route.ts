@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+<<<<<<< HEAD
 import bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { sendEmailChangeConfirmation } from '@/lib/email'
+=======
+import { logger } from '@/lib/logger'
+>>>>>>> origin/claude/fix-admin-modal-typescript-AKY8B
 
 export const runtime = 'nodejs'
 
@@ -126,6 +130,7 @@ export async function PATCH(
       })
 
       // Registrar log
+<<<<<<< HEAD
       await prisma.systemLog.create({
         data: {
           level: 'info',
@@ -134,6 +139,13 @@ export async function PATCH(
           details: { entity: 'Admin', entityId: id, adminEmail: admin.user.email },
         },
       })
+=======
+      if (body.isActive) {
+        await logger.adminActivated(session.user.id!, id, admin.user.email)
+      } else {
+        await logger.adminDeactivated(session.user.id!, id, admin.user.email)
+      }
+>>>>>>> origin/claude/fix-admin-modal-typescript-AKY8B
     }
 
     // Preparar dados para atualização do usuário (sem o e-mail se foi alterado)
@@ -224,14 +236,7 @@ export async function DELETE(
     ])
 
     // Registrar log
-    await prisma.systemLog.create({
-      data: {
-        level: 'info',
-        action: 'DELETE_ADMIN',
-        userId: session.user.id!,
-        details: { entity: 'Admin', entityId: id, adminEmail: admin.user.email, adminName: admin.name },
-      },
-    })
+    await logger.adminDeleted(session.user.id!, admin.user.email)
 
     return NextResponse.json({ message: 'Admin removido com sucesso' })
   } catch (error) {
