@@ -100,6 +100,7 @@ model Plan {
   assinantes    Assinante[]
   notifications Notification[]
   planBenefits  PlanBenefit[]
+  payments      Payment[]
 
   @@index([isActive])
   @@index([price])
@@ -214,6 +215,11 @@ model Assinante {
   planEndDate        DateTime?
   nextBillingDate    DateTime?
   lastPaymentDate    DateTime?
+
+  // Asaas
+  asaasCustomerId     String?   @map("asaas_customer_id")
+  asaasSubscriptionId String?   @map("asaas_subscription_id")
+
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   city               City?              @relation(fields: [cityId], references: [id])
@@ -222,10 +228,12 @@ model Assinante {
   transactions       Transaction[]
   avaliacoes         Avaliacao[]
   notificacoes       AssinanteNotificacao[]
+  payments           Payment[]
 
   @@index([subscriptionStatus])
   @@index([planId])
   @@index([cityId])
+  @@index([asaasCustomerId])
   @@map("assinantes")
 }
 
@@ -628,4 +636,50 @@ model Page {
   @@index([slug])
   @@index([isPublished])
   @@map("pages")
+}
+
+/// Histórico de pagamentos Asaas
+model Payment {
+  id                  String   @id @default(cuid())
+
+  // Relacionamentos
+  assinanteId         String
+  assinante           Assinante @relation(fields: [assinanteId], references: [id], onDelete: Cascade)
+
+  planId              String?
+  plan                Plan?    @relation(fields: [planId], references: [id])
+
+  // Dados Asaas
+  asaasPaymentId      String   @unique @map("asaas_payment_id")
+  asaasCustomerId     String   @map("asaas_customer_id")
+  asaasSubscriptionId String?  @map("asaas_subscription_id")
+
+  // Detalhes do pagamento
+  billingType         String   // PIX, BOLETO, CREDIT_CARD
+  value               Decimal  @db.Decimal(10, 2)
+  netValue            Decimal? @db.Decimal(10, 2)
+  status              String   // PENDING, RECEIVED, CONFIRMED, OVERDUE, REFUNDED, etc.
+
+  // Datas
+  dueDate             DateTime
+  paymentDate         DateTime?
+  confirmedDate       DateTime?
+
+  // URLs
+  invoiceUrl          String?
+  bankSlipUrl         String?
+  pixQrCode           String?  @db.Text
+  pixPayload          String?  @db.Text
+
+  // Metadata
+  description         String?
+  externalReference   String?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([assinanteId])
+  @@index([status])
+  @@index([asaasPaymentId])
+  @@map("payments")
 }
