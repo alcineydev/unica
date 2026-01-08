@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { asaas } from '@/lib/asaas'
 import { format, addMonths, addDays } from 'date-fns'
+import { notifyPaymentConfirmed } from '@/lib/notifications'
 
 // Tipos de eventos Asaas
 type AsaasEvent =
@@ -294,6 +295,19 @@ async function handlePaymentConfirmed(payment: AsaasWebhookPayload['payment']) {
     planId,
     paymentId: payment.id,
     value: payment.value,
+  })
+
+  // Notificar admins sobre pagamento confirmado
+  const planForNotification = planId
+    ? await prisma.plan.findUnique({ where: { id: planId } })
+    : assinante.plan
+
+  await notifyPaymentConfirmed({
+    assinanteId: assinante.id,
+    assinanteName: assinante.name,
+    planName: planForNotification?.name || 'Plano',
+    value: Number(payment.value),
+    billingType: payment.billingType,
   })
 
   console.log(`[Asaas] Assinante ${assinante.name} ativado com sucesso`)
