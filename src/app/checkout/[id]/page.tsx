@@ -59,8 +59,8 @@ interface CheckoutResponse {
 type BillingType = 'PIX' | 'BOLETO' | 'CREDIT_CARD'
 type Period = 'MONTHLY' | 'SEMIANNUALLY' | 'YEARLY'
 
-export default function CheckoutPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params)
+export default function CheckoutPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
 
   const [plan, setPlan] = useState<Plan | null>(null)
@@ -99,7 +99,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
 
   useEffect(() => {
     fetchPlan()
-  }, [slug])
+  }, [id])
 
   // Polling para verificar pagamento Pix
   useEffect(() => {
@@ -118,7 +118,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ slug: strin
 
   const fetchPlan = async () => {
     try {
-      const response = await fetch(`/api/public/plans/${slug}`)
+      const response = await fetch(`/api/public/plans/${id}`)
       if (response.ok) {
         const data = await response.json()
         setPlan(data)
