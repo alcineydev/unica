@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { addMonths, addDays } from 'date-fns'
+import { asaas } from '@/lib/asaas'
+import { format, addMonths, addDays } from 'date-fns'
 
 // Tipos de eventos Asaas
 type AsaasEvent =
@@ -210,8 +211,12 @@ async function handlePaymentConfirmed(payment: AsaasWebhookPayload['payment']) {
     })
   }
 
-  // Extrair assinanteId do externalReference
-  const [assinanteId, planId] = (payment.externalReference || '').split('|')
+  // Extrair dados do externalReference
+  const refParts = (payment.externalReference || '').split('|')
+  const assinanteId = refParts[0]
+  const planId = refParts[1]
+  const cycle = (refParts[2] as 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'YEARLY') || 'MONTHLY'
+  const isNew = refParts[3] === 'NEW' // Indica que precisa criar assinatura
 
   if (!assinanteId) {
     console.warn('Payment confirmado sem externalReference:', payment.id)
@@ -229,22 +234,47 @@ async function handlePaymentConfirmed(payment: AsaasWebhookPayload['payment']) {
     return
   }
 
-  // Calcular próxima data de cobrança baseado no ciclo
-  const plan = planId ? await prisma.plan.findUnique({ where: { id: planId } }) : assinante.plan
-  let nextBillingDate = addMonths(new Date(), 1) // Default: mensal
+  // Se é primeiro pagamento (NEW), criar assinatura recorrente
+  if (isNew && assinante.asaasCustomerId && !assinante.asaasSubscriptionId) {
+    try {
+      const plan = planId ? await prisma.plan.findUnique({ where: { id: planId } }) : assinante.plan
 
-  if (plan?.period) {
-    switch (plan.period.toUpperCase()) {
-      case 'SEMIANNUALLY':
-      case 'SEMESTRAL':
-        nextBillingDate = addMonths(new Date(), 6)
-        break
-      case 'YEARLY':
-      case 'ANUAL':
-        nextBillingDate = addMonths(new Date(), 12)
-        break
+      if (plan) {
+        // Calcular próxima data baseado no ciclo
+        let nextDueDate = addMonths(new Date(), 1)
+        if (cycle === 'SEMIANNUALLY') nextDueDate = addMonths(new Date(), 6)
+        if (cycle === 'YEARLY') nextDueDate = addMonths(new Date(), 12)
+
+        // Criar assinatura recorrente para os próximos pagamentos
+        const subscription = await asaas.createSubscription({
+          customer: assinante.asaasCustomerId,
+          billingType: 'UNDEFINED', // Permite escolher na hora
+          value: Number(payment.value),
+          nextDueDate: format(nextDueDate, 'yyyy-MM-dd'),
+          cycle,
+          description: `Assinatura ${plan.name} - UNICA Clube`,
+          externalReference: `${assinanteId}|${planId}|${cycle}`,
+        })
+
+        // Atualizar assinante com ID da assinatura
+        await prisma.assinante.update({
+          where: { id: assinanteId },
+          data: {
+            asaasSubscriptionId: subscription.id,
+          },
+        })
+
+        console.log(`[Asaas] Assinatura recorrente criada: ${subscription.id}`)
+      }
+    } catch (subError) {
+      console.error('Erro ao criar assinatura recorrente:', subError)
     }
   }
+
+  // Calcular data de expiração baseado no ciclo
+  let planEndDate = addMonths(new Date(), 1)
+  if (cycle === 'SEMIANNUALLY') planEndDate = addMonths(new Date(), 6)
+  if (cycle === 'YEARLY') planEndDate = addMonths(new Date(), 12)
 
   // Ativar assinante
   await prisma.assinante.update({
@@ -253,13 +283,12 @@ async function handlePaymentConfirmed(payment: AsaasWebhookPayload['payment']) {
       subscriptionStatus: 'ACTIVE',
       planId: planId || assinante.planId,
       planStartDate: assinante.planStartDate || new Date(),
-      planEndDate: nextBillingDate,
-      nextBillingDate,
+      planEndDate,
+      nextBillingDate: planEndDate,
       lastPaymentDate: new Date(),
     },
   })
 
-  // Criar notificação para admins
   await logger.system(`Pagamento confirmado: ${assinante.name} - R$ ${payment.value}`, {
     assinanteId,
     planId,

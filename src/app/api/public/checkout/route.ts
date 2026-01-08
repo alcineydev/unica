@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
       creditCardHolderInfo,
     } = body
 
+    const selectedBillingType = billingType || 'PIX'
+
     // Validações
     if (!name || !email || !cpf || !planId) {
       return NextResponse.json(
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
       const qrCode = `UNICA-${nanoid(12)}`
 
       // Criar usuário e assinante em transação
-      const result = await prisma.$transaction(async (tx: typeof prisma) => {
+      const result = await prisma.$transaction(async (tx) => {
         const newUser = await tx.user.create({
           data: {
             email,
@@ -101,7 +103,6 @@ export async function POST(request: NextRequest) {
         return { user: newUser, assinante: newAssinante }
       })
 
-      user = result.user as typeof user
       assinante = result.assinante
       isNewUser = true
 
@@ -157,91 +158,91 @@ export async function POST(request: NextRequest) {
       value = Number(plan.priceMonthly)
     }
 
-    const nextDueDate = format(addDays(new Date(), 1), 'yyyy-MM-dd')
+    const dueDate = format(addDays(new Date(), 1), 'yyyy-MM-dd')
 
-    // Criar assinatura no Asaas
-    let subscription
-    const selectedBillingType = billingType || 'PIX'
+    let paymentData = null
+    let pixData = null
+    let subscription = null
 
     if (selectedBillingType === 'CREDIT_CARD' && creditCard && creditCardHolderInfo) {
+      // CARTÃO: Criar assinatura direto (Asaas permite)
       subscription = await asaas.createSubscriptionWithCreditCard(
         {
           customer: asaasCustomerId,
           billingType: 'CREDIT_CARD',
           value,
-          nextDueDate,
+          nextDueDate: dueDate,
           cycle,
           description: `Assinatura ${plan.name} - UNICA Clube`,
-          externalReference: `${assinante.id}|${planId}`,
+          externalReference: `${assinante.id}|${planId}|${cycle}`,
         },
         creditCard,
         creditCardHolderInfo
       )
-    } else {
-      subscription = await asaas.createSubscription({
-        customer: asaasCustomerId,
-        billingType: selectedBillingType === 'CREDIT_CARD' ? 'UNDEFINED' : selectedBillingType,
-        value,
-        nextDueDate,
-        cycle,
-        description: `Assinatura ${plan.name} - UNICA Clube`,
-        externalReference: `${assinante.id}|${planId}`,
+
+      // Atualizar assinante
+      await prisma.assinante.update({
+        where: { id: assinante.id },
+        data: {
+          asaasSubscriptionId: subscription.id,
+          planId: plan.id,
+          subscriptionStatus: 'ACTIVE',
+          planStartDate: new Date(),
+        },
       })
-    }
+    } else {
+      // PIX ou BOLETO: Criar cobrança AVULSA primeiro
+      const payment = await asaas.createPayment({
+        customer: asaasCustomerId,
+        billingType: selectedBillingType,
+        value,
+        dueDate,
+        description: `Assinatura ${plan.name} - UNICA Clube`,
+        externalReference: `${assinante.id}|${planId}|${cycle}|NEW`, // NEW indica que precisa criar assinatura após pagar
+      })
 
-    // Atualizar assinante
-    await prisma.assinante.update({
-      where: { id: assinante.id },
-      data: {
-        asaasSubscriptionId: subscription.id,
-        planId: plan.id,
-        subscriptionStatus: 'PENDING',
-        planStartDate: new Date(),
-      },
-    })
+      paymentData = payment
 
-    // Para Pix/Boleto, buscar dados do primeiro pagamento
-    let paymentData = null
-    let pixData = null
-
-    if (selectedBillingType !== 'CREDIT_CARD') {
-      // Aguardar um pouco para o Asaas criar o primeiro pagamento
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      try {
-        const payments = await asaas.getSubscriptionPayments(subscription.id)
-        if (payments.data.length > 0) {
-          const firstPayment = payments.data[0]
-          paymentData = await asaas.getPayment(firstPayment.id)
-
-          if (selectedBillingType === 'PIX') {
-            pixData = await asaas.getPixQrCode(firstPayment.id)
-          }
-
-          // Salvar pagamento no banco
-          await prisma.payment.create({
-            data: {
-              assinanteId: assinante.id,
-              planId: plan.id,
-              asaasPaymentId: firstPayment.id,
-              asaasCustomerId,
-              asaasSubscriptionId: subscription.id,
-              billingType: selectedBillingType,
-              value,
-              status: 'PENDING',
-              dueDate: new Date(nextDueDate),
-              invoiceUrl: paymentData.invoiceUrl,
-              bankSlipUrl: paymentData.bankSlipUrl,
-              pixQrCode: pixData?.encodedImage,
-              pixPayload: pixData?.payload,
-              description: `Assinatura ${plan.name}`,
-              externalReference: `${assinante.id}|${planId}`,
-            },
-          })
+      // Buscar QR Code se for Pix
+      if (selectedBillingType === 'PIX') {
+        try {
+          // Aguardar um pouco para o Asaas gerar o QR Code
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          pixData = await asaas.getPixQrCode(payment.id)
+        } catch (pixError) {
+          console.error('Erro ao buscar QR Code Pix:', pixError)
         }
-      } catch (e) {
-        console.error('Erro ao buscar pagamento da assinatura:', e)
       }
+
+      // Salvar pagamento no banco
+      await prisma.payment.create({
+        data: {
+          assinanteId: assinante.id,
+          planId: plan.id,
+          asaasPaymentId: payment.id,
+          asaasCustomerId,
+          billingType: selectedBillingType,
+          value,
+          status: 'PENDING',
+          dueDate: new Date(dueDate),
+          invoiceUrl: payment.invoiceUrl,
+          bankSlipUrl: payment.bankSlipUrl,
+          pixQrCode: pixData?.encodedImage,
+          pixPayload: pixData?.payload,
+          description: `Assinatura ${plan.name}`,
+          externalReference: `${assinante.id}|${planId}|${cycle}|NEW`,
+        },
+      })
+
+      // Atualizar assinante como pendente
+      await prisma.assinante.update({
+        where: { id: assinante.id },
+        data: {
+          planId: plan.id,
+          subscriptionStatus: 'PENDING',
+          planStartDate: new Date(),
+        },
+      })
     }
 
     await logger.system(`Checkout iniciado: ${name} - ${plan.name}`, {
@@ -254,13 +255,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       isNewUser,
-      subscription: {
+      subscription: subscription ? {
         id: subscription.id,
-        status: 'PENDING',
-      },
+        status: 'ACTIVE',
+      } : null,
       payment: paymentData ? {
         id: paymentData.id,
-        status: paymentData.status,
+        status: 'PENDING',
         invoiceUrl: paymentData.invoiceUrl,
         bankSlipUrl: paymentData.bankSlipUrl,
       } : null,
@@ -269,9 +270,11 @@ export async function POST(request: NextRequest) {
         payload: pixData.payload,
         expirationDate: pixData.expirationDate,
       } : null,
-      message: isNewUser
-        ? 'Conta criada e assinatura iniciada!'
-        : 'Assinatura iniciada!',
+      message: selectedBillingType === 'CREDIT_CARD'
+        ? 'Assinatura ativada com sucesso!'
+        : isNewUser
+          ? 'Conta criada! Complete o pagamento.'
+          : 'Pagamento gerado!',
     })
   } catch (error) {
     console.error('Erro no checkout:', error)
