@@ -177,9 +177,11 @@ export async function POST(request: NextRequest) {
         creditCardHolderInfo
       )
     } else {
+      // Para Pix e Boleto, usar UNDEFINED para assinaturas
+      // O Asaas vai gerar a cobrança e permitir escolher a forma de pagamento
       subscription = await asaas.createSubscription({
         customer: asaasCustomerId,
-        billingType: selectedBillingType === 'CREDIT_CARD' ? 'UNDEFINED' : selectedBillingType,
+        billingType: 'UNDEFINED',
         value,
         nextDueDate,
         cycle,
@@ -205,16 +207,23 @@ export async function POST(request: NextRequest) {
 
     if (selectedBillingType !== 'CREDIT_CARD') {
       // Aguardar um pouco para o Asaas criar o primeiro pagamento
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
       try {
         const payments = await asaas.getSubscriptionPayments(subscription.id)
         if (payments.data.length > 0) {
           const firstPayment = payments.data[0]
+
+          // Buscar detalhes do pagamento
           paymentData = await asaas.getPayment(firstPayment.id)
 
+          // Se for Pix, buscar QR Code
           if (selectedBillingType === 'PIX') {
-            pixData = await asaas.getPixQrCode(firstPayment.id)
+            try {
+              pixData = await asaas.getPixQrCode(firstPayment.id)
+            } catch (pixError) {
+              console.error('Erro ao buscar QR Code Pix:', pixError)
+            }
           }
 
           // Salvar pagamento no banco
@@ -227,7 +236,7 @@ export async function POST(request: NextRequest) {
               asaasSubscriptionId: subscription.id,
               billingType: selectedBillingType,
               value,
-              status: 'PENDING',
+              status: paymentData.status || 'PENDING',
               dueDate: new Date(nextDueDate),
               invoiceUrl: paymentData.invoiceUrl,
               bankSlipUrl: paymentData.bankSlipUrl,
