@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs'
 import { nanoid } from 'nanoid'
 import { addDays, format } from 'date-fns'
 import { logger } from '@/lib/logger'
+import { notifyNewSubscriber } from '@/lib/notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -107,6 +108,14 @@ export async function POST(request: NextRequest) {
       isNewUser = true
 
       await logger.subscriberCreated('system', assinante.id, name)
+
+      // Notificar admins sobre novo assinante
+      await notifyNewSubscriber({
+        id: assinante.id,
+        name,
+        email,
+        planName: plan.name,
+      })
     }
 
     if (!assinante) {
