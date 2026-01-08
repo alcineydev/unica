@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,7 +28,8 @@ import {
   QrCode,
   Clock,
   CheckCircle,
-  ChevronRight
+  ChevronRight,
+  LogOut
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -67,6 +69,14 @@ export default function PerfilPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [formData, setFormData] = useState<Partial<Perfil>>({})
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    if (confirm('Tem certeza que deseja sair?')) {
+      setLoggingOut(true)
+      await signOut({ callbackUrl: '/login' })
+    }
+  }
 
   useEffect(() => {
     fetchPerfil()
@@ -600,6 +610,25 @@ export default function PerfilPage() {
               </Link>
             </CardContent>
           </Card>
+
+          {/* Botão de Logout */}
+          <Card className="mt-6 border-red-200">
+            <CardContent className="p-4">
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="w-full flex items-center justify-center gap-3 p-3 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                <LogOut className="w-5 h-5" />
+                {loggingOut ? 'Saindo...' : 'Sair da conta'}
+              </button>
+            </CardContent>
+          </Card>
+
+          {/* Versão do app */}
+          <p className="text-center text-xs text-muted-foreground mt-6 mb-4">
+            UNICA Clube v1.0.0
+          </p>
         </div>
       </div>
     </div>
