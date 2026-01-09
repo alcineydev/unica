@@ -57,8 +57,19 @@ function LoginForm() {
         return
       }
 
+      if (!result?.ok) {
+        console.log('[LOGIN] Login não foi bem sucedido:', result)
+        setError('Erro ao fazer login. Tente novamente.')
+        setIsLoading(false)
+        return
+      }
+
+      // Pequeno delay para garantir que a sessão está pronta
+      await new Promise(resolve => setTimeout(resolve, 100))
+
       // Buscar sessao para obter role
       const session = await fetch('/api/auth/session').then(r => r.json())
+      console.log('[LOGIN] Sessão obtida:', session?.user?.role)
 
       // Redirecionar baseado no role
       let redirectUrl = '/app'
@@ -94,11 +105,13 @@ function LoginForm() {
         }
       }
 
+      console.log('[LOGIN] Redirecionando para:', redirectUrl)
       toast.success('Login realizado com sucesso!')
       router.push(redirectUrl)
       router.refresh()
 
     } catch (err) {
+      console.error('[LOGIN] Erro inesperado:', err)
       setError('Erro ao fazer login. Tente novamente.')
       setIsLoading(false)
     }
