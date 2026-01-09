@@ -5,7 +5,9 @@ import {
   notifyNewSubscriber,
   notifyPaymentConfirmed,
   notifyPaymentOverdue,
-  notifySubscriptionExpired
+  notifySubscriptionExpired,
+  sendPushToAllSubscribers,
+  sendPushToAllPartners
 } from '@/lib/push-notifications'
 
 export async function POST(request: NextRequest) {
@@ -31,6 +33,7 @@ export async function POST(request: NextRequest) {
     let result
 
     switch (eventType) {
+      // Eventos para Admins
       case 'NEW_SUBSCRIBER':
         result = await notifyNewSubscriber('João Silva (Teste)', 'Plano Premium')
         break
@@ -43,12 +46,57 @@ export async function POST(request: NextRequest) {
       case 'SUBSCRIPTION_EXPIRED':
         result = await notifySubscriptionExpired('Ana Costa (Teste)')
         break
+
+      // Eventos para Assinantes (envia para todos como teste)
+      case 'SUBSCRIBER_EXPIRING':
+        result = await sendPushToAllSubscribers(
+          '⏰ Assinatura Vencendo',
+          'Sua assinatura vence em 3 dias. Renove agora!',
+          '/app/perfil',
+          'SUBSCRIPTION_EXPIRING'
+        )
+        break
+      case 'NEW_BENEFIT':
+        result = await sendPushToAllSubscribers(
+          '🎁 Novo Benefício!',
+          '20% de desconto em Pizza Hut disponível!',
+          '/app/beneficios',
+          'NEW_BENEFIT'
+        )
+        break
+      case 'PROMOTION':
+        result = await sendPushToAllSubscribers(
+          '📢 Promoção Especial!',
+          'Indique um amigo e ganhe 1 mês grátis!',
+          '/app',
+          'PROMOTION'
+        )
+        break
+
+      // Eventos para Parceiros
+      case 'BENEFIT_USED':
+        result = await sendPushToAllPartners(
+          '🛒 Benefício Utilizado!',
+          'João Silva usou: 20% de desconto (Teste)',
+          '/parceiro/transacoes',
+          'BENEFIT_USED'
+        )
+        break
+      case 'PARTNER_ANNOUNCEMENT':
+        result = await sendPushToAllPartners(
+          '📢 Comunicado',
+          'Novo relatório de usos disponível!',
+          '/parceiro',
+          'SYSTEM_ALERT'
+        )
+        break
+
       default:
         return NextResponse.json({ error: 'Tipo de evento inválido' }, { status: 400 })
     }
 
     return NextResponse.json({
-      success: result.sent > 0,
+      success: result.sent > 0 || result.failed === 0,
       eventType,
       ...result
     })
