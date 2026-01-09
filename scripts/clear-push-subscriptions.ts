@@ -1,37 +1,25 @@
-/**
- * Script para limpar push subscriptions antigas
- *
- * Execute este script no ambiente de produção:
- *
- * Via Prisma Studio:
- * 1. npx prisma studio
- * 2. Navegue até "PushSubscription"
- * 3. Selecione todos os registros
- * 4. Delete
- *
- * Via SQL direto no banco:
- * DELETE FROM push_subscriptions;
- *
- * Via este script (se Prisma client estiver gerado):
- * npx tsx scripts/clear-push-subscriptions.ts
- */
+import { PrismaClient } from '@prisma/client'
 
-import prisma from '../src/lib/prisma'
+const prisma = new PrismaClient()
 
-async function main() {
-  console.log('Limpando push subscriptions antigas...')
+async function clearSubscriptions() {
+  console.log('🗑️  Limpando todas as push subscriptions...')
 
   const count = await prisma.pushSubscription.count()
-  console.log(`Encontradas ${count} subscriptions...`)
+  console.log(`Encontradas ${count} subscriptions`)
 
   if (count > 0) {
-    const result = await prisma.pushSubscription.deleteMany({})
-    console.log(`${result.count} subscriptions removidas.`)
+    await prisma.pushSubscription.deleteMany({})
+    console.log(`✅ ${count} subscriptions removidas`)
+  } else {
+    console.log('Nenhuma subscription para remover')
   }
 
-  console.log('Agora os usuários precisam permitir notificações novamente no novo domínio.')
+  await prisma.$disconnect()
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect())
+clearSubscriptions()
+  .catch((e) => {
+    console.error('Erro:', e)
+    process.exit(1)
+  })
