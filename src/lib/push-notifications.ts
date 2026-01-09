@@ -219,10 +219,15 @@ export async function notifyPartnerTransaction(partnerName: string, subscriberNa
 /**
  * Notifica admins sobre pagamento em atraso
  */
-export async function notifyPaymentOverdue(subscriberName: string, daysOverdue: number): Promise<PushResult> {
+export async function notifyPaymentOverdue(subscriberName: string, amount: number): Promise<PushResult> {
+  const formattedAmount = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(amount)
+
   return sendPushToAdmins(
     '🚨 Pagamento em Atraso',
-    `${subscriberName} - ${daysOverdue} dia(s) de atraso`,
+    `${subscriberName} - ${formattedAmount}`,
     '/admin/assinantes',
     'PAYMENT_OVERDUE'
   )

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { logger } from '@/lib/logger'
 import { apiRateLimit, getClientIP, rateLimitResponse } from '@/lib/rate-limit'
+import { notifyNewSubscriber, notifyPaymentConfirmed } from '@/lib/push-notifications'
 
 export const runtime = 'nodejs'
 
@@ -465,10 +466,26 @@ export async function POST(request: Request) {
       await sendWhatsAppMessage(phoneToNotify, welcomeMessage)
     }
 
+    // Enviar Push Notifications para admins
+    try {
+      if (isNewUser) {
+        // Notificar novo assinante
+        await notifyNewSubscriber(payerName, plan.name)
+        logger.log('[WEBHOOK MP] Push enviado: Novo assinante')
+      }
+
+      // Notificar pagamento confirmado
+      await notifyPaymentConfirmed(payerName, payment.transaction_amount)
+      logger.log('[WEBHOOK MP] Push enviado: Pagamento confirmado')
+    } catch (pushError) {
+      // Não falhar o webhook por erro de push
+      console.error('[WEBHOOK MP] Erro ao enviar push notification:', pushError)
+    }
+
     logger.log('[WEBHOOK MP] ========================================')
 
-    return NextResponse.json({ 
-      received: true, 
+    return NextResponse.json({
+      received: true,
       processed: true,
       assinanteId: assinante.id,
     })

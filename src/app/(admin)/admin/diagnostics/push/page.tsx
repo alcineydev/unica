@@ -18,7 +18,12 @@ import {
   Database,
   Trash2,
   Activity,
-  Server
+  Server,
+  Webhook,
+  UserPlus,
+  CreditCard,
+  AlertOctagon,
+  UserMinus
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -87,6 +92,8 @@ export default function PushDiagnosticsPage() {
   const [testResult, setTestResult] = useState<TestResult | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [clearingAll, setClearingAll] = useState(false)
+  const [testingWebhook, setTestingWebhook] = useState<string | null>(null)
+  const [webhookResult, setWebhookResult] = useState<{ success: boolean; eventType: string; sent: number; failed: number; errors: string[] } | null>(null)
 
   const fetchDiagnostics = async () => {
     setLoading(true)
@@ -187,6 +194,33 @@ export default function PushDiagnosticsPage() {
       toast.error('Erro ao limpar subscriptions')
     } finally {
       setClearingAll(false)
+    }
+  }
+
+  const testWebhookEvent = async (eventType: string) => {
+    setTestingWebhook(eventType)
+    setWebhookResult(null)
+
+    try {
+      const response = await fetch('/api/admin/push/test-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventType })
+      })
+
+      const result = await response.json()
+      setWebhookResult(result)
+
+      if (result.success) {
+        toast.success(`Webhook ${eventType} testado! ${result.sent} push enviado(s)`)
+      } else {
+        toast.error(result.error || 'Falha no teste de webhook')
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.error('Erro ao testar webhook')
+    } finally {
+      setTestingWebhook(null)
     }
   }
 
@@ -420,6 +454,111 @@ export default function PushDiagnosticsPage() {
               )}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Simulação de Webhook */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Webhook className="h-5 w-5" />
+            Simular Eventos de Webhook
+          </CardTitle>
+          <CardDescription>
+            Teste as notificações automáticas que são enviadas quando ocorrem eventos de pagamento
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Button
+              onClick={() => testWebhookEvent('NEW_SUBSCRIBER')}
+              disabled={testingWebhook !== null}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2"
+            >
+              {testingWebhook === 'NEW_SUBSCRIBER' ? (
+                <RefreshCw className="h-6 w-6 animate-spin" />
+              ) : (
+                <UserPlus className="h-6 w-6 text-green-600" />
+              )}
+              <span className="font-medium">Novo Assinante</span>
+              <span className="text-xs text-muted-foreground">João Silva - Plano Premium</span>
+            </Button>
+
+            <Button
+              onClick={() => testWebhookEvent('PAYMENT_CONFIRMED')}
+              disabled={testingWebhook !== null}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2"
+            >
+              {testingWebhook === 'PAYMENT_CONFIRMED' ? (
+                <RefreshCw className="h-6 w-6 animate-spin" />
+              ) : (
+                <CreditCard className="h-6 w-6 text-blue-600" />
+              )}
+              <span className="font-medium">Pagamento Confirmado</span>
+              <span className="text-xs text-muted-foreground">Maria Santos - R$ 99,90</span>
+            </Button>
+
+            <Button
+              onClick={() => testWebhookEvent('PAYMENT_OVERDUE')}
+              disabled={testingWebhook !== null}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2"
+            >
+              {testingWebhook === 'PAYMENT_OVERDUE' ? (
+                <RefreshCw className="h-6 w-6 animate-spin" />
+              ) : (
+                <AlertOctagon className="h-6 w-6 text-orange-600" />
+              )}
+              <span className="font-medium">Pagamento Atrasado</span>
+              <span className="text-xs text-muted-foreground">Pedro Souza - R$ 49,90</span>
+            </Button>
+
+            <Button
+              onClick={() => testWebhookEvent('SUBSCRIPTION_EXPIRED')}
+              disabled={testingWebhook !== null}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2"
+            >
+              {testingWebhook === 'SUBSCRIPTION_EXPIRED' ? (
+                <RefreshCw className="h-6 w-6 animate-spin" />
+              ) : (
+                <UserMinus className="h-6 w-6 text-red-600" />
+              )}
+              <span className="font-medium">Assinatura Expirada</span>
+              <span className="text-xs text-muted-foreground">Ana Costa</span>
+            </Button>
+          </div>
+
+          {/* Resultado do Webhook */}
+          {webhookResult && (
+            <div className={`p-4 rounded-lg ${webhookResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+              <h4 className="font-medium mb-2 flex items-center gap-2">
+                <Webhook className="h-4 w-4" />
+                Resultado do Webhook:
+              </h4>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>Evento: <strong>{webhookResult.eventType}</strong></div>
+                <div className="text-green-600">Enviados: <strong>{webhookResult.sent}</strong></div>
+                <div className="text-red-600">Falharam: <strong>{webhookResult.failed}</strong></div>
+              </div>
+              {webhookResult.errors?.length > 0 && (
+                <div className="mt-2 text-sm text-red-600">
+                  Erros: {webhookResult.errors.join(', ')}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
+            <p className="font-medium mb-2">ℹ️ Como funciona:</p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>Esses botões simulam os eventos que ocorrem no webhook do MercadoPago</li>
+              <li>As notificações são enviadas para todos os ADMINs e DEVELOPERs</li>
+              <li>Os dados exibidos são apenas exemplos para teste</li>
+            </ul>
+          </div>
         </CardContent>
       </Card>
 
