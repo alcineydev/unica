@@ -4,7 +4,7 @@ import { asaas } from '@/lib/asaas'
 import bcrypt from 'bcryptjs'
 import { nanoid } from 'nanoid'
 import { addDays, format } from 'date-fns'
-import { logger } from '@/lib/logger'
+// Logger removido - usando console.log
 
 export async function POST(request: NextRequest) {
   try {
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
       assinante = result.assinante
       isNewUser = true
 
-      await logger.subscriberCreated('system', assinante.id, name)
+      console.log('[CHECKOUT] Novo assinante criado:', assinante.id, name)
     }
 
     if (!assinante) {
@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    await logger.system(`Checkout iniciado: ${name} - ${plan.name}`, {
+    console.log(`[CHECKOUT] Checkout iniciado: ${name} - ${plan.name}`, {
       assinanteId: assinante.id,
       planId: plan.id,
       billingType: selectedBillingType,

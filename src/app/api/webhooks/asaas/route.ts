@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { logger } from '@/lib/logger'
+// Logger removido - usando console.log
 import { addMonths, addDays } from 'date-fns'
 
 // Tipos de eventos Asaas
@@ -66,8 +66,7 @@ export async function POST(request: NextRequest) {
     console.log(`[Asaas Webhook] Evento: ${event}`, JSON.stringify(payload, null, 2))
 
     // Log do evento
-    await logger.system(`Webhook Asaas: ${event}`, {
-      event,
+    console.log(`[Asaas Webhook] Evento recebido: ${event}`, {
       paymentId: payment?.id,
       subscriptionId: subscription?.id,
     })
@@ -259,8 +258,8 @@ async function handlePaymentConfirmed(payment: AsaasWebhookPayload['payment']) {
     },
   })
 
-  // Criar notificação para admins
-  await logger.system(`Pagamento confirmado: ${assinante.name} - R$ ${payment.value}`, {
+  // Log de pagamento confirmado
+  console.log(`[Asaas] Pagamento confirmado: ${assinante.name} - R$ ${payment.value}`, {
     assinanteId,
     planId,
     paymentId: payment.id,
@@ -301,7 +300,7 @@ async function handlePaymentOverdue(payment: AsaasWebhookPayload['payment']) {
       data: { subscriptionStatus: 'SUSPENDED' },
     })
 
-    await logger.system(`Assinante suspenso por inadimplência`, { assinanteId })
+    console.log(`[Asaas] Assinante suspenso por inadimplência`, { assinanteId })
   }
 }
 
@@ -313,7 +312,7 @@ async function handlePaymentRefunded(payment: AsaasWebhookPayload['payment']) {
     data: { status: 'REFUNDED' },
   })
 
-  await logger.system(`Pagamento estornado: ${payment.id}`, { paymentId: payment.id })
+  console.log(`[Asaas] Pagamento estornado: ${payment.id}`, { paymentId: payment.id })
 }
 
 async function handlePaymentDeleted(payment: AsaasWebhookPayload['payment']) {
@@ -381,7 +380,7 @@ async function handleSubscriptionCanceled(subscription: AsaasWebhookPayload['sub
       },
     })
 
-    await logger.system(`Assinatura cancelada: ${assinante.name}`, {
+    console.log(`[Asaas] Assinatura cancelada: ${assinante.name}`, {
       assinanteId: assinante.id,
       subscriptionId: subscription.id,
     })
