@@ -23,6 +23,7 @@ export async function GET() {
     let totalSubscriptions = 0
     let assinantesCount = 0
     let parceirosCount = 0
+    let adminsCount = 0
     type NotificationWithAdmin = {
       id: string
       title: string
@@ -66,6 +67,7 @@ export async function GET() {
       // Contar por role
       assinantesCount = subscriptionsWithUser.filter(s => s.user?.role === 'ASSINANTE').length
       parceirosCount = subscriptionsWithUser.filter(s => s.user?.role === 'PARCEIRO').length
+      adminsCount = subscriptionsWithUser.filter(s => s.user?.role === 'ADMIN' || s.user?.role === 'DEVELOPER').length
     } catch (dbError) {
       // Se a tabela não existir, retornar zeros
       const err = dbError as Error & { code?: string }
@@ -94,7 +96,8 @@ export async function GET() {
       stats: {
         total: totalSubscriptions,
         assinantes: assinantesCount,
-        parceiros: parceirosCount
+        parceiros: parceirosCount,
+        admins: adminsCount
       }
     })
 
@@ -103,7 +106,7 @@ export async function GET() {
     console.error('[PUSH HISTORY] Erro geral:', err)
     return NextResponse.json({
       notifications: [],
-      stats: { total: 0, assinantes: 0, parceiros: 0 },
+      stats: { total: 0, assinantes: 0, parceiros: 0, admins: 0 },
       error: 'Erro ao buscar histórico'
     })
   }

@@ -17,7 +17,8 @@ import {
   Globe,
   CheckCircle,
   XCircle,
-  Smartphone
+  Smartphone,
+  Shield
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
@@ -39,11 +40,12 @@ interface Stats {
   total: number
   assinantes: number
   parceiros: number
+  admins: number
 }
 
 export default function NotificacoesPushPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [stats, setStats] = useState<Stats>({ total: 0, assinantes: 0, parceiros: 0 })
+  const [stats, setStats] = useState<Stats>({ total: 0, assinantes: 0, parceiros: 0, admins: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
 
@@ -118,6 +120,7 @@ export default function NotificacoesPushPage() {
       case 'ALL': return 'Todos'
       case 'ASSINANTES': return 'Assinantes'
       case 'PARCEIROS': return 'Parceiros'
+      case 'ADMINS': return 'Admins'
       default: return type
     }
   }
@@ -127,6 +130,7 @@ export default function NotificacoesPushPage() {
       case 'ALL': return <Globe className="h-4 w-4" />
       case 'ASSINANTES': return <Users className="h-4 w-4" />
       case 'PARCEIROS': return <Store className="h-4 w-4" />
+      case 'ADMINS': return <Shield className="h-4 w-4" />
       default: return <Bell className="h-4 w-4" />
     }
   }
@@ -156,11 +160,11 @@ export default function NotificacoesPushPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+              <div className="p-2 bg-blue-100 rounded-lg">
                 <Smartphone className="h-5 w-5 text-blue-600" />
               </div>
               <div>
@@ -174,7 +178,7 @@ export default function NotificacoesPushPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+              <div className="p-2 bg-green-100 rounded-lg">
                 <Users className="h-5 w-5 text-green-600" />
               </div>
               <div>
@@ -188,12 +192,26 @@ export default function NotificacoesPushPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+              <div className="p-2 bg-purple-100 rounded-lg">
                 <Store className="h-5 w-5 text-purple-600" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.parceiros}</p>
                 <p className="text-xs text-muted-foreground">Parceiros</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 rounded-lg">
+                <Shield className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.admins}</p>
+                <p className="text-xs text-muted-foreground">Admins</p>
               </div>
             </div>
           </CardContent>
@@ -272,6 +290,13 @@ export default function NotificacoesPushPage() {
                 <Label htmlFor="parceiros" className="flex items-center gap-2 cursor-pointer">
                   <Store className="h-4 w-4" />
                   Apenas Parceiros ({stats.parceiros} dispositivos)
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="ADMINS" id="admins" />
+                <Label htmlFor="admins" className="flex items-center gap-2 cursor-pointer">
+                  <Shield className="h-4 w-4" />
+                  Apenas Admins ({stats.admins} dispositivos)
                 </Label>
               </div>
             </RadioGroup>

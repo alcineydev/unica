@@ -29,18 +29,18 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
     return <>{children}</>
   }
 
-  // Mostrar banner apenas para usuarios autenticados com role elegivel
+  // Mostrar modal para TODOS os usuarios autenticados (incluindo ADMIN e DEVELOPER)
   const shouldShowBanner =
     status === 'authenticated' &&
     session?.user?.role &&
-    ['ASSINANTE', 'PARCEIRO'].includes(session.user.role as string)
+    ['ASSINANTE', 'PARCEIRO', 'ADMIN', 'DEVELOPER'].includes(session.user.role as string)
 
   console.log('[PushProvider] status:', status, 'role:', session?.user?.role, 'shouldShow:', shouldShowBanner)
 
   return (
     <>
       {children}
-      {shouldShowBanner && <PushPermissionBanner variant="banner" />}
+      {shouldShowBanner && <PushPermissionBanner variant="modal" />}
     </>
   )
 }
