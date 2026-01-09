@@ -33,7 +33,7 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
   const shouldShowBanner =
     status === 'authenticated' &&
     session?.user?.role &&
-    ['ASSINANTE', 'PARCEIRO'].includes(session.user.role as string)
+    ['ASSINANTE', 'PARCEIRO', 'ADMIN', 'DEVELOPER'].includes(session.user.role as string)
 
   console.log('[PushProvider] status:', status, 'role:', session?.user?.role, 'shouldShow:', shouldShowBanner)
 
