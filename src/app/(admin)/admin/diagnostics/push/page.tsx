@@ -86,6 +86,7 @@ export default function PushDiagnosticsPage() {
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<TestResult | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [clearingAll, setClearingAll] = useState(false)
 
   const fetchDiagnostics = async () => {
     setLoading(true)
@@ -159,6 +160,33 @@ export default function PushDiagnosticsPage() {
       toast.error('Erro ao remover subscription')
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const clearAllSubscriptions = async () => {
+    if (!confirm('Tem certeza que deseja remover TODAS as subscriptions?\n\nOs usuários precisarão permitir notificações novamente.')) {
+      return
+    }
+
+    setClearingAll(true)
+    try {
+      const response = await fetch('/api/admin/push/clear-all', {
+        method: 'DELETE'
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success(`${result.deleted} subscription(s) removida(s)`)
+        fetchDiagnostics()
+      } else {
+        toast.error(result.error || 'Erro ao limpar')
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.error('Erro ao limpar subscriptions')
+    } finally {
+      setClearingAll(false)
     }
   }
 
@@ -342,6 +370,14 @@ export default function PushDiagnosticsPage() {
             >
               {testing ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Monitor className="h-4 w-4 mr-2" />}
               Testar Todos os Admins
+            </Button>
+            <Button
+              onClick={clearAllSubscriptions}
+              disabled={clearingAll || (data?.statistics.total || 0) === 0}
+              variant="destructive"
+            >
+              {clearingAll ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Limpar Todas ({data?.statistics.total || 0})
             </Button>
           </div>
 
