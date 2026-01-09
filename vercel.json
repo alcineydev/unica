@@ -3,6 +3,11 @@
     "env": {
       "SKIP_ENV_VALIDATION": "1"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/admin/cron/vencimentos",
+      "schedule": "0 12 * * *"
+    }
+  ]
 }
-
