@@ -91,6 +91,7 @@ const navigation: NavItem[] = [
     children: [
       { label: 'Geral', href: '/admin/configuracoes' },
       { label: 'Integrações', href: '/admin/integracoes' },
+      { label: 'Diagnóstico Push', href: '/admin/diagnostics/push' },
     ]
   },
 ]
