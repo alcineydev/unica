@@ -196,35 +196,40 @@ model ParceiroNotificacao {
 
 /// Assinante / Cliente do clube
 model Assinante {
-  id                 String             @id @default(cuid())
-  userId             String             @unique
-  cpf                String?            @unique @db.VarChar(11)
-  name               String
-  phone              String?
-  birthDate          DateTime?
-  cityId             String?
-  address            Json?
-  planId             String?
-  subscriptionStatus SubscriptionStatus @default(PENDING)
-  points             Decimal            @default(0) @db.Decimal(10, 2)
-  cashback           Decimal            @default(0) @db.Decimal(10, 2)
-  qrCode             String             @unique
-  planStartDate      DateTime?
-  planEndDate        DateTime?
-  nextBillingDate    DateTime?
-  lastPaymentDate    DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  city               City?              @relation(fields: [cityId], references: [id])
-  plan               Plan?              @relation(fields: [planId], references: [id])
-  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions       Transaction[]
-  avaliacoes         Avaliacao[]
-  notificacoes       AssinanteNotificacao[]
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  cpf                  String?            @unique @db.VarChar(11)
+  name                 String
+  phone                String?
+  birthDate            DateTime?
+  cityId               String?
+  address              Json?
+  planId               String?
+  subscriptionStatus   SubscriptionStatus @default(PENDING)
+  points               Decimal            @default(0) @db.Decimal(10, 2)
+  cashback             Decimal            @default(0) @db.Decimal(10, 2)
+  qrCode               String             @unique
+  planStartDate        DateTime?
+  planEndDate          DateTime?
+  nextBillingDate      DateTime?
+  lastPaymentDate      DateTime?
+  // Integração Asaas
+  asaasCustomerId      String?
+  asaasSubscriptionId  String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  city                 City?              @relation(fields: [cityId], references: [id])
+  plan                 Plan?              @relation(fields: [planId], references: [id])
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions         Transaction[]
+  avaliacoes           Avaliacao[]
+  notificacoes         AssinanteNotificacao[]
+  payments             Payment[]
 
   @@index([subscriptionStatus])
   @@index([planId])
   @@index([cityId])
+  @@index([asaasCustomerId])
   @@map("assinantes")
 }
 
@@ -624,4 +629,36 @@ model Page {
   @@index([slug])
   @@index([isPublished])
   @@map("pages")
+}
+
+/// Pagamento Asaas (histórico de cobranças)
+model Payment {
+  id                  String    @id @default(uuid())
+  assinanteId         String
+  planId              String?
+  asaasPaymentId      String    @unique
+  asaasCustomerId     String?
+  asaasSubscriptionId String?
+  billingType         String    // PIX, BOLETO, CREDIT_CARD
+  value               Decimal   @db.Decimal(10, 2)
+  netValue            Decimal?  @db.Decimal(10, 2)
+  status              String    // PENDING, CONFIRMED, RECEIVED, OVERDUE, REFUNDED, DELETED
+  dueDate             DateTime
+  paymentDate         DateTime?
+  confirmedDate       DateTime?
+  invoiceUrl          String?
+  bankSlipUrl         String?
+  pixQrCode           String?   @db.Text
+  pixPayload          String?   @db.Text
+  description         String?
+  externalReference   String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  assinante           Assinante @relation(fields: [assinanteId], references: [id], onDelete: Cascade)
+
+  @@index([assinanteId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([asaasPaymentId])
+  @@map("payments")
 }
