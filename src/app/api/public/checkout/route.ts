@@ -110,12 +110,19 @@ export async function POST(request: NextRequest) {
       await logger.subscriberCreated('system', assinante.id, name)
 
       // Notificar admins sobre novo assinante
-      await notifyNewSubscriber({
-        id: assinante.id,
-        name,
-        email,
-        planName: plan.name,
-      })
+      console.log('[Checkout] Iniciando notificação de novo assinante...')
+      try {
+        const notifyResult = await notifyNewSubscriber({
+          id: assinante.id,
+          name,
+          email,
+          planName: plan.name,
+        })
+        console.log('[Checkout] Resultado da notificação:', notifyResult)
+      } catch (notifyError) {
+        console.error('[Checkout] Erro ao notificar admins:', notifyError)
+        // Não interrompe o fluxo - notificação é secundária
+      }
     }
 
     if (!assinante) {
