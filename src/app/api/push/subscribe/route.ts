@@ -22,43 +22,59 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  logger.debug('[PUSH SUBSCRIBE] Recebendo requisição...')
+  console.log('[PUSH SUBSCRIBE] === RECEBENDO REQUISIÇÃO ===')
 
   try {
     const session = await auth()
-    logger.debug('[PUSH SUBSCRIBE] Sessão:', session?.user?.id ? 'autenticado' : 'NÃO AUTENTICADO')
+    console.log('[PUSH SUBSCRIBE] Sessão:', {
+      authenticated: !!session?.user?.id,
+      userId: session?.user?.id,
+      email: session?.user?.email,
+      role: session?.user?.role
+    })
 
     if (!session?.user?.id) {
-      logger.debug('[PUSH SUBSCRIBE] Rejeitado: não autorizado')
+      console.log('[PUSH SUBSCRIBE] ❌ Rejeitado: não autorizado')
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
     const { endpoint, keys, deviceInfo, userAgent, platform } = body
 
-    logger.debug('[PUSH SUBSCRIBE] Dados recebidos:', {
-      endpoint: endpoint?.substring(0, 50) + '...',
+    console.log('[PUSH SUBSCRIBE] Dados recebidos:', {
+      endpoint: endpoint?.substring(0, 60) + '...',
       hasP256dh: !!keys?.p256dh,
       hasAuth: !!keys?.auth,
-      deviceInfo: deviceInfo?.substring(0, 30),
-      userAgent: userAgent?.substring(0, 30),
       platform
     })
 
     if (!endpoint || !keys?.p256dh || !keys?.auth) {
-      logger.debug('[PUSH SUBSCRIBE] Rejeitado: dados inválidos')
+      console.log('[PUSH SUBSCRIBE] ❌ Rejeitado: dados inválidos')
       return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
     }
 
     // Verificar se já existe
     const existing = await prisma.pushSubscription.findUnique({
-      where: { endpoint }
+      where: { endpoint },
+      include: { user: { select: { id: true, email: true, role: true } } }
     })
 
-    logger.debug('[PUSH SUBSCRIBE] Subscription existente:', !!existing)
-
     if (existing) {
-      // Atualizar se já existe
+      console.log('[PUSH SUBSCRIBE] Subscription existente encontrada:', {
+        id: existing.id,
+        userId: existing.userId,
+        userEmail: existing.user?.email,
+        userRole: existing.user?.role
+      })
+
+      // Verificar se precisa atualizar
+      if (existing.userId === session.user.id) {
+        console.log('[PUSH SUBSCRIBE] ℹ️ Subscription já pertence ao usuário atual, apenas atualizando dados')
+      } else {
+        console.log('[PUSH SUBSCRIBE] 🔄 Transferindo subscription de', existing.user?.email, 'para', session.user.email)
+      }
+
+      // Atualizar
       await prisma.pushSubscription.update({
         where: { endpoint },
         data: {
@@ -71,8 +87,10 @@ export async function POST(request: NextRequest) {
           isActive: true
         }
       })
-      logger.debug('[PUSH SUBSCRIBE] Subscription atualizada')
+      console.log('[PUSH SUBSCRIBE] ✅ Subscription atualizada com sucesso!')
     } else {
+      console.log('[PUSH SUBSCRIBE] Criando nova subscription para:', session.user.email)
+
       // Criar novo
       await prisma.pushSubscription.create({
         data: {
@@ -86,11 +104,23 @@ export async function POST(request: NextRequest) {
           isActive: true
         }
       })
-      logger.debug('[PUSH SUBSCRIBE] Nova subscription criada')
+      console.log('[PUSH SUBSCRIBE] ✅ Nova subscription criada!')
     }
 
-    logger.debug('[PUSH SUBSCRIBE] Sucesso!')
-    return NextResponse.json({ success: true })
+    // Verificar estado final
+    const final = await prisma.pushSubscription.findUnique({
+      where: { endpoint },
+      include: { user: { select: { id: true, email: true, role: true } } }
+    })
+    console.log('[PUSH SUBSCRIBE] Estado final:', {
+      subscriptionId: final?.id,
+      userId: final?.userId,
+      userEmail: final?.user?.email,
+      userRole: final?.user?.role
+    })
+
+    console.log('[PUSH SUBSCRIBE] === FIM ===')
+    return NextResponse.json({ success: true, updated: !!existing, userId: session.user.id })
 
   } catch (error: unknown) {
     const err = error as Error & { code?: string; meta?: unknown }
