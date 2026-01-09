@@ -478,7 +478,7 @@ export default function PushDiagnosticsPage() {
           <div>
             <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
               <Monitor className="h-4 w-4" />
-              Eventos para Admins (Webhook MercadoPago)
+              Eventos para Admins (Webhook Asaas)
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Button
@@ -650,7 +650,7 @@ export default function PushDiagnosticsPage() {
           <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
             <p className="font-medium mb-2">ℹ️ Como funciona:</p>
             <ul className="list-disc pl-4 space-y-1">
-              <li><strong>Admins:</strong> Eventos do webhook MercadoPago (novos assinantes, pagamentos)</li>
+              <li><strong>Admins:</strong> Eventos do webhook Asaas (novos assinantes, pagamentos)</li>
               <li><strong>Assinantes:</strong> Enviado para TODOS os assinantes (role ASSINANTE)</li>
               <li><strong>Parceiros:</strong> Enviado para TODOS os parceiros (role PARCEIRO)</li>
               <li>Os dados exibidos são exemplos para teste</li>
