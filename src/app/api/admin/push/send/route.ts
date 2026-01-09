@@ -42,18 +42,27 @@ export async function POST(request: NextRequest) {
       endpoint: string
       p256dh: string
       auth: string
+      user?: { id: string; role: string; email: string } | null
     }
     let subscriptions: SubscriptionData[] = []
 
     try {
-      let whereClause: Prisma.PushSubscriptionWhereInput = {}
-
-      if (targetType === 'ASSINANTES') {
-        whereClause = { user: { role: 'ASSINANTE' } }
-      } else if (targetType === 'PARCEIROS') {
-        whereClause = { user: { role: 'PARCEIRO' } }
+      // IMPORTANTE: Sempre filtrar apenas subscriptions ATIVAS
+      const whereClause: Prisma.PushSubscriptionWhereInput = {
+        isActive: true // CRÍTICO: Filtrar apenas subscriptions ativas
       }
-      // targetType === 'ALL' não precisa de filtro
+
+      // Aplicar filtro de role baseado no targetType
+      if (targetType === 'ASSINANTES') {
+        whereClause.user = { role: 'ASSINANTE' }
+      } else if (targetType === 'PARCEIROS') {
+        whereClause.user = { role: 'PARCEIRO' }
+      } else if (targetType === 'ADMINS') {
+        whereClause.user = { role: { in: ['ADMIN', 'DEVELOPER'] } }
+      }
+      // targetType === 'ALL' não filtra por role - inclui TODOS (incluindo ADMIN/DEVELOPER)
+
+      console.log(`[PUSH SEND] Target: ${targetType}, Filtro:`, JSON.stringify(whereClause))
 
       subscriptions = await prisma.pushSubscription.findMany({
         where: whereClause,
@@ -61,9 +70,21 @@ export async function POST(request: NextRequest) {
           id: true,
           endpoint: true,
           p256dh: true,
-          auth: true
+          auth: true,
+          user: {
+            select: { id: true, role: true, email: true }
+          }
         }
       })
+
+      // Log detalhado das subscriptions encontradas
+      console.log(`[PUSH SEND] Encontradas ${subscriptions.length} subscriptions ativas para target "${targetType}"`)
+      if (subscriptions.length > 0 && subscriptions.length <= 20) {
+        subscriptions.forEach(sub => {
+          console.log(`[PUSH SEND]   - ${sub.user?.email} (${sub.user?.role})`)
+        })
+      }
+
     } catch (dbError) {
       const err = dbError as Error & { code?: string }
       console.error('[PUSH SEND] Erro no banco:', err.message)
