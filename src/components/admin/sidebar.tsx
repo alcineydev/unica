@@ -24,7 +24,8 @@ import {
   Smartphone,
   Mail,
   Plug,
-  BarChart3
+  BarChart3,
+  Clock
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
@@ -91,6 +92,7 @@ const navigation: NavItem[] = [
     children: [
       { label: 'Geral', href: '/admin/configuracoes' },
       { label: 'Integrações', href: '/admin/integracoes' },
+      { label: 'Cron Vencimentos', href: '/admin/cron' },
       { label: 'Diagnóstico Push', href: '/admin/diagnostics/push' },
     ]
   },

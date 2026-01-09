@@ -335,6 +335,7 @@ model WhatsAppInstance {
   phoneNumber   String?
   profileName   String?
   profilePic    String?
+  isDefault     Boolean        @default(false)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   notifications Notification[]
