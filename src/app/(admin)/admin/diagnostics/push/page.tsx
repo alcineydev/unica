@@ -23,7 +23,12 @@ import {
   UserPlus,
   CreditCard,
   AlertOctagon,
-  UserMinus
+  UserMinus,
+  Clock,
+  Gift,
+  Megaphone,
+  ShoppingCart,
+  Building2
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -462,73 +467,164 @@ export default function PushDiagnosticsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Webhook className="h-5 w-5" />
-            Simular Eventos de Webhook
+            Simular Eventos de Push
           </CardTitle>
           <CardDescription>
-            Teste as notificações automáticas que são enviadas quando ocorrem eventos de pagamento
+            Teste as notificações push para cada tipo de usuário e evento
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button
-              onClick={() => testWebhookEvent('NEW_SUBSCRIBER')}
-              disabled={testingWebhook !== null}
-              variant="outline"
-              className="h-auto py-4 flex flex-col items-center gap-2"
-            >
-              {testingWebhook === 'NEW_SUBSCRIBER' ? (
-                <RefreshCw className="h-6 w-6 animate-spin" />
-              ) : (
-                <UserPlus className="h-6 w-6 text-green-600" />
-              )}
-              <span className="font-medium">Novo Assinante</span>
-              <span className="text-xs text-muted-foreground">João Silva - Plano Premium</span>
-            </Button>
+        <CardContent className="space-y-6">
+          {/* Eventos para Admins */}
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+              <Monitor className="h-4 w-4" />
+              Eventos para Admins (Webhook MercadoPago)
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Button
+                onClick={() => testWebhookEvent('NEW_SUBSCRIBER')}
+                disabled={testingWebhook !== null}
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1"
+              >
+                {testingWebhook === 'NEW_SUBSCRIBER' ? (
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : (
+                  <UserPlus className="h-5 w-5 text-green-600" />
+                )}
+                <span className="text-xs font-medium">Novo Assinante</span>
+              </Button>
 
-            <Button
-              onClick={() => testWebhookEvent('PAYMENT_CONFIRMED')}
-              disabled={testingWebhook !== null}
-              variant="outline"
-              className="h-auto py-4 flex flex-col items-center gap-2"
-            >
-              {testingWebhook === 'PAYMENT_CONFIRMED' ? (
-                <RefreshCw className="h-6 w-6 animate-spin" />
-              ) : (
-                <CreditCard className="h-6 w-6 text-blue-600" />
-              )}
-              <span className="font-medium">Pagamento Confirmado</span>
-              <span className="text-xs text-muted-foreground">Maria Santos - R$ 99,90</span>
-            </Button>
+              <Button
+                onClick={() => testWebhookEvent('PAYMENT_CONFIRMED')}
+                disabled={testingWebhook !== null}
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1"
+              >
+                {testingWebhook === 'PAYMENT_CONFIRMED' ? (
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : (
+                  <CreditCard className="h-5 w-5 text-blue-600" />
+                )}
+                <span className="text-xs font-medium">Pagamento OK</span>
+              </Button>
 
-            <Button
-              onClick={() => testWebhookEvent('PAYMENT_OVERDUE')}
-              disabled={testingWebhook !== null}
-              variant="outline"
-              className="h-auto py-4 flex flex-col items-center gap-2"
-            >
-              {testingWebhook === 'PAYMENT_OVERDUE' ? (
-                <RefreshCw className="h-6 w-6 animate-spin" />
-              ) : (
-                <AlertOctagon className="h-6 w-6 text-orange-600" />
-              )}
-              <span className="font-medium">Pagamento Atrasado</span>
-              <span className="text-xs text-muted-foreground">Pedro Souza - R$ 49,90</span>
-            </Button>
+              <Button
+                onClick={() => testWebhookEvent('PAYMENT_OVERDUE')}
+                disabled={testingWebhook !== null}
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1"
+              >
+                {testingWebhook === 'PAYMENT_OVERDUE' ? (
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : (
+                  <AlertOctagon className="h-5 w-5 text-orange-600" />
+                )}
+                <span className="text-xs font-medium">Pag. Atrasado</span>
+              </Button>
 
-            <Button
-              onClick={() => testWebhookEvent('SUBSCRIPTION_EXPIRED')}
-              disabled={testingWebhook !== null}
-              variant="outline"
-              className="h-auto py-4 flex flex-col items-center gap-2"
-            >
-              {testingWebhook === 'SUBSCRIPTION_EXPIRED' ? (
-                <RefreshCw className="h-6 w-6 animate-spin" />
-              ) : (
-                <UserMinus className="h-6 w-6 text-red-600" />
-              )}
-              <span className="font-medium">Assinatura Expirada</span>
-              <span className="text-xs text-muted-foreground">Ana Costa</span>
-            </Button>
+              <Button
+                onClick={() => testWebhookEvent('SUBSCRIPTION_EXPIRED')}
+                disabled={testingWebhook !== null}
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1"
+              >
+                {testingWebhook === 'SUBSCRIPTION_EXPIRED' ? (
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : (
+                  <UserMinus className="h-5 w-5 text-red-600" />
+                )}
+                <span className="text-xs font-medium">Assin. Expirada</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Eventos para Assinantes */}
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Eventos para Assinantes (envia para todos os assinantes)
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <Button
+                onClick={() => testWebhookEvent('SUBSCRIBER_EXPIRING')}
+                disabled={testingWebhook !== null}
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1"
+              >
+                {testingWebhook === 'SUBSCRIBER_EXPIRING' ? (
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Clock className="h-5 w-5 text-yellow-600" />
+                )}
+                <span className="text-xs font-medium">Assin. Vencendo</span>
+              </Button>
+
+              <Button
+                onClick={() => testWebhookEvent('NEW_BENEFIT')}
+                disabled={testingWebhook !== null}
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1"
+              >
+                {testingWebhook === 'NEW_BENEFIT' ? (
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Gift className="h-5 w-5 text-purple-600" />
+                )}
+                <span className="text-xs font-medium">Novo Benefício</span>
+              </Button>
+
+              <Button
+                onClick={() => testWebhookEvent('PROMOTION')}
+                disabled={testingWebhook !== null}
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1"
+              >
+                {testingWebhook === 'PROMOTION' ? (
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Megaphone className="h-5 w-5 text-pink-600" />
+                )}
+                <span className="text-xs font-medium">Promoção</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Eventos para Parceiros */}
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Eventos para Parceiros (envia para todos os parceiros)
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={() => testWebhookEvent('BENEFIT_USED')}
+                disabled={testingWebhook !== null}
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1"
+              >
+                {testingWebhook === 'BENEFIT_USED' ? (
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ShoppingCart className="h-5 w-5 text-emerald-600" />
+                )}
+                <span className="text-xs font-medium">Benefício Usado</span>
+              </Button>
+
+              <Button
+                onClick={() => testWebhookEvent('PARTNER_ANNOUNCEMENT')}
+                disabled={testingWebhook !== null}
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1"
+              >
+                {testingWebhook === 'PARTNER_ANNOUNCEMENT' ? (
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Megaphone className="h-5 w-5 text-blue-600" />
+                )}
+                <span className="text-xs font-medium">Comunicado</span>
+              </Button>
+            </div>
           </div>
 
           {/* Resultado do Webhook */}
@@ -536,7 +632,7 @@ export default function PushDiagnosticsPage() {
             <div className={`p-4 rounded-lg ${webhookResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
               <h4 className="font-medium mb-2 flex items-center gap-2">
                 <Webhook className="h-4 w-4" />
-                Resultado do Webhook:
+                Resultado do Teste:
               </h4>
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div>Evento: <strong>{webhookResult.eventType}</strong></div>
@@ -554,9 +650,10 @@ export default function PushDiagnosticsPage() {
           <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
             <p className="font-medium mb-2">ℹ️ Como funciona:</p>
             <ul className="list-disc pl-4 space-y-1">
-              <li>Esses botões simulam os eventos que ocorrem no webhook do MercadoPago</li>
-              <li>As notificações são enviadas para todos os ADMINs e DEVELOPERs</li>
-              <li>Os dados exibidos são apenas exemplos para teste</li>
+              <li><strong>Admins:</strong> Eventos do webhook MercadoPago (novos assinantes, pagamentos)</li>
+              <li><strong>Assinantes:</strong> Enviado para TODOS os assinantes (role ASSINANTE)</li>
+              <li><strong>Parceiros:</strong> Enviado para TODOS os parceiros (role PARCEIRO)</li>
+              <li>Os dados exibidos são exemplos para teste</li>
             </ul>
           </div>
         </CardContent>

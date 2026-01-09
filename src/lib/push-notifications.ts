@@ -9,6 +9,9 @@ export type PushNotificationType =
   | 'SUBSCRIPTION_EXPIRED'
   | 'PLAN_UPGRADE'
   | 'PARTNER_TRANSACTION'
+  | 'BENEFIT_USED'
+  | 'NEW_BENEFIT'
+  | 'PROMOTION'
   | 'SYSTEM_ALERT'
   | 'TEST'
 
@@ -29,23 +32,9 @@ interface PushResult {
   expiredRemoved: number
 }
 
-/**
- * Envia push notifications para admins sobre eventos do sistema
- */
-export async function sendPushToAdmins(
-  title: string,
-  body: string,
-  url?: string,
-  type: PushNotificationType = 'SYSTEM_ALERT'
-): Promise<PushResult> {
-  return sendPush({
-    title,
-    body,
-    url,
-    type,
-    targetRoles: ['ADMIN', 'DEVELOPER']
-  })
-}
+// Formatador de moeda
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 
 /**
  * Envia push notification genérica
@@ -103,7 +92,7 @@ export async function sendPush(options: SendPushOptions): Promise<PushResult> {
           message: body,
           icon: icon || '/icons/icon-192x192.png',
           badge: badge || '/icons/badge-72x72.png',
-          link: url || '/admin',
+          link: url || '/',
           tag: type
         }
       )
@@ -139,6 +128,180 @@ export async function sendPush(options: SendPushOptions): Promise<PushResult> {
   }
 }
 
+// ============================================================
+// FUNÇÕES BASE POR ROLE
+// ============================================================
+
+/**
+ * Envia push notifications para ADMINs/DEVELOPERs
+ */
+export async function sendPushToAdmins(
+  title: string,
+  body: string,
+  url?: string,
+  type: PushNotificationType = 'SYSTEM_ALERT'
+): Promise<PushResult> {
+  return sendPush({
+    title,
+    body,
+    url: url || '/admin',
+    type,
+    targetRoles: ['ADMIN', 'DEVELOPER']
+  })
+}
+
+/**
+ * Envia push para um ASSINANTE específico (pelo assinanteId)
+ */
+export async function sendPushToSubscriber(
+  assinanteId: string,
+  title: string,
+  body: string,
+  url?: string,
+  type: PushNotificationType = 'SYSTEM_ALERT'
+): Promise<PushResult> {
+  try {
+    // Buscar o userId do assinante
+    const assinante = await prisma.assinante.findUnique({
+      where: { id: assinanteId },
+      select: { userId: true }
+    })
+
+    if (!assinante?.userId) {
+      console.log('[PUSH-SERVICE] Assinante não encontrado ou sem userId')
+      return { sent: 0, failed: 0, expiredRemoved: 0 }
+    }
+
+    return sendPush({
+      title,
+      body,
+      url: url || '/app',
+      type,
+      targetUserIds: [assinante.userId]
+    })
+  } catch (error) {
+    console.error('[PUSH-SERVICE] Erro ao enviar para assinante:', error)
+    return { sent: 0, failed: 0, expiredRemoved: 0 }
+  }
+}
+
+/**
+ * Envia push para TODOS os assinantes ativos
+ */
+export async function sendPushToAllSubscribers(
+  title: string,
+  body: string,
+  url?: string,
+  type: PushNotificationType = 'PROMOTION'
+): Promise<PushResult> {
+  return sendPush({
+    title,
+    body,
+    url: url || '/app',
+    type,
+    targetRoles: ['ASSINANTE']
+  })
+}
+
+/**
+ * Envia push para assinantes de um PLANO específico
+ */
+export async function sendPushToSubscribersByPlan(
+  planId: string,
+  title: string,
+  body: string,
+  url?: string,
+  type: PushNotificationType = 'NEW_BENEFIT'
+): Promise<PushResult> {
+  try {
+    // Buscar assinantes ativos do plano
+    const assinantes = await prisma.assinante.findMany({
+      where: {
+        planId,
+        subscriptionStatus: 'ACTIVE'
+      },
+      select: { userId: true }
+    })
+
+    const userIds = assinantes
+      .map(a => a.userId)
+      .filter((id): id is string => id !== null)
+
+    if (userIds.length === 0) {
+      console.log('[PUSH-SERVICE] Nenhum assinante ativo encontrado para o plano')
+      return { sent: 0, failed: 0, expiredRemoved: 0 }
+    }
+
+    return sendPush({
+      title,
+      body,
+      url: url || '/app/beneficios',
+      type,
+      targetUserIds: userIds
+    })
+  } catch (error) {
+    console.error('[PUSH-SERVICE] Erro ao enviar para assinantes do plano:', error)
+    return { sent: 0, failed: 0, expiredRemoved: 0 }
+  }
+}
+
+/**
+ * Envia push para um PARCEIRO específico (pelo parceiroId)
+ */
+export async function sendPushToPartner(
+  parceiroId: string,
+  title: string,
+  body: string,
+  url?: string,
+  type: PushNotificationType = 'BENEFIT_USED'
+): Promise<PushResult> {
+  try {
+    // Buscar o userId do parceiro
+    const parceiro = await prisma.parceiro.findUnique({
+      where: { id: parceiroId },
+      select: { userId: true }
+    })
+
+    if (!parceiro?.userId) {
+      console.log('[PUSH-SERVICE] Parceiro não encontrado ou sem userId')
+      return { sent: 0, failed: 0, expiredRemoved: 0 }
+    }
+
+    return sendPush({
+      title,
+      body,
+      url: url || '/parceiro',
+      type,
+      targetUserIds: [parceiro.userId]
+    })
+  } catch (error) {
+    console.error('[PUSH-SERVICE] Erro ao enviar para parceiro:', error)
+    return { sent: 0, failed: 0, expiredRemoved: 0 }
+  }
+}
+
+/**
+ * Envia push para TODOS os parceiros
+ */
+export async function sendPushToAllPartners(
+  title: string,
+  body: string,
+  url?: string,
+  type: PushNotificationType = 'SYSTEM_ALERT'
+): Promise<PushResult> {
+  return sendPush({
+    title,
+    body,
+    url: url || '/parceiro',
+    type,
+    targetRoles: ['PARCEIRO']
+  })
+}
+
+// ============================================================
+// FUNÇÕES HELPER PARA EVENTOS ESPECÍFICOS - ADMINS
+// ============================================================
+
 /**
  * Notifica admins sobre novo assinante
  */
@@ -155,16 +318,23 @@ export async function notifyNewSubscriber(subscriberName: string, planName: stri
  * Notifica admins sobre pagamento confirmado
  */
 export async function notifyPaymentConfirmed(subscriberName: string, amount: number): Promise<PushResult> {
-  const formattedAmount = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(amount)
-
   return sendPushToAdmins(
     '💰 Pagamento Confirmado',
-    `${subscriberName} - ${formattedAmount}`,
+    `${subscriberName} - ${formatCurrency(amount)}`,
     '/admin/assinantes',
     'PAYMENT_CONFIRMED'
+  )
+}
+
+/**
+ * Notifica admins sobre pagamento em atraso
+ */
+export async function notifyPaymentOverdue(subscriberName: string, amount: number): Promise<PushResult> {
+  return sendPushToAdmins(
+    '🚨 Pagamento em Atraso',
+    `${subscriberName} - ${formatCurrency(amount)}`,
+    '/admin/assinantes',
+    'PAYMENT_OVERDUE'
   )
 }
 
@@ -217,30 +387,136 @@ export async function notifyPartnerTransaction(partnerName: string, subscriberNa
 }
 
 /**
- * Notifica admins sobre pagamento em atraso
- */
-export async function notifyPaymentOverdue(subscriberName: string, amount: number): Promise<PushResult> {
-  const formattedAmount = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(amount)
-
-  return sendPushToAdmins(
-    '🚨 Pagamento em Atraso',
-    `${subscriberName} - ${formattedAmount}`,
-    '/admin/assinantes',
-    'PAYMENT_OVERDUE'
-  )
-}
-
-/**
- * Envia alerta genérico do sistema
+ * Envia alerta genérico do sistema para admins
  */
 export async function notifySystemAlert(title: string, message: string, url?: string): Promise<PushResult> {
   return sendPushToAdmins(
     title,
     message,
     url || '/admin',
+    'SYSTEM_ALERT'
+  )
+}
+
+// ============================================================
+// FUNÇÕES HELPER PARA EVENTOS ESPECÍFICOS - ASSINANTES
+// ============================================================
+
+/**
+ * Notifica assinante que a assinatura está vencendo
+ */
+export async function notifySubscriberExpiring(assinanteId: string, daysLeft: number): Promise<PushResult> {
+  const message = daysLeft === 0
+    ? 'Sua assinatura vence hoje! Renove agora para continuar aproveitando.'
+    : daysLeft === 1
+    ? 'Sua assinatura vence amanhã! Renove para não perder seus benefícios.'
+    : `Sua assinatura vence em ${daysLeft} dias. Renove para continuar aproveitando!`
+
+  return sendPushToSubscriber(
+    assinanteId,
+    '⏰ Assinatura Vencendo',
+    message,
+    '/app/perfil',
+    'SUBSCRIPTION_EXPIRING'
+  )
+}
+
+/**
+ * Notifica assinante sobre novo benefício disponível
+ */
+export async function notifySubscriberNewBenefit(
+  assinanteId: string,
+  benefitName: string,
+  partnerName: string
+): Promise<PushResult> {
+  return sendPushToSubscriber(
+    assinanteId,
+    '🎁 Novo Benefício!',
+    `${benefitName} disponível em ${partnerName}`,
+    '/app/beneficios',
+    'NEW_BENEFIT'
+  )
+}
+
+/**
+ * Notifica todos os assinantes sobre promoção
+ */
+export async function notifyAllSubscribersPromotion(
+  title: string,
+  message: string,
+  url?: string
+): Promise<PushResult> {
+  return sendPushToAllSubscribers(
+    `📢 ${title}`,
+    message,
+    url || '/app',
+    'PROMOTION'
+  )
+}
+
+/**
+ * Notifica assinantes de um plano sobre novo benefício
+ */
+export async function notifyPlanSubscribersNewBenefit(
+  planId: string,
+  benefitName: string,
+  partnerName: string
+): Promise<PushResult> {
+  return sendPushToSubscribersByPlan(
+    planId,
+    '🎁 Novo Benefício no seu Plano!',
+    `${benefitName} em ${partnerName}`,
+    '/app/beneficios',
+    'NEW_BENEFIT'
+  )
+}
+
+// ============================================================
+// FUNÇÕES HELPER PARA EVENTOS ESPECÍFICOS - PARCEIROS
+// ============================================================
+
+/**
+ * Notifica parceiro quando um benefício é utilizado
+ */
+export async function notifyPartnerBenefitUsed(
+  parceiroId: string,
+  subscriberName: string,
+  benefitName: string
+): Promise<PushResult> {
+  return sendPushToPartner(
+    parceiroId,
+    '🛒 Benefício Utilizado!',
+    `${subscriberName} usou: ${benefitName}`,
+    '/parceiro/transacoes',
+    'BENEFIT_USED'
+  )
+}
+
+/**
+ * Notifica todos os parceiros com um comunicado
+ */
+export async function notifyAllPartnersAnnouncement(
+  title: string,
+  message: string,
+  url?: string
+): Promise<PushResult> {
+  return sendPushToAllPartners(
+    `📢 ${title}`,
+    message,
+    url || '/parceiro',
+    'SYSTEM_ALERT'
+  )
+}
+
+/**
+ * Notifica parceiro sobre relatório semanal disponível
+ */
+export async function notifyPartnerWeeklyReport(parceiroId: string): Promise<PushResult> {
+  return sendPushToPartner(
+    parceiroId,
+    '📊 Relatório Semanal',
+    'Seu relatório de usos da semana está disponível!',
+    '/parceiro/relatorios',
     'SYSTEM_ALERT'
   )
 }
