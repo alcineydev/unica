@@ -41,6 +41,7 @@ model User {
   parceiro  Parceiro?
   pushSubscriptions      PushSubscription[]
   adminPushNotifications AdminPushNotification[]
+  panelNotifications     PanelNotification[]
 
   @@index([role])
   @@index([isActive])
@@ -661,4 +662,26 @@ model Payment {
   @@index([dueDate])
   @@index([asaasPaymentId])
   @@map("payments")
+}
+
+/// Notificações do painel para admins (novo assinante, pagamento, etc)
+model PanelNotification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      String   // NEW_SUBSCRIBER, PAYMENT_CONFIRMED, PAYMENT_OVERDUE, TRANSACTION, SYSTEM
+  title     String
+  message   String
+  link      String?
+  metadata  String?  @db.Text
+  read      Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("panel_notifications")
 }
