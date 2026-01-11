@@ -27,15 +27,16 @@ model City {
 
 /// Usuário base do sistema
 model User {
-  id        String     @id @default(cuid())
-  email     String     @unique
-  password  String
-  role      Role       @default(ASSINANTE)
-  avatar    String?
-  phone     String?
-  isActive  Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  email         String     @unique
+  password      String
+  role          Role       @default(ASSINANTE)
+  avatar        String?
+  phone         String?
+  isActive      Boolean    @default(true)
+  emailVerified DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
   admin     Admin?
   assinante Assinante?
   parceiro  Parceiro?
