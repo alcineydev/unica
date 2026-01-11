@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { headers } from 'next/headers'
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG'
@@ -59,7 +60,7 @@ export async function createLog(params: LogParams) {
       data: {
         level: params.level || 'INFO',
         action: params.action,
-        details: Object.keys(detailsObj).length > 0 ? detailsObj : undefined,
+        details: Object.keys(detailsObj).length > 0 ? (detailsObj as Prisma.JsonObject) : undefined,
         userId: params.userId || undefined,
         ip,
         userAgent: userAgent?.substring(0, 500), // Limitar tamanho
