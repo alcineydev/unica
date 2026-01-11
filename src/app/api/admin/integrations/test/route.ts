@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { initMercadoPago, initEvolutionApi, initEmailService } from '@/services'
+import { initEvolutionApi, initEmailService } from '@/services'
 
 export const runtime = 'nodejs'
 
@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
-    
+
     if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'DEVELOPER')) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -20,26 +20,6 @@ export async function POST(request: NextRequest) {
     let message = ''
 
     switch (type) {
-      case 'PAYMENT': {
-        if (!config.accessToken) {
-          return NextResponse.json({ 
-            success: false, 
-            message: 'Access Token é obrigatório' 
-          })
-        }
-        
-        const mp = initMercadoPago({ 
-          accessToken: config.accessToken,
-          publicKey: config.publicKey,
-        })
-        
-        success = await mp.testConnection()
-        message = success 
-          ? 'Conexão com Mercado Pago estabelecida!' 
-          : 'Falha ao conectar com Mercado Pago. Verifique o Access Token.'
-        break
-      }
-
       case 'EVOLUTION_API': {
         if (!config.baseUrl || !config.apiKey) {
           return NextResponse.json({ 

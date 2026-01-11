@@ -246,41 +246,6 @@ export interface PushPayload {
 }
 
 // ============================================
-// Mercado Pago
-// ============================================
-
-export interface MercadoPagoPreference {
-  id: string
-  init_point: string
-  sandbox_init_point: string
-}
-
-export interface MercadoPagoPayment {
-  id: number
-  status: 'pending' | 'approved' | 'authorized' | 'in_process' | 'in_mediation' | 'rejected' | 'cancelled' | 'refunded' | 'charged_back'
-  status_detail: string
-  transaction_amount: number
-  currency_id: string
-  payer: {
-    email: string
-    identification?: {
-      type: string
-      number: string
-    }
-  }
-  metadata?: Record<string, unknown>
-  external_reference?: string
-}
-
-export interface WebhookPayload {
-  action: string
-  type: string
-  data: {
-    id: string
-  }
-}
-
-// ============================================
 // Cloudinary
 // ============================================
 
