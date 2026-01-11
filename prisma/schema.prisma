@@ -704,3 +704,32 @@ model PendingEmailChange {
   @@index([token])
   @@map("pending_email_changes")
 }
+
+/// Códigos de verificação (email, reset de senha, etc.)
+model VerificationCode {
+  id        String    @id @default(cuid())
+  email     String
+  code      String
+  type      String    // EMAIL_VERIFICATION, PASSWORD_RESET, etc.
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email, type])
+  @@index([code])
+  @@map("verification_codes")
+}
+
+/// Tokens de reset de senha
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+  @@index([token])
+  @@map("password_reset_tokens")
+}
