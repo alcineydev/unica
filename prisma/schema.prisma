@@ -319,7 +319,7 @@ model Integration {
 /// Logs do sistema (para developer)
 model SystemLog {
   id        String   @id @default(cuid())
-  level     String
+  level     String   @default("INFO")
   action    String
   userId    String?
   details   Json?
@@ -639,7 +639,7 @@ model Payment {
   id                  String    @id @default(uuid())
   assinanteId         String
   planId              String?
-  asaasPaymentId      String    @unique
+  asaasPaymentId      String?   @unique
   asaasCustomerId     String?
   asaasSubscriptionId String?
   billingType         String    // PIX, BOLETO, CREDIT_CARD
