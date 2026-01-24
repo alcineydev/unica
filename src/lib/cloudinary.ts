@@ -2,11 +2,13 @@ import { logger } from './logger'
 
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'unica_unsigned'
+const BASE_FOLDER = process.env.CLOUDINARY_FOLDER || 'unica/dev'
 
 export async function uploadToCloudinary(
   buffer: Buffer,
-  folder: string = 'unica'
+  subfolder: string = 'general'
 ): Promise<string | null> {
+  const folder = `${BASE_FOLDER}/${subfolder}`
   try {
     logger.debug('[CLOUDINARY] Iniciando upload unsigned...')
     logger.debug('[CLOUDINARY] Cloud name:', CLOUD_NAME)

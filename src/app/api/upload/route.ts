@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer)
     logger.debug('[UPLOAD] Buffer size:', buffer.length)
 
-    // Upload para Cloudinary
-    const publicUrl = await uploadToCloudinary(buffer, `unica/${folder}`)
+    // Upload para Cloudinary (pasta definida pela env CLOUDINARY_FOLDER)
+    const publicUrl = await uploadToCloudinary(buffer, folder)
     logger.debug('[UPLOAD] URL retornada:', publicUrl)
 
     if (!publicUrl) {
