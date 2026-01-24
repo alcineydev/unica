@@ -1,18 +1,21 @@
 import { logger } from './logger'
 
-const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'unica_unsigned'
-const BASE_FOLDER = process.env.CLOUDINARY_FOLDER || 'unica/dev'
-
 export async function uploadToCloudinary(
   buffer: Buffer,
   subfolder: string = 'general'
 ): Promise<string | null> {
+  // Lê variáveis em RUNTIME (não no build)
+  const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+  const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'unica_unsigned'
+  const BASE_FOLDER = process.env.CLOUDINARY_FOLDER || 'unica/dev'
   const folder = `${BASE_FOLDER}/${subfolder}`
+  
   try {
     logger.debug('[CLOUDINARY] Iniciando upload unsigned...')
     logger.debug('[CLOUDINARY] Cloud name:', CLOUD_NAME)
     logger.debug('[CLOUDINARY] Upload preset:', UPLOAD_PRESET)
+    logger.debug('[CLOUDINARY] BASE_FOLDER (env):', process.env.CLOUDINARY_FOLDER)
+    logger.debug('[CLOUDINARY] Folder final:', folder)
 
     if (!CLOUD_NAME) {
       logger.error('[CLOUDINARY] CLOUD_NAME não configurado!')
