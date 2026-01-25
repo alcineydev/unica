@@ -153,9 +153,24 @@ export function AsaasConfig() {
     toast.success('URL copiada!')
   }
 
-  const webhookUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}/api/webhooks/asaas`
-    : ''
+  // Gerar URL do webhook com bypass para Vercel Protection
+  const getWebhookUrl = () => {
+    if (typeof window === 'undefined') return ''
+    
+    const baseUrl = `${window.location.origin}/api/webhooks/asaas`
+    
+    // Bypass para Vercel Deployment Protection
+    const bypassSecret = 'unicawebhookbypass2026asaasdev01'
+    
+    // Em dev/preview, adicionar o bypass
+    if (window.location.hostname.includes('dev.') || window.location.hostname.includes('vercel.app')) {
+      return `${baseUrl}?x-vercel-protection-bypass=${bypassSecret}`
+    }
+    
+    return baseUrl
+  }
+
+  const webhookUrl = getWebhookUrl()
 
   if (loading) {
     return (
