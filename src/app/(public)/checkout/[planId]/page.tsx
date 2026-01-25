@@ -30,6 +30,7 @@ import { toast } from 'sonner'
 // Tipos
 interface Plan {
   id: string
+  slug: string
   name: string
   description: string
   price: number
@@ -151,15 +152,22 @@ export default function CheckoutPage() {
       const response = await fetch(`/api/plans/public/${planId}`)
       const data = await response.json()
       
-      if (data.success) {
+      if (data.success && data.plan) {
+        // Redirecionar para URL canônica (slug) se acessou por ID
+        if (planId !== data.plan.slug) {
+          console.log('[Checkout] Redirecionando de', planId, 'para', data.plan.slug)
+          router.replace(`/checkout/${data.plan.slug}`)
+          return
+        }
         setPlan(data.plan)
       } else {
         toast.error('Plano não encontrado')
         router.push('/planos')
       }
     } catch (error) {
-      console.error('Erro ao carregar plano:', error)
+      console.error('[Checkout] Erro ao carregar plano:', error)
       toast.error('Erro ao carregar plano')
+      router.push('/planos')
     } finally {
       setLoading(false)
     }
@@ -339,12 +347,12 @@ export default function CheckoutPage() {
         creditCardToken = tokenData.creditCardToken
       }
 
-      // Criar cobrança
+      // Criar cobrança - usar plan.id (ID real), não planId da URL
       const response = await fetch('/api/checkout/asaas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          planId,
+          planId: plan!.id,
           customer,
           billingType: paymentMethod,
           createSubscription: createSubscription && paymentMethod !== 'PIX',
