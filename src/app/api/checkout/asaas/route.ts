@@ -172,13 +172,89 @@ export async function POST(request: NextRequest) {
       asaasCustomerId: asaasCustomer.id,
       asaasPaymentId: paymentResponse.id,
       asaasSubscriptionId: subscriptionResponse?.id || null,
-      planId,
+      planId: plan.id,
       customerEmail: customer.email,
       billingType,
       value: Number(plan.price),
       externalReference,
       status: 'PENDING'
     })
+
+    // Criar assinante como PENDING (será ativado no webhook quando pagar)
+    let assinanteId: string | null = null
+    try {
+      const bcrypt = await import('bcryptjs')
+      const cpfClean = customer.cpfCnpj.replace(/\D/g, '')
+      const phoneClean = customer.phone.replace(/\D/g, '')
+
+      // Verificar se já existe usuário com este email
+      let user = await prisma.user.findUnique({
+        where: { email: customer.email }
+      })
+
+      if (!user) {
+        // Criar usuário sem senha (será gerada no webhook quando pagar)
+        const tempPassword = Math.random().toString(36).slice(-8) + 'A1!'
+        const hashedPassword = await bcrypt.hash(tempPassword, 12)
+        
+        user = await prisma.user.create({
+          data: {
+            email: customer.email,
+            password: hashedPassword,
+            role: 'ASSINANTE',
+            phone: phoneClean,
+            isActive: false, // Inativo até pagar
+          }
+        })
+        console.log('[CHECKOUT] Usuário criado (inativo):', user.id)
+      }
+
+      // Verificar se já existe assinante para este usuário
+      let assinante = await prisma.assinante.findUnique({
+        where: { userId: user.id }
+      })
+
+      if (!assinante) {
+        // Gerar QR Code único
+        const qrCode = `UNICA-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+
+        assinante = await prisma.assinante.create({
+          data: {
+            userId: user.id,
+            name: customer.name,
+            cpf: cpfClean.length === 11 ? cpfClean : null,
+            phone: phoneClean,
+            planId: plan.id,
+            qrCode: qrCode,
+            subscriptionStatus: 'PENDING',
+            asaasCustomerId: asaasCustomer.id,
+            asaasPaymentId: paymentResponse.id,
+            asaasSubscriptionId: subscriptionResponse?.id || null,
+            points: 0,
+            cashback: 0,
+          }
+        })
+        console.log('[CHECKOUT] Assinante criado (PENDING):', assinante.id)
+      } else {
+        // Atualizar assinante existente com novo pagamento
+        assinante = await prisma.assinante.update({
+          where: { id: assinante.id },
+          data: {
+            planId: plan.id,
+            asaasCustomerId: asaasCustomer.id,
+            asaasPaymentId: paymentResponse.id,
+            asaasSubscriptionId: subscriptionResponse?.id || null,
+            subscriptionStatus: 'PENDING',
+          }
+        })
+        console.log('[CHECKOUT] Assinante atualizado (PENDING):', assinante.id)
+      }
+
+      assinanteId = assinante.id
+    } catch (dbError) {
+      console.error('[CHECKOUT] Erro ao criar/atualizar assinante:', dbError)
+      // Não falhar o checkout, apenas logar - o webhook pode criar depois
+    }
 
     // Retornar dados para o frontend
     return NextResponse.json({
@@ -212,6 +288,7 @@ export async function POST(request: NextRequest) {
         name: plan.name,
         price: Number(plan.price)
       },
+      assinanteId,
       externalReference
     })
 

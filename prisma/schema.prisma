@@ -213,6 +213,10 @@ model Assinante {
   planEndDate        DateTime?
   nextBillingDate    DateTime?
   lastPaymentDate    DateTime?
+  // Campos Asaas
+  asaasCustomerId     String?
+  asaasPaymentId      String?
+  asaasSubscriptionId String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   city               City?              @relation(fields: [cityId], references: [id])
@@ -225,6 +229,8 @@ model Assinante {
   @@index([subscriptionStatus])
   @@index([planId])
   @@index([cityId])
+  @@index([asaasCustomerId])
+  @@index([asaasPaymentId])
   @@map("assinantes")
 }
 

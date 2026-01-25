@@ -151,6 +151,101 @@ async function processSubscriptionEvent(event: AsaasSubscriptionEvent, subscript
 async function handlePaymentConfirmed(payment: AsaasPaymentData) {
   logger.info('[WEBHOOK ASAAS] Pagamento confirmado:', payment.id)
 
+  // PRIMEIRO: Tentar encontrar assinante já criado no checkout (pelos campos Asaas)
+  let assinante = await prisma.assinante.findFirst({
+    where: {
+      OR: [
+        { asaasPaymentId: payment.id },
+        { asaasCustomerId: payment.customer }
+      ]
+    },
+    include: { user: true, plan: true }
+  })
+
+  // Se encontrou assinante criado no checkout, apenas ativar
+  if (assinante) {
+    logger.info('[WEBHOOK ASAAS] Assinante encontrado (criado no checkout):', assinante.id)
+    
+    const now = new Date()
+    const planEndDate = new Date(now)
+    planEndDate.setMonth(planEndDate.getMonth() + 1)
+    const nextBillingDate = new Date(now)
+    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1)
+
+    // Ativar assinante
+    await prisma.assinante.update({
+      where: { id: assinante.id },
+      data: {
+        subscriptionStatus: 'ACTIVE',
+        planStartDate: now,
+        planEndDate: planEndDate,
+        nextBillingDate: nextBillingDate,
+        lastPaymentDate: now,
+        asaasPaymentId: payment.id,
+      }
+    })
+
+    // Ativar usuário
+    await prisma.user.update({
+      where: { id: assinante.userId },
+      data: { isActive: true }
+    })
+
+    logger.info('[WEBHOOK ASAAS] Assinante e usuário ativados:', assinante.id)
+
+    // Registrar transação
+    await prisma.transaction.create({
+      data: {
+        type: 'BONUS',
+        assinanteId: assinante.id,
+        amount: payment.value,
+        description: `Pagamento ${assinante.plan?.name || 'Plano'} - Asaas #${payment.id}`,
+        status: 'COMPLETED',
+        metadata: {
+          asaasPaymentId: payment.id,
+          asaasCustomerId: payment.customer,
+          billingType: payment.billingType,
+          externalReference: payment.externalReference,
+          confirmedDate: payment.confirmedDate,
+        }
+      }
+    })
+
+    // Notificação para o assinante
+    await prisma.assinanteNotificacao.create({
+      data: {
+        assinanteId: assinante.id,
+        tipo: 'INFO',
+        titulo: '🎉 Bem-vindo ao UNICA!',
+        mensagem: `Sua assinatura do plano ${assinante.plan?.name} foi ativada com sucesso!`,
+        dados: { planId: assinante.planId, paymentId: payment.id }
+      }
+    })
+
+    // Enviar WhatsApp de boas-vindas
+    if (assinante.plan) {
+      const tempPassword = generateTempPassword()
+      // Atualizar senha do usuário
+      const hashedPassword = await hash(tempPassword, 12)
+      await prisma.user.update({
+        where: { id: assinante.userId },
+        data: { password: hashedPassword }
+      })
+
+      await sendWelcomeNotifications(
+        { name: assinante.name, email: assinante.user.email, phone: assinante.phone || undefined },
+        { name: assinante.plan.name },
+        tempPassword
+      )
+    }
+
+    logger.info('[WEBHOOK ASAAS] Pagamento processado com sucesso (assinante existente)!')
+    return
+  }
+
+  // FALLBACK: Assinante não foi criado no checkout, criar agora (fluxo antigo)
+  logger.info('[WEBHOOK ASAAS] Assinante não encontrado, criando novo...')
+
   // Buscar cliente do Asaas para obter dados
   let asaasCustomer
   try {
@@ -175,8 +270,15 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     return
   }
 
-  // Buscar plano
-  const plan = await prisma.plan.findUnique({ where: { id: planId } })
+  // Buscar plano por ID ou slug
+  const plan = await prisma.plan.findFirst({ 
+    where: { 
+      OR: [
+        { id: planId },
+        { slug: planId }
+      ]
+    } 
+  })
   
   if (!plan) {
     logger.error('[WEBHOOK ASAAS] Plano não encontrado:', planId)
@@ -188,7 +290,7 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     where: { email: asaasCustomer.email }
   })
 
-  let assinante = null
+  let novoAssinante: { id: string } | null = null
   let tempPassword = ''
   const isNewUser = !user
 
@@ -218,19 +320,21 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     nextBillingDate.setMonth(nextBillingDate.getMonth() + 1)
 
     // Criar assinante
-    assinante = await prisma.assinante.create({
+    novoAssinante = await prisma.assinante.create({
       data: {
         userId: user.id,
         name: asaasCustomer.name,
         cpf: asaasCustomer.cpfCnpj?.replace(/\D/g, '').substring(0, 11) || null,
         phone: asaasCustomer.phone || asaasCustomer.mobilePhone || null,
-        planId: planId,
+        planId: plan.id,
         qrCode: qrCode,
         subscriptionStatus: 'ACTIVE',
         planStartDate: now,
         planEndDate: planEndDate,
         nextBillingDate: nextBillingDate,
         lastPaymentDate: now,
+        asaasCustomerId: payment.customer,
+        asaasPaymentId: payment.id,
         points: 0,
         cashback: 0,
       }
@@ -243,7 +347,7 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
 
   } else {
     // Usuário existente - verificar/atualizar assinante
-    assinante = await prisma.assinante.findUnique({
+    const existingAssinante = await prisma.assinante.findUnique({
       where: { userId: user.id }
     })
 
@@ -254,53 +358,62 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     const nextBillingDate = new Date(now)
     nextBillingDate.setMonth(nextBillingDate.getMonth() + 1)
 
-    if (assinante) {
+    if (existingAssinante) {
       // Atualizar plano e status
-      assinante = await prisma.assinante.update({
-        where: { id: assinante.id },
+      novoAssinante = await prisma.assinante.update({
+        where: { id: existingAssinante.id },
         data: {
-          planId: planId,
+          planId: plan.id,
           subscriptionStatus: 'ACTIVE',
           planStartDate: now,
           planEndDate: planEndDate,
           nextBillingDate: nextBillingDate,
           lastPaymentDate: now,
+          asaasCustomerId: payment.customer,
+          asaasPaymentId: payment.id,
         }
       })
-      logger.info('[WEBHOOK ASAAS] Assinante atualizado:', assinante.id)
+      logger.info('[WEBHOOK ASAAS] Assinante atualizado:', novoAssinante.id)
     } else {
       // Criar assinante para usuário existente
       const qrCode = generateQRCode()
       
-      assinante = await prisma.assinante.create({
+      novoAssinante = await prisma.assinante.create({
         data: {
           userId: user.id,
           name: asaasCustomer.name,
           cpf: asaasCustomer.cpfCnpj?.replace(/\D/g, '').substring(0, 11) || null,
           phone: asaasCustomer.phone || asaasCustomer.mobilePhone || null,
-          planId: planId,
+          planId: plan.id,
           qrCode: qrCode,
           subscriptionStatus: 'ACTIVE',
           planStartDate: now,
           planEndDate: planEndDate,
           nextBillingDate: nextBillingDate,
           lastPaymentDate: now,
+          asaasCustomerId: payment.customer,
+          asaasPaymentId: payment.id,
           points: 0,
           cashback: 0,
         }
       })
-      logger.info('[WEBHOOK ASAAS] Assinante criado para usuário existente:', assinante.id)
+      logger.info('[WEBHOOK ASAAS] Assinante criado para usuário existente:', novoAssinante.id)
     }
 
     // Enviar notificação de renovação
     await sendRenewalNotifications(asaasCustomer, plan)
   }
 
+  if (!novoAssinante) {
+    logger.error('[WEBHOOK ASAAS] Erro: assinante não foi criado')
+    return
+  }
+
   // Registrar transação de pagamento
   await prisma.transaction.create({
     data: {
       type: 'BONUS', // Usando BONUS para representar pagamento de assinatura
-      assinanteId: assinante.id,
+      assinanteId: novoAssinante.id,
       amount: payment.value,
       description: `Pagamento ${plan.name} - Asaas #${payment.id}`,
       status: 'COMPLETED',
@@ -319,7 +432,7 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
   // Criar notificação para o assinante
   await prisma.assinanteNotificacao.create({
     data: {
-      assinanteId: assinante.id,
+      assinanteId: novoAssinante.id,
       tipo: 'INFO',
       titulo: isNewUser ? '🎉 Bem-vindo ao UNICA!' : '✅ Pagamento Confirmado',
       mensagem: isNewUser 
@@ -339,38 +452,53 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
 async function handlePaymentOverdue(payment: AsaasPaymentData) {
   logger.info('[WEBHOOK ASAAS] Pagamento vencido:', payment.id)
 
-  // Buscar assinante pela transação
-  const existingTransaction = await prisma.transaction.findFirst({
-    where: { 
-      metadata: {
-        path: ['asaasPaymentId'],
-        equals: payment.id
-      }
-    },
-    include: { assinante: true }
+  // Buscar assinante pelos campos Asaas
+  let assinante = await prisma.assinante.findFirst({
+    where: {
+      OR: [
+        { asaasPaymentId: payment.id },
+        { asaasCustomerId: payment.customer }
+      ]
+    }
   })
 
-  if (existingTransaction?.assinante) {
-    // Marcar como pendente (não cancela imediatamente)
+  // Fallback: buscar pela transação
+  if (!assinante) {
+    const existingTransaction = await prisma.transaction.findFirst({
+      where: { 
+        metadata: {
+          path: ['asaasPaymentId'],
+          equals: payment.id
+        }
+      },
+      include: { assinante: true }
+    })
+    assinante = existingTransaction?.assinante || null
+  }
+
+  if (assinante) {
+    // Marcar como suspenso (pagamento vencido)
     await prisma.assinante.update({
-      where: { id: existingTransaction.assinante.id },
+      where: { id: assinante.id },
       data: {
-        subscriptionStatus: 'PENDING',
+        subscriptionStatus: 'SUSPENDED',
       }
     })
 
     // Notificar assinante
     await prisma.assinanteNotificacao.create({
       data: {
-        assinanteId: existingTransaction.assinante.id,
+        assinanteId: assinante.id,
         tipo: 'INFO',
-        titulo: '⚠️ Pagamento Pendente',
-        mensagem: 'Seu pagamento está pendente. Por favor, regularize para continuar aproveitando os benefícios.',
+        titulo: '⚠️ Pagamento Vencido',
+        mensagem: 'Seu pagamento venceu. Por favor, regularize para continuar aproveitando os benefícios.',
         dados: { paymentId: payment.id }
       }
     })
 
-    logger.info('[WEBHOOK ASAAS] Status do assinante alterado para PENDING')
+    logger.info('[WEBHOOK ASAAS] Status do assinante alterado para SUSPENDED:', assinante.id)
+  } else {
+    logger.warn('[WEBHOOK ASAAS] Assinante não encontrado para pagamento vencido:', payment.id)
   }
 }
 
