@@ -13,6 +13,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
+    console.log('[ASAAS CONFIG GET] Buscando configurações...')
+
     const configs = await prisma.config.findMany({
       where: {
         key: {
@@ -21,14 +23,22 @@ export async function GET() {
       }
     })
 
+    console.log('[ASAAS CONFIG GET] Encontradas:', configs.length, 'configs')
+    console.log('[ASAAS CONFIG GET] Keys:', configs.map(c => c.key))
+
     const configMap: Record<string, string> = {}
     configs.forEach(config => {
-      configMap[config.key] = config.value
+      configMap[config.key] = config.value || ''
     })
 
     // Valores reais (nunca retornar para o frontend)
     const apiKey = configMap['asaas_api_key'] || ''
     const webhookToken = configMap['asaas_webhook_token'] || ''
+    const environment = configMap['asaas_environment'] || 'sandbox'
+
+    console.log('[ASAAS CONFIG GET] apiKey exists:', !!apiKey, 'length:', apiKey.length)
+    console.log('[ASAAS CONFIG GET] webhookToken exists:', !!webhookToken, 'length:', webhookToken.length)
+    console.log('[ASAAS CONFIG GET] environment:', environment)
 
     // Mascarar para exibição (mostrar apenas últimos caracteres)
     const apiKeyMasked = apiKey 
@@ -39,12 +49,8 @@ export async function GET() {
       ? '•'.repeat(Math.max(0, Math.min(webhookToken.length - 4, 20))) + webhookToken.slice(-4)
       : ''
 
-    console.log('[ASAAS CONFIG GET] environment:', configMap['asaas_environment'], 
-      '| hasApiKey:', !!apiKey, 
-      '| hasWebhookToken:', !!webhookToken)
-
     return NextResponse.json({
-      environment: configMap['asaas_environment'] || 'sandbox',
+      environment,
       // Nunca retornar valores reais
       apiKey: '',
       webhookToken: '',
@@ -56,7 +62,7 @@ export async function GET() {
       hasWebhookToken: webhookToken.length > 0,
     })
   } catch (error) {
-    console.error('[ASAAS CONFIG] Erro ao buscar:', error)
+    console.error('[ASAAS CONFIG GET] Erro:', error)
     return NextResponse.json({ error: 'Erro ao buscar configurações' }, { status: 500 })
   }
 }
@@ -71,84 +77,100 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log('[ASAAS CONFIG PUT] Body recebido:', JSON.stringify({
+      environment: body.environment,
+      apiKey: body.apiKey ? `SET (${body.apiKey.length} chars)` : 'NOT_SET',
+      webhookToken: body.webhookToken ? `SET (${body.webhookToken.length} chars)` : 'NOT_SET'
+    }))
+
     const { environment, apiKey, webhookToken } = body
 
-    console.log('[ASAAS CONFIG PUT] Recebido:', { 
-      environment, 
-      apiKey: apiKey ? `SET (${apiKey.length} chars)` : 'NOT_SET',
-      webhookToken: webhookToken ? `SET (${webhookToken.length} chars)` : 'NOT_SET'
-    })
-
-    // Validações
+    // Validar ambiente
     if (!environment || !['sandbox', 'production'].includes(environment)) {
       return NextResponse.json({ error: 'Ambiente inválido' }, { status: 400 })
     }
 
-    // Atualizar ou criar configs
-    const updates = []
+    // Salvar ambiente
+    console.log('[ASAAS CONFIG PUT] Salvando environment:', environment)
+    await saveConfig('asaas_environment', environment, 'Ambiente do Asaas')
 
-    // Sempre salvar o ambiente
-    updates.push(
-      prisma.config.upsert({
-        where: { key: 'asaas_environment' },
-        update: { value: environment },
-        create: {
-          key: 'asaas_environment',
-          value: environment,
-          description: 'Ambiente do Asaas (sandbox/production)',
-          category: 'INTEGRATION',
-        },
-      })
-    )
-    console.log('[ASAAS CONFIG PUT] Ambiente será salvo:', environment)
-
-    // Só atualizar API key se foi fornecida e não é vazia
-    // Importante: string vazia ou undefined NÃO sobrescreve valor existente
+    // Salvar API Key se fornecida
     if (apiKey && typeof apiKey === 'string' && apiKey.trim().length > 0 && !apiKey.includes('•')) {
-      const trimmedApiKey = apiKey.trim()
-      updates.push(
-        prisma.config.upsert({
-          where: { key: 'asaas_api_key' },
-          update: { value: trimmedApiKey },
-          create: {
-            key: 'asaas_api_key',
-            value: trimmedApiKey,
-            description: 'API Key do Asaas',
-            category: 'INTEGRATION',
-          },
-        })
-      )
-      console.log('[ASAAS CONFIG PUT] API Key será salva (', trimmedApiKey.length, 'chars)')
+      console.log('[ASAAS CONFIG PUT] Salvando apiKey, length:', apiKey.trim().length)
+      await saveConfig('asaas_api_key', apiKey.trim(), 'API Key do Asaas')
     } else {
-      console.log('[ASAAS CONFIG PUT] API Key NÃO será atualizada (mantendo valor existente)')
+      console.log('[ASAAS CONFIG PUT] apiKey NÃO será salva:', { 
+        exists: !!apiKey, 
+        isString: typeof apiKey === 'string',
+        length: apiKey?.length,
+        hasMask: apiKey?.includes('•')
+      })
     }
 
-    // Só atualizar webhook token se foi fornecido e não é vazio
+    // Salvar Webhook Token se fornecido
     if (webhookToken && typeof webhookToken === 'string' && webhookToken.trim().length > 0 && !webhookToken.includes('•')) {
-      const trimmedToken = webhookToken.trim()
-      updates.push(
-        prisma.config.upsert({
-          where: { key: 'asaas_webhook_token' },
-          update: { value: trimmedToken },
-          create: {
-            key: 'asaas_webhook_token',
-            value: trimmedToken,
-            description: 'Token do Webhook Asaas',
-            category: 'INTEGRATION',
-          },
-        })
-      )
-      console.log('[ASAAS CONFIG PUT] Webhook Token será salvo (', trimmedToken.length, 'chars)')
+      console.log('[ASAAS CONFIG PUT] Salvando webhookToken, length:', webhookToken.trim().length)
+      await saveConfig('asaas_webhook_token', webhookToken.trim(), 'Token do Webhook Asaas')
     } else {
-      console.log('[ASAAS CONFIG PUT] Webhook Token NÃO será atualizado (mantendo valor existente)')
+      console.log('[ASAAS CONFIG PUT] webhookToken NÃO será salvo:', {
+        exists: !!webhookToken,
+        isString: typeof webhookToken === 'string',
+        length: webhookToken?.length,
+        hasMask: webhookToken?.includes('•')
+      })
     }
 
-    await Promise.all(updates)
-    console.log('[ASAAS CONFIG PUT] Configurações salvas com sucesso!')
+    // Verificar se salvou
+    const verify = await prisma.config.findMany({
+      where: { key: { startsWith: 'asaas_' } }
+    })
+    console.log('[ASAAS CONFIG PUT] Verificação após salvar:', verify.map(c => ({ 
+      key: c.key, 
+      hasValue: !!c.value,
+      valueLength: c.value?.length 
+    })))
 
     return NextResponse.json({ success: true, message: 'Configurações salvas com sucesso!' })
   } catch (error) {
-    console.error('[ASAAS CONFIG] Erro ao salvar:', error)
+    console.error('[ASAAS CONFIG PUT] Erro:', error)
     return NextResponse.json({ error: 'Erro ao salvar configurações' }, { status: 500 })
+  }
+}
+
+async function saveConfig(key: string, value: string, description: string) {
+  console.log(`[ASAAS CONFIG] saveConfig chamado: key=${key}, valueLength=${value.length}`)
+  
+  try {
+    // Verificar se existe
+    const existing = await prisma.config.findUnique({ where: { key } })
+    console.log(`[ASAAS CONFIG] Registro existente para ${key}:`, existing ? `SIM (id: ${existing.id})` : 'NÃO')
+
+    if (existing) {
+      // Atualizar
+      const updated = await prisma.config.update({
+        where: { key },
+        data: { value }
+      })
+      console.log(`[ASAAS CONFIG] Atualizado ${key}: id=${updated.id}, newValueLength=${updated.value?.length}`)
+    } else {
+      // Criar
+      const created = await prisma.config.create({
+        data: {
+          key,
+          value,
+          description,
+          category: 'INTEGRATION',
+        }
+      })
+      console.log(`[ASAAS CONFIG] Criado ${key}: id=${created.id}, valueLength=${created.value?.length}`)
+    }
+
+    // Verificar se salvou
+    const verify = await prisma.config.findUnique({ where: { key } })
+    console.log(`[ASAAS CONFIG] Verificação ${key}:`, verify ? `value.length=${verify.value?.length}` : 'NÃO ENCONTRADO')
+
+  } catch (error) {
+    console.error(`[ASAAS CONFIG] Erro ao salvar ${key}:`, error)
+    throw error
   }
 }
