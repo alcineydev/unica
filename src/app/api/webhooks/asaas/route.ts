@@ -147,9 +147,12 @@ async function processPaymentEvent(event: AsaasPaymentEvent, payment: AsaasPayme
       await handlePaymentRefunded(payment)
       break
 
+    case 'PAYMENT_DELETED':
+      await handlePaymentDeleted(payment)
+      break
+
     case 'PAYMENT_CREATED':
     case 'PAYMENT_UPDATED':
-    case 'PAYMENT_DELETED':
       // Apenas log, sem ação necessária
       logger.info(`[WEBHOOK ASAAS] Evento ${event} registrado`)
       break
@@ -541,7 +544,58 @@ async function handlePaymentOverdue(payment: AsaasPaymentData) {
 async function handlePaymentRefunded(payment: AsaasPaymentData) {
   logger.info('[WEBHOOK ASAAS] Pagamento estornado:', payment.id)
 
-  // Buscar transação pelo paymentId
+  // Buscar assinante pelo asaasPaymentId ou asaasCustomerId
+  const assinante = await prisma.assinante.findFirst({
+    where: {
+      OR: [
+        { asaasPaymentId: payment.id },
+        { asaasCustomerId: payment.customer }
+      ]
+    },
+    include: { user: true }
+  })
+
+  if (assinante) {
+    // Cancelar assinante
+    await prisma.assinante.update({
+      where: { id: assinante.id },
+      data: {
+        subscriptionStatus: 'CANCELED',
+        updatedAt: new Date()
+      }
+    })
+    logger.info('[WEBHOOK ASAAS] Assinante cancelado por estorno:', assinante.id)
+
+    // Desativar usuário
+    if (assinante.userId) {
+      await prisma.user.update({
+        where: { id: assinante.userId },
+        data: {
+          isActive: false,
+          updatedAt: new Date()
+        }
+      })
+      logger.info('[WEBHOOK ASAAS] Usuário desativado:', assinante.userId)
+    }
+
+    // Notificar admins
+    try {
+      await prisma.adminPushNotification.create({
+        data: {
+          title: '⚠️ Pagamento Estornado',
+          message: `Assinante ${assinante.name} teve pagamento estornado e foi cancelado`,
+          type: 'warning',
+          data: { assinanteId: assinante.id, paymentId: payment.id }
+        }
+      })
+    } catch (notifError) {
+      logger.warn('[WEBHOOK ASAAS] Erro ao criar notificação:', notifError)
+    }
+  } else {
+    logger.warn('[WEBHOOK ASAAS] Assinante não encontrado para estorno:', payment.id)
+  }
+
+  // Buscar e atualizar transação também
   const existingTransaction = await prisma.transaction.findFirst({
     where: { 
       metadata: {
@@ -563,6 +617,32 @@ async function handlePaymentRefunded(payment: AsaasPaymentData) {
       }
     })
     logger.info('[WEBHOOK ASAAS] Transação marcada como cancelada')
+  }
+}
+
+async function handlePaymentDeleted(payment: AsaasPaymentData) {
+  logger.info('[WEBHOOK ASAAS] Pagamento deletado:', payment.id)
+
+  // Buscar assinante
+  const assinante = await prisma.assinante.findFirst({
+    where: {
+      OR: [
+        { asaasPaymentId: payment.id },
+        { asaasCustomerId: payment.customer }
+      ]
+    }
+  })
+
+  // Se estava pendente e foi deletado, cancelar
+  if (assinante && assinante.subscriptionStatus === 'PENDING') {
+    await prisma.assinante.update({
+      where: { id: assinante.id },
+      data: {
+        subscriptionStatus: 'CANCELED',
+        updatedAt: new Date()
+      }
+    })
+    logger.info('[WEBHOOK ASAAS] Assinante pendente cancelado:', assinante.id)
   }
 }
 
