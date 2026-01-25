@@ -97,21 +97,44 @@ export function AsaasConfig() {
     setTestResult(null)
 
     try {
+      // Montar payload - só enviar campos com valor
+      const payload: Record<string, string> = {
+        environment: config.environment
+      }
+
+      // Só incluir apiKey se o usuário digitou algo novo
+      if (config.apiKey && config.apiKey.trim().length > 0) {
+        payload.apiKey = config.apiKey.trim()
+      }
+
+      // Só incluir webhookToken se o usuário digitou algo novo
+      if (config.webhookToken && config.webhookToken.trim().length > 0) {
+        payload.webhookToken = config.webhookToken.trim()
+      }
+
+      console.log('[ASAAS CONFIG] Enviando payload:', {
+        environment: payload.environment,
+        apiKey: payload.apiKey ? 'SET' : 'NOT_SET',
+        webhookToken: payload.webhookToken ? 'SET' : 'NOT_SET'
+      })
+
       const response = await fetch('/api/admin/integrations/asaas', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          environment: config.environment,
-          apiKey: config.apiKey || undefined,
-          webhookToken: config.webhookToken || undefined
-        })
+        body: JSON.stringify(payload)
       })
 
       if (response.ok) {
         toast.success('Configurações do Asaas salvas com sucesso!')
         setHasChanges(false)
-        // Recarregar para atualizar máscaras
-        fetchConfig()
+        // Limpar campos de input (os valores estão salvos no banco)
+        setConfig(prev => ({
+          ...prev,
+          apiKey: '',
+          webhookToken: ''
+        }))
+        // Recarregar para atualizar máscaras e flags
+        await fetchConfig()
       } else {
         const error = await response.json()
         toast.error(error.error || 'Erro ao salvar configurações')
@@ -269,7 +292,7 @@ export function AsaasConfig() {
             API Key
             {config.hasApiKey && (
               <span className="text-xs font-normal text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
-                Configurada
+                ✓ Salva
               </span>
             )}
           </Label>
@@ -277,10 +300,15 @@ export function AsaasConfig() {
             <Input
               id="asaas-apiKey"
               type={showApiKey ? 'text' : 'password'}
-              placeholder={config.apiKeyMasked || 'Cole sua API Key do Asaas aqui...'}
+              placeholder={config.hasApiKey 
+                ? `Valor atual: ${config.apiKeyMasked} (deixe vazio para manter)` 
+                : 'Cole sua API Key do Asaas aqui...'
+              }
               value={config.apiKey}
               onChange={(e) => updateConfig('apiKey', e.target.value)}
-              className="pr-12 font-mono text-sm h-11 border-2 focus:border-blue-500 transition-colors"
+              className={`pr-12 font-mono text-sm h-11 border-2 focus:border-blue-500 transition-colors ${
+                config.hasApiKey && !config.apiKey ? 'bg-green-50 border-green-200' : ''
+              }`}
             />
             <Button
               type="button"
@@ -293,7 +321,10 @@ export function AsaasConfig() {
             </Button>
           </div>
           <p className="text-xs text-gray-500">
-            Encontre em: <strong>Asaas</strong> → Minha Conta → Integrações → API
+            {config.hasApiKey 
+              ? 'Digite uma nova chave apenas se quiser substituir a atual'
+              : <>Encontre em: <strong>Asaas</strong> → Minha Conta → Integrações → API</>
+            }
           </p>
         </div>
 
@@ -304,7 +335,7 @@ export function AsaasConfig() {
             Webhook Token (Opcional)
             {config.hasWebhookToken && (
               <span className="text-xs font-normal text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
-                Configurado
+                ✓ Salvo
               </span>
             )}
           </Label>
@@ -312,10 +343,15 @@ export function AsaasConfig() {
             <Input
               id="asaas-webhookToken"
               type={showWebhookToken ? 'text' : 'password'}
-              placeholder={config.webhookTokenMasked || 'Token para validar webhooks (opcional)'}
+              placeholder={config.hasWebhookToken 
+                ? `Valor atual: ${config.webhookTokenMasked} (deixe vazio para manter)` 
+                : 'Token para validar webhooks (opcional)'
+              }
               value={config.webhookToken}
               onChange={(e) => updateConfig('webhookToken', e.target.value)}
-              className="pr-12 font-mono text-sm h-11 border-2 focus:border-blue-500 transition-colors"
+              className={`pr-12 font-mono text-sm h-11 border-2 focus:border-blue-500 transition-colors ${
+                config.hasWebhookToken && !config.webhookToken ? 'bg-green-50 border-green-200' : ''
+              }`}
             />
             <Button
               type="button"
@@ -328,7 +364,10 @@ export function AsaasConfig() {
             </Button>
           </div>
           <p className="text-xs text-gray-500">
-            Usado para validar a autenticidade das notificações recebidas
+            {config.hasWebhookToken
+              ? 'Digite um novo token apenas se quiser substituir o atual'
+              : 'Usado para validar a autenticidade das notificações recebidas'
+            }
           </p>
         </div>
 

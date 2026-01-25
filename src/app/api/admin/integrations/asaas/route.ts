@@ -26,24 +26,32 @@ export async function GET() {
       configMap[config.key] = config.value
     })
 
-    // Mascarar a API key para exibição (mostrar apenas últimos 8 caracteres)
+    // Valores reais (nunca retornar para o frontend)
     const apiKey = configMap['asaas_api_key'] || ''
+    const webhookToken = configMap['asaas_webhook_token'] || ''
+
+    // Mascarar para exibição (mostrar apenas últimos caracteres)
     const apiKeyMasked = apiKey 
-      ? '•'.repeat(Math.min(apiKey.length - 8, 32)) + apiKey.slice(-8) 
+      ? '•'.repeat(Math.max(0, Math.min(apiKey.length - 8, 32))) + apiKey.slice(-8) 
       : ''
 
-    // Mascarar webhook token também
-    const webhookToken = configMap['asaas_webhook_token'] || ''
     const webhookTokenMasked = webhookToken
-      ? '•'.repeat(Math.min(webhookToken.length - 4, 20)) + webhookToken.slice(-4)
+      ? '•'.repeat(Math.max(0, Math.min(webhookToken.length - 4, 20))) + webhookToken.slice(-4)
       : ''
+
+    console.log('[ASAAS CONFIG GET] environment:', configMap['asaas_environment'], 
+      '| hasApiKey:', !!apiKey, 
+      '| hasWebhookToken:', !!webhookToken)
 
     return NextResponse.json({
       environment: configMap['asaas_environment'] || 'sandbox',
-      apiKey: '', // Nunca retornar a chave real
+      // Nunca retornar valores reais
+      apiKey: '',
+      webhookToken: '',
+      // Valores mascarados para exibição
       apiKeyMasked,
-      webhookToken: '', // Nunca retornar o token real
       webhookTokenMasked,
+      // Flags indicando se existe valor salvo
       hasApiKey: apiKey.length > 0,
       hasWebhookToken: webhookToken.length > 0,
     })
@@ -64,6 +72,12 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json()
     const { environment, apiKey, webhookToken } = body
+
+    console.log('[ASAAS CONFIG PUT] Recebido:', { 
+      environment, 
+      apiKey: apiKey ? `SET (${apiKey.length} chars)` : 'NOT_SET',
+      webhookToken: webhookToken ? `SET (${webhookToken.length} chars)` : 'NOT_SET'
+    })
 
     // Validações
     if (!environment || !['sandbox', 'production'].includes(environment)) {
@@ -86,40 +100,51 @@ export async function PUT(request: NextRequest) {
         },
       })
     )
+    console.log('[ASAAS CONFIG PUT] Ambiente será salvo:', environment)
 
-    // Só atualizar API key se não for o valor mascarado
-    if (apiKey && !apiKey.includes('•')) {
+    // Só atualizar API key se foi fornecida e não é vazia
+    // Importante: string vazia ou undefined NÃO sobrescreve valor existente
+    if (apiKey && typeof apiKey === 'string' && apiKey.trim().length > 0 && !apiKey.includes('•')) {
+      const trimmedApiKey = apiKey.trim()
       updates.push(
         prisma.config.upsert({
           where: { key: 'asaas_api_key' },
-          update: { value: apiKey },
+          update: { value: trimmedApiKey },
           create: {
             key: 'asaas_api_key',
-            value: apiKey,
+            value: trimmedApiKey,
             description: 'API Key do Asaas',
             category: 'INTEGRATION',
           },
         })
       )
+      console.log('[ASAAS CONFIG PUT] API Key será salva (', trimmedApiKey.length, 'chars)')
+    } else {
+      console.log('[ASAAS CONFIG PUT] API Key NÃO será atualizada (mantendo valor existente)')
     }
 
-    // Só atualizar webhook token se não for o valor mascarado
-    if (webhookToken && !webhookToken.includes('•')) {
+    // Só atualizar webhook token se foi fornecido e não é vazio
+    if (webhookToken && typeof webhookToken === 'string' && webhookToken.trim().length > 0 && !webhookToken.includes('•')) {
+      const trimmedToken = webhookToken.trim()
       updates.push(
         prisma.config.upsert({
           where: { key: 'asaas_webhook_token' },
-          update: { value: webhookToken },
+          update: { value: trimmedToken },
           create: {
             key: 'asaas_webhook_token',
-            value: webhookToken,
+            value: trimmedToken,
             description: 'Token do Webhook Asaas',
             category: 'INTEGRATION',
           },
         })
       )
+      console.log('[ASAAS CONFIG PUT] Webhook Token será salvo (', trimmedToken.length, 'chars)')
+    } else {
+      console.log('[ASAAS CONFIG PUT] Webhook Token NÃO será atualizado (mantendo valor existente)')
     }
 
     await Promise.all(updates)
+    console.log('[ASAAS CONFIG PUT] Configurações salvas com sucesso!')
 
     return NextResponse.json({ success: true, message: 'Configurações salvas com sucesso!' })
   } catch (error) {
@@ -127,4 +152,3 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Erro ao salvar configurações' }, { status: 500 })
   }
 }
-
