@@ -67,9 +67,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token do cartão não informado' }, { status: 400 })
     }
 
-    // Buscar plano
-    const plan = await prisma.plan.findUnique({
-      where: { id: planId },
+    // Buscar plano por ID ou slug
+    console.log('[CHECKOUT] Buscando plano:', planId)
+    const plan = await prisma.plan.findFirst({
+      where: {
+        OR: [
+          { id: planId },
+          { slug: planId }
+        ]
+      },
       include: {
         planBenefits: {
           include: { benefit: true }
@@ -78,12 +84,16 @@ export async function POST(request: NextRequest) {
     })
 
     if (!plan) {
+      console.error('[CHECKOUT] Plano não encontrado:', planId)
       return NextResponse.json({ error: 'Plano não encontrado' }, { status: 404 })
     }
 
     if (!plan.isActive) {
+      console.error('[CHECKOUT] Plano inativo:', planId)
       return NextResponse.json({ error: 'Plano não está ativo' }, { status: 400 })
     }
+
+    console.log('[CHECKOUT] Plano encontrado:', plan.id, plan.name, 'R$', plan.price)
 
     // Criar/buscar cliente no Asaas
     const asaasCustomer = await findOrCreateCustomer({
