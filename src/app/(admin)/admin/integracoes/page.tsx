@@ -43,10 +43,7 @@ import {
   Trash2,
   PowerOff,
   CheckCircle,
-  AlertTriangle,
-  Copy,
 } from 'lucide-react'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from 'sonner'
 import { AsaasConfig } from '@/components/admin/asaas-config'
 
@@ -88,16 +85,7 @@ export default function IntegracoesPage() {
   const [loadingQr, setLoadingQr] = useState(false)
   const [refreshingStatus, setRefreshingStatus] = useState<string | null>(null)
 
-  // Form states
-  const [mercadoPago, setMercadoPago] = useState({
-    mode: 'sandbox' as 'sandbox' | 'production',
-    accessToken: '',
-    publicKey: '',
-    webhookUrl: '',
-  })
-  const [savingMercadoPago, setSavingMercadoPago] = useState(false)
-  const [testingMercadoPago, setTestingMercadoPago] = useState(false)
-
+  // Email (Resend) state
   const [resend, setResend] = useState({
     apiKey: '',
     fromEmail: '',
@@ -107,80 +95,7 @@ export default function IntegracoesPage() {
   useEffect(() => {
     loadIntegrations()
     fetchInstances()
-    loadMercadoPagoConfig()
   }, [])
-
-  async function loadMercadoPagoConfig() {
-    try {
-      const response = await fetch('/api/admin/integrations/mercadopago', {
-        credentials: 'include',
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setMercadoPago({
-          mode: data.mode || 'sandbox',
-          accessToken: data.accessToken || '',
-          publicKey: data.publicKey || '',
-          webhookUrl: data.webhookUrl || 'https://unica-theta.vercel.app/api/webhooks/mercadopago',
-        })
-      }
-    } catch (error) {
-      console.error('Erro ao carregar config Mercado Pago:', error)
-    }
-  }
-
-  async function saveMercadoPago() {
-    setSavingMercadoPago(true)
-    try {
-      const response = await fetch('/api/admin/integrations/mercadopago', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(mercadoPago),
-      })
-      if (response.ok) {
-        toast.success('Configurações do Mercado Pago salvas!')
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Erro ao salvar')
-      }
-    } catch (error) {
-      toast.error('Erro ao salvar configurações')
-    } finally {
-      setSavingMercadoPago(false)
-    }
-  }
-
-  async function testMercadoPago() {
-    if (!mercadoPago.accessToken) {
-      toast.error('Informe o Access Token')
-      return
-    }
-    setTestingMercadoPago(true)
-    try {
-      const response = await fetch('/api/admin/integrations/mercadopago/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ accessToken: mercadoPago.accessToken }),
-      })
-      const data = await response.json()
-      if (data.success) {
-        toast.success('Conexão com Mercado Pago OK!')
-      } else {
-        toast.error(data.error || 'Falha na conexão')
-      }
-    } catch (error) {
-      toast.error('Erro ao testar conexão')
-    } finally {
-      setTestingMercadoPago(false)
-    }
-  }
-
-  function copyWebhookUrl() {
-    navigator.clipboard.writeText(mercadoPago.webhookUrl)
-    toast.success('URL copiada!')
-  }
 
   async function loadIntegrations() {
     try {
@@ -191,14 +106,7 @@ export default function IntegracoesPage() {
 
         // Preencher formulários com dados existentes
         for (const integration of data) {
-          if (integration.type === 'PAYMENT') {
-            setMercadoPago({
-              mode: integration.config.mode || 'sandbox',
-              accessToken: integration.config.accessToken || '',
-              publicKey: integration.config.publicKey || '',
-              webhookUrl: integration.config.webhookUrl || '',
-            })
-          } else if (integration.type === 'EMAIL') {
+          if (integration.type === 'EMAIL') {
             setResend({
               apiKey: integration.config.apiKey || '',
               fromEmail: integration.config.fromEmail || '',
@@ -376,18 +284,17 @@ export default function IntegracoesPage() {
     setTesting(type)
     
     try {
-      const response = await fetch('/api/admin/integrations/test', {
+      const response = await fetch('/api/admin/integrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, config }),
+        body: JSON.stringify({ type, name: 'Test', config, isActive: false }),
       })
 
-      const result = await response.json()
-
-      if (result.success) {
-        toast.success(result.message)
+      if (response.ok) {
+        toast.success('Conexão testada com sucesso!')
       } else {
-        toast.error(result.message)
+        const result = await response.json()
+        toast.error(result.error || 'Falha no teste')
       }
     } catch (error) {
       console.error('Erro ao testar:', error)
@@ -520,6 +427,7 @@ export default function IntegracoesPage() {
                     ) : qrCodeData?.qrCode ? (
                       <div className="flex flex-col items-center gap-4">
                         <div className="bg-white p-4 rounded-lg">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img 
                             src={qrCodeData.qrCode} 
                             alt="QR Code WhatsApp" 
@@ -566,6 +474,7 @@ export default function IntegracoesPage() {
                       {instance.status === 'connected' && (
                         <div className="flex items-center gap-3 p-2 bg-muted rounded">
                           {instance.profilePic && (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img 
                               src={instance.profilePic} 
                               alt="Profile" 
@@ -644,155 +553,12 @@ export default function IntegracoesPage() {
           </Card>
         </TabsContent>
 
-        {/* Pagamentos */}
-        <TabsContent value="payment" className="space-y-6">
-          {/* Asaas - Principal */}
+        {/* Pagamentos - Apenas Asaas */}
+        <TabsContent value="payment">
           <AsaasConfig />
-
-          {/* Mercado Pago - Legado */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" />
-                    Mercado Pago
-                  </CardTitle>
-                  <CardDescription>
-                    Integração para pagamentos de assinaturas
-                  </CardDescription>
-                </div>
-                <Badge
-                  variant={mercadoPago.accessToken ? 'default' : 'secondary'}
-                  className={mercadoPago.accessToken ? 'bg-green-600' : ''}
-                >
-                  {mercadoPago.accessToken ? (
-                    <>
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Configurado
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-3 w-3 mr-1" />
-                      Não configurado
-                    </>
-                  )}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Modo de Operação */}
-              <div className="space-y-3">
-                <Label>Modo de Operação</Label>
-                <RadioGroup
-                  value={mercadoPago.mode}
-                  onValueChange={(value: 'sandbox' | 'production') => 
-                    setMercadoPago({ ...mercadoPago, mode: value })
-                  }
-                  className="flex gap-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="sandbox" id="sandbox" />
-                    <Label htmlFor="sandbox" className="cursor-pointer">Sandbox (Testes)</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="production" id="production" />
-                    <Label htmlFor="production" className="cursor-pointer">Produção</Label>
-                  </div>
-                </RadioGroup>
-                
-                {mercadoPago.mode === 'sandbox' && (
-                  <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                    <span>Modo de Testes Ativo - Os pagamentos não serão cobrados</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="mp-access-token">Access Token *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="mp-access-token"
-                    type={showSecrets['mp-access-token'] ? 'text' : 'password'}
-                    value={mercadoPago.accessToken}
-                    onChange={(e) => setMercadoPago({ ...mercadoPago, accessToken: e.target.value })}
-                    placeholder="APP_USR-..."
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => toggleSecretVisibility('mp-access-token')}
-                  >
-                    {showSecrets['mp-access-token'] ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="mp-public-key">Public Key</Label>
-                <Input
-                  id="mp-public-key"
-                  value={mercadoPago.publicKey}
-                  onChange={(e) => setMercadoPago({ ...mercadoPago, publicKey: e.target.value })}
-                  placeholder="APP_USR-..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="mp-webhook">Webhook URL</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="mp-webhook"
-                    value={mercadoPago.webhookUrl}
-                    readOnly
-                    className="bg-muted"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={copyWebhookUrl}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Configure esta URL no painel do Mercado Pago para receber notificações de pagamento
-                </p>
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={testMercadoPago}
-                  disabled={!mercadoPago.accessToken || testingMercadoPago}
-                >
-                  {testingMercadoPago ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Testar Conexão
-                </Button>
-                <Button
-                  onClick={saveMercadoPago}
-                  disabled={!mercadoPago.accessToken || savingMercadoPago}
-                >
-                  {savingMercadoPago && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Salvar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
-        {/* Resend */}
+        {/* Resend (Email) */}
         <TabsContent value="email">
           <Card>
             <CardHeader>
