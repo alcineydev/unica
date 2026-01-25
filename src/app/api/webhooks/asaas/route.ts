@@ -578,16 +578,21 @@ async function handlePaymentRefunded(payment: AsaasPaymentData) {
       logger.info('[WEBHOOK ASAAS] Usuário desativado:', assinante.userId)
     }
 
-    // Notificar admins
+    // Notificar admins (buscar primeiro admin para associar)
     try {
-      await prisma.adminPushNotification.create({
-        data: {
-          title: '⚠️ Pagamento Estornado',
-          message: `Assinante ${assinante.name} teve pagamento estornado e foi cancelado`,
-          type: 'warning',
-          data: { assinanteId: assinante.id, paymentId: payment.id }
-        }
+      const admin = await prisma.user.findFirst({
+        where: { role: 'ADMIN', isActive: true }
       })
+      if (admin) {
+        await prisma.adminPushNotification.create({
+          data: {
+            title: '⚠️ Pagamento Estornado',
+            message: `Assinante ${assinante.name} teve pagamento estornado e foi cancelado. PaymentId: ${payment.id}`,
+            targetType: 'ALL',
+            createdBy: admin.id
+          }
+        })
+      }
     } catch (notifError) {
       logger.warn('[WEBHOOK ASAAS] Erro ao criar notificação:', notifError)
     }
