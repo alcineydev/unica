@@ -48,6 +48,7 @@ import {
 } from 'lucide-react'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from 'sonner'
+import { AsaasConfig } from '@/components/admin/asaas-config'
 
 interface Integration {
   id: string
@@ -643,8 +644,12 @@ export default function IntegracoesPage() {
           </Card>
         </TabsContent>
 
-        {/* Mercado Pago */}
-        <TabsContent value="payment">
+        {/* Pagamentos */}
+        <TabsContent value="payment" className="space-y-6">
+          {/* Asaas - Principal */}
+          <AsaasConfig />
+
+          {/* Mercado Pago - Legado */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
