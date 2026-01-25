@@ -40,26 +40,34 @@ export async function GET() {
     console.log('[ASAAS CONFIG GET] webhookToken exists:', !!webhookToken, 'length:', webhookToken.length)
     console.log('[ASAAS CONFIG GET] environment:', environment)
 
+    // Calcular flags ANTES de mascarar
+    const hasApiKey = apiKey.length > 0
+    const hasWebhookToken = webhookToken.length > 0
+
     // Mascarar para exibição (mostrar apenas últimos caracteres)
-    const apiKeyMasked = apiKey 
-      ? '•'.repeat(Math.max(0, Math.min(apiKey.length - 8, 32))) + apiKey.slice(-8) 
+    const apiKeyMasked = hasApiKey 
+      ? '••••' + apiKey.slice(-8) 
       : ''
 
-    const webhookTokenMasked = webhookToken
-      ? '•'.repeat(Math.max(0, Math.min(webhookToken.length - 4, 20))) + webhookToken.slice(-4)
+    const webhookTokenMasked = hasWebhookToken
+      ? '••••' + webhookToken.slice(-4)
       : ''
+
+    // Log do que será retornado
+    console.log('[ASAAS CONFIG GET] Retornando:', {
+      environment,
+      hasApiKey,
+      hasWebhookToken,
+      apiKeyMaskedLength: apiKeyMasked.length,
+      webhookTokenMaskedLength: webhookTokenMasked.length
+    })
 
     return NextResponse.json({
       environment,
-      // Nunca retornar valores reais
-      apiKey: '',
-      webhookToken: '',
-      // Valores mascarados para exibição
+      hasApiKey,
+      hasWebhookToken,
       apiKeyMasked,
       webhookTokenMasked,
-      // Flags indicando se existe valor salvo
-      hasApiKey: apiKey.length > 0,
-      hasWebhookToken: webhookToken.length > 0,
     })
   } catch (error) {
     console.error('[ASAAS CONFIG GET] Erro:', error)
