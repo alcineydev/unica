@@ -3,6 +3,14 @@ import prisma from '@/lib/prisma'
 import { hash } from 'bcryptjs'
 import { findCustomerById } from '@/lib/asaas'
 import { logger } from '@/lib/logger'
+import { 
+  notifyNewSubscriber, 
+  notifyPaymentConfirmed, 
+  notifyPaymentOverdue,
+  sendPushToSubscriber,
+  sendPushToAdmins
+} from '@/lib/push-notifications'
+import { getEmailService } from '@/services/email'
 
 // Tipos dos eventos do Asaas
 type AsaasPaymentEvent = 
@@ -274,8 +282,31 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
       await sendWelcomeNotifications(
         { name: assinante.name, email: assinante.user.email, phone: assinante.phone || undefined },
         { name: assinante.plan.name },
-        tempPassword
+        tempPassword,
+        true // isNewUser
       )
+    }
+
+    // Push para admins - Novo pagamento recebido
+    try {
+      await notifyPaymentConfirmed(assinante.name, Number(payment.value))
+      logger.info('[WEBHOOK ASAAS] Push enviado para admins')
+    } catch (pushError) {
+      logger.error('[WEBHOOK ASAAS] Erro ao enviar push para admins:', pushError)
+    }
+
+    // Push de boas-vindas para o assinante
+    try {
+      await sendPushToSubscriber(
+        assinante.id,
+        '🎉 Bem-vindo ao UNICA!',
+        `Seu plano ${assinante.plan?.name || 'UNICA'} está ativo. Aproveite seus benefícios!`,
+        '/app/beneficios',
+        'PAYMENT_CONFIRMED'
+      )
+      logger.info('[WEBHOOK ASAAS] Push enviado para assinante')
+    } catch (pushError) {
+      logger.error('[WEBHOOK ASAAS] Erro ao enviar push para assinante:', pushError)
     }
 
     logger.info('[WEBHOOK ASAAS] Pagamento processado com sucesso (assinante existente)!')
@@ -382,7 +413,7 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     logger.info('[WEBHOOK ASAAS] Novo usuário e assinante criados:', user.email)
 
     // Enviar notificações para novo usuário
-    await sendWelcomeNotifications(asaasCustomer, plan, tempPassword)
+    await sendWelcomeNotifications(asaasCustomer, plan, tempPassword, true)
 
   } else {
     // Usuário existente - verificar/atualizar assinante
@@ -485,6 +516,34 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     }
   })
 
+  // Push para admins - Novo assinante ou pagamento recebido
+  try {
+    if (isNewUser) {
+      await notifyNewSubscriber(asaasCustomer.name, plan.name)
+    } else {
+      await notifyPaymentConfirmed(asaasCustomer.name, Number(payment.value))
+    }
+    logger.info('[WEBHOOK ASAAS] Push enviado para admins')
+  } catch (pushError) {
+    logger.error('[WEBHOOK ASAAS] Erro ao enviar push para admins:', pushError)
+  }
+
+  // Push para o assinante
+  try {
+    await sendPushToSubscriber(
+      novoAssinante.id,
+      isNewUser ? '🎉 Bem-vindo ao UNICA!' : '✅ Pagamento Confirmado',
+      isNewUser 
+        ? `Seu plano ${plan.name} está ativo. Aproveite seus benefícios!`
+        : `Seu pagamento do plano ${plan.name} foi confirmado!`,
+      '/app/beneficios',
+      isNewUser ? 'NEW_SUBSCRIBER' : 'PAYMENT_CONFIRMED'
+    )
+    logger.info('[WEBHOOK ASAAS] Push enviado para assinante')
+  } catch (pushError) {
+    logger.error('[WEBHOOK ASAAS] Erro ao enviar push para assinante:', pushError)
+  }
+
   logger.info('[WEBHOOK ASAAS] Pagamento processado com sucesso!')
 }
 
@@ -498,7 +557,8 @@ async function handlePaymentOverdue(payment: AsaasPaymentData) {
         { asaasPaymentId: payment.id },
         { asaasCustomerId: payment.customer }
       ]
-    }
+    },
+    include: { user: true, plan: true }
   })
 
   // Fallback: buscar pela transação
@@ -510,7 +570,11 @@ async function handlePaymentOverdue(payment: AsaasPaymentData) {
           equals: payment.id
         }
       },
-      include: { assinante: true }
+      include: { 
+        assinante: {
+          include: { user: true, plan: true }
+        } 
+      }
     })
     assinante = existingTransaction?.assinante || null
   }
@@ -524,7 +588,7 @@ async function handlePaymentOverdue(payment: AsaasPaymentData) {
       }
     })
 
-    // Notificar assinante
+    // Notificar assinante (no banco)
     await prisma.assinanteNotificacao.create({
       data: {
         assinanteId: assinante.id,
@@ -536,6 +600,45 @@ async function handlePaymentOverdue(payment: AsaasPaymentData) {
     })
 
     logger.info('[WEBHOOK ASAAS] Status do assinante alterado para SUSPENDED:', assinante.id)
+
+    // Push para admins - Pagamento vencido
+    try {
+      await notifyPaymentOverdue(assinante.name, Number(payment.value))
+      logger.info('[WEBHOOK ASAAS] Push de vencimento enviado para admins')
+    } catch (pushError) {
+      logger.error('[WEBHOOK ASAAS] Erro ao enviar push de vencimento:', pushError)
+    }
+
+    // Push para assinante
+    try {
+      await sendPushToSubscriber(
+        assinante.id,
+        '⚠️ Pagamento Vencido',
+        'Seu pagamento venceu. Regularize para continuar aproveitando seus benefícios.',
+        '/app/perfil',
+        'PAYMENT_OVERDUE'
+      )
+      logger.info('[WEBHOOK ASAAS] Push de vencimento enviado para assinante')
+    } catch (pushError) {
+      logger.error('[WEBHOOK ASAAS] Erro ao enviar push para assinante:', pushError)
+    }
+
+    // Email para assinante sobre vencimento
+    if (assinante.user?.email) {
+      try {
+        const emailService = getEmailService()
+        if (emailService) {
+          await emailService.sendPaymentReminderEmail(assinante.user.email, {
+            name: assinante.name,
+            dueDate: new Date().toLocaleDateString('pt-BR'),
+            amount: Number(payment.value)
+          })
+          logger.info('[WEBHOOK ASAAS] Email de vencimento enviado')
+        }
+      } catch (emailError) {
+        logger.error('[WEBHOOK ASAAS] Erro ao enviar email de vencimento:', emailError)
+      }
+    }
   } else {
     logger.warn('[WEBHOOK ASAAS] Assinante não encontrado para pagamento vencido:', payment.id)
   }
@@ -552,7 +655,7 @@ async function handlePaymentRefunded(payment: AsaasPaymentData) {
         { asaasCustomerId: payment.customer }
       ]
     },
-    include: { user: true }
+    include: { user: true, plan: true }
   })
 
   if (assinante) {
@@ -578,7 +681,7 @@ async function handlePaymentRefunded(payment: AsaasPaymentData) {
       logger.info('[WEBHOOK ASAAS] Usuário desativado:', assinante.userId)
     }
 
-    // Notificar admins (buscar primeiro admin para associar)
+    // Notificar admins (no banco)
     try {
       const admin = await prisma.user.findFirst({
         where: { role: 'ADMIN', isActive: true }
@@ -594,7 +697,69 @@ async function handlePaymentRefunded(payment: AsaasPaymentData) {
         })
       }
     } catch (notifError) {
-      logger.warn('[WEBHOOK ASAAS] Erro ao criar notificação:', notifError)
+      logger.warn('[WEBHOOK ASAAS] Erro ao criar notificação no banco:', notifError)
+    }
+
+    // Push para admins - Estorno
+    try {
+      await sendPushToAdmins(
+        '⚠️ Pagamento Estornado',
+        `${assinante.name} solicitou estorno de R$ ${Number(payment.value).toFixed(2)}`,
+        '/admin/assinantes',
+        'PAYMENT_OVERDUE'
+      )
+      logger.info('[WEBHOOK ASAAS] Push de estorno enviado para admins')
+    } catch (pushError) {
+      logger.error('[WEBHOOK ASAAS] Erro ao enviar push de estorno:', pushError)
+    }
+
+    // Email para assinante sobre cancelamento
+    if (assinante.user?.email) {
+      try {
+        const emailService = getEmailService()
+        if (emailService) {
+          await emailService.sendEmail({
+            to: assinante.user.email,
+            subject: '⚠️ Sua assinatura foi cancelada - UNICA Benefícios',
+            html: `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="utf-8">
+                <style>
+                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                  .header { background: #dc2626; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                  .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+                  .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="header">
+                    <h1>⚠️ Assinatura Cancelada</h1>
+                  </div>
+                  <div class="content">
+                    <p>Olá, <strong>${assinante.name}</strong>,</p>
+                    <p>Informamos que sua assinatura foi cancelada devido ao estorno do pagamento.</p>
+                    <p>Se isso foi um engano ou você deseja reativar sua assinatura, acesse nosso site.</p>
+                    <p><a href="https://app.unicabeneficios.com.br/planos">Ver planos disponíveis</a></p>
+                    <br>
+                    <p>Atenciosamente,<br><strong>Equipe UNICA Benefícios</strong></p>
+                  </div>
+                  <div class="footer">
+                    <p>© ${new Date().getFullYear()} UNICA Clube de Benefícios - Grupo Zan Norte</p>
+                  </div>
+                </div>
+              </body>
+              </html>
+            `
+          })
+          logger.info('[WEBHOOK ASAAS] Email de cancelamento enviado')
+        }
+      } catch (emailError) {
+        logger.error('[WEBHOOK ASAAS] Erro ao enviar email de cancelamento:', emailError)
+      }
     }
   } else {
     logger.warn('[WEBHOOK ASAAS] Assinante não encontrado para estorno:', payment.id)
@@ -683,9 +848,81 @@ function generateQRCode(): string {
   return `UNICA-${timestamp}-${random}`.toUpperCase()
 }
 
-async function sendWelcomeNotifications(customer: { name: string; email: string; phone?: string; mobilePhone?: string }, plan: { name: string }, tempPassword: string) {
+async function sendWelcomeNotifications(
+  customer: { name: string; email: string; phone?: string; mobilePhone?: string }, 
+  plan: { name: string }, 
+  tempPassword: string,
+  isNewUser: boolean = false
+) {
   try {
-    // Enviar WhatsApp de boas-vindas
+    // 1. Enviar Email de boas-vindas
+    if (isNewUser && customer.email) {
+      try {
+        const emailService = getEmailService()
+        if (emailService) {
+          await emailService.sendEmail({
+            to: customer.email,
+            subject: '🎉 Bem-vindo ao UNICA Benefícios!',
+            html: `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="utf-8">
+                <style>
+                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                  .header { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                  .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+                  .highlight { background: #7c3aed; color: white; padding: 5px 15px; border-radius: 20px; display: inline-block; }
+                  .credentials { background: #fff; padding: 20px; border-radius: 10px; margin: 20px 0; border: 2px solid #7c3aed; }
+                  .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                  .btn { display: inline-block; background: #7c3aed; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; margin-top: 15px; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="header">
+                    <h1>🎉 Bem-vindo ao UNICA!</h1>
+                  </div>
+                  <div class="content">
+                    <p>Olá, <strong>${customer.name}</strong>!</p>
+                    <p>Sua assinatura do plano <span class="highlight">${plan.name}</span> foi ativada com sucesso!</p>
+                    
+                    <div class="credentials">
+                      <h3>📧 Seus dados de acesso:</h3>
+                      <p><strong>Email:</strong> ${customer.email}</p>
+                      <p><strong>Senha temporária:</strong> ${tempPassword}</p>
+                      <p style="color: #dc2626; font-size: 12px;">⚠️ Recomendamos trocar sua senha no primeiro acesso.</p>
+                    </div>
+                    
+                    <p>Agora você pode aproveitar descontos exclusivos em nossos parceiros!</p>
+                    
+                    <center>
+                      <a href="https://app.unicabeneficios.com.br/login" class="btn">Acessar minha conta</a>
+                    </center>
+                    
+                    <br>
+                    <p>Obrigado por fazer parte do UNICA! 💜</p>
+                    <p>Abraços,<br><strong>Equipe UNICA</strong></p>
+                  </div>
+                  <div class="footer">
+                    <p>© ${new Date().getFullYear()} UNICA Clube de Benefícios - Grupo Zan Norte</p>
+                  </div>
+                </div>
+              </body>
+              </html>
+            `
+          })
+          logger.info('[WEBHOOK ASAAS] Email de boas-vindas enviado')
+        } else {
+          logger.warn('[WEBHOOK ASAAS] EmailService não configurado (RESEND_API_KEY ausente)')
+        }
+      } catch (emailError) {
+        logger.error('[WEBHOOK ASAAS] Erro ao enviar email de boas-vindas:', emailError)
+      }
+    }
+
+    // 2. Enviar WhatsApp de boas-vindas
     const phone = customer.phone || customer.mobilePhone
     if (phone) {
       // Verificar se Evolution API está configurada
