@@ -100,11 +100,13 @@ const navigation: NavItem[] = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
-  const [expandedItems, setExpandedItems] = useState<string[]>(['Parceiros', 'Assinantes'])
+  const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [mobileOpen, setMobileOpen] = useState(false)
-  
-  // Refs para preservar posição do scroll
+  const [activePopover, setActivePopover] = useState<string | null>(null)
+
+  // Refs para preservar posição do scroll e fechar popover por clique externo
   const navRef = useRef<HTMLElement>(null)
+  const sidebarRef = useRef<HTMLDivElement>(null)
   const scrollPositionRef = useRef(0)
 
   // Funções para salvar/restaurar posição do scroll
@@ -120,35 +122,27 @@ export function AdminSidebar() {
     }
   }
 
-  // Expandir automaticamente o menu que contém a rota atual
+  // Fechar popover ao clicar fora da sidebar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (activePopover && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setActivePopover(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [activePopover])
+
+  // Fechar sidebar mobile e popover ao mudar de rota, preservando scroll
   useEffect(() => {
     saveScrollPosition()
-    
-    const activeMenus: string[] = []
-    navigation.forEach(item => {
-      if (item.children?.some(child => pathname === child.href || pathname.startsWith(child.href + '/'))) {
-        activeMenus.push(item.label)
-      }
-    })
-    setExpandedItems(prev => {
-      const newExpanded = [...prev]
-      activeMenus.forEach(menu => {
-        if (!newExpanded.includes(menu)) {
-          newExpanded.push(menu)
-        }
-      })
-      return newExpanded
-    })
-    
+    setMobileOpen(false)
+    setActivePopover(null)
     requestAnimationFrame(restoreScrollPosition)
   }, [pathname])
 
-  // Fechar sidebar ao mudar de rota (mobile)
-  useEffect(() => {
-    setMobileOpen(false)
-  }, [pathname])
-
-  const toggleExpanded = (label: string) => {
+  const toggleMobileExpanded = (label: string) => {
     saveScrollPosition()
     setExpandedItems(prev =>
       prev.includes(label)
@@ -156,6 +150,10 @@ export function AdminSidebar() {
         : [...prev, label]
     )
     requestAnimationFrame(restoreScrollPosition)
+  }
+
+  const togglePopover = (label: string) => {
+    setActivePopover(prev => (prev === label ? null : label))
   }
 
   const isActive = (href?: string, children?: NavChild[]) => {
@@ -182,7 +180,7 @@ export function AdminSidebar() {
       {/* Navigation */}
       <nav ref={navRef} className="flex-1 p-4 space-y-1 overflow-y-auto scroll-smooth">
         {navigation.map((item) => (
-          <div key={item.label}>
+          <div key={item.label} className="relative">
             {item.href ? (
               // Link direto
               <Link
@@ -201,26 +199,32 @@ export function AdminSidebar() {
               // Com submenu
               <>
                 <button
-                  onClick={() => toggleExpanded(item.label)}
+                  onClick={() => {
+                    toggleMobileExpanded(item.label)
+                    togglePopover(item.label)
+                  }}
                   className={cn(
                     "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all",
-                    isActive(undefined, item.children)
+                    activePopover === item.label
                       ? "bg-white/10 text-white"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white"
+                      : isActive(undefined, item.children)
+                        ? "bg-white/5 text-white"
+                        : "text-slate-300 hover:bg-white/5 hover:text-white"
                   )}
                 >
                   <div className="flex items-center gap-3">
                     <item.icon className="w-5 h-5" />
                     {item.label}
                   </div>
-                  {expandedItems.includes(item.label)
-                    ? <ChevronDown className="w-4 h-4" />
-                    : <ChevronRight className="w-4 h-4" />
-                  }
+                  <ChevronRight className={cn(
+                    "w-4 h-4 transition-transform duration-150",
+                    activePopover === item.label ? "rotate-90" : ""
+                  )} />
                 </button>
 
+                {/* Submenu inline (mobile) */}
                 {expandedItems.includes(item.label) && item.children && (
-                  <div className="mt-1 ml-4 pl-4 border-l border-white/10 space-y-1">
+                  <div className="mt-1 ml-4 pl-4 border-l border-white/10 space-y-1 lg:hidden">
                     {item.children.map((child) => (
                       child.disabled ? (
                         <div
@@ -251,6 +255,42 @@ export function AdminSidebar() {
                     ))}
                   </div>
                 )}
+
+                {/* Popover submenu (desktop) */}
+                {activePopover === item.label && item.children && (
+                  <div className="hidden lg:block absolute left-full top-0 ml-2 w-56 bg-navy-800 rounded-xl shadow-xl p-2 z-50 border border-white/10 animate-in fade-in-0 zoom-in-95">
+                    {item.children.map((child) => (
+                      child.disabled ? (
+                        <div
+                          key={child.href}
+                          className="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-slate-500 cursor-not-allowed"
+                        >
+                          <span>{child.label}</span>
+                          {child.badge && (
+                            <span className="text-xs bg-slate-700 px-2 py-0.5 rounded-full">
+                              {child.badge}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={() => setActivePopover(null)}
+                          className={cn(
+                            "flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all",
+                            pathname === child.href || pathname.startsWith(child.href + '/')
+                              ? "bg-brand-600 text-white shadow-md"
+                              : "text-slate-300 hover:bg-white/10"
+                          )}
+                        >
+                          <span>{child.label}</span>
+                          <ChevronRight className="w-4 h-4 opacity-50" />
+                        </Link>
+                      )
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -276,6 +316,7 @@ export function AdminSidebar() {
       <button
         onClick={() => setMobileOpen(true)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-navy-900 rounded-xl text-white shadow-lg"
+        aria-label="Abrir menu lateral"
       >
         <Menu className="w-6 h-6" />
       </button>
@@ -288,24 +329,27 @@ export function AdminSidebar() {
         />
       )}
 
-      {/* Sidebar Mobile */}
-      <aside className={cn(
-        "lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-navy-900 flex flex-col transform transition-transform duration-300",
-        mobileOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white"
-        >
-          <X className="w-6 h-6" />
-        </button>
-        <SidebarContent />
-      </aside>
+      <div ref={sidebarRef}>
+        {/* Sidebar Mobile */}
+        <aside className={cn(
+          "lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-navy-900 flex flex-col transform transition-transform duration-300",
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        )}>
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white"
+            aria-label="Fechar menu lateral"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <SidebarContent />
+        </aside>
 
-      {/* Sidebar Desktop */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-72 bg-navy-900 flex-col shadow-xl">
-        <SidebarContent />
-      </aside>
+        {/* Sidebar Desktop */}
+        <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-64 bg-navy-900 flex-col shadow-xl">
+          <SidebarContent />
+        </aside>
+      </div>
     </>
   )
 }
