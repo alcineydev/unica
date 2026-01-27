@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -102,9 +102,28 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const [expandedItems, setExpandedItems] = useState<string[]>(['Parceiros', 'Assinantes'])
   const [mobileOpen, setMobileOpen] = useState(false)
+  
+  // Refs para preservar posição do scroll
+  const navRef = useRef<HTMLElement>(null)
+  const scrollPositionRef = useRef(0)
+
+  // Funções para salvar/restaurar posição do scroll
+  const saveScrollPosition = () => {
+    if (navRef.current) {
+      scrollPositionRef.current = navRef.current.scrollTop
+    }
+  }
+
+  const restoreScrollPosition = () => {
+    if (navRef.current) {
+      navRef.current.scrollTop = scrollPositionRef.current
+    }
+  }
 
   // Expandir automaticamente o menu que contém a rota atual
   useEffect(() => {
+    saveScrollPosition()
+    
     const activeMenus: string[] = []
     navigation.forEach(item => {
       if (item.children?.some(child => pathname === child.href || pathname.startsWith(child.href + '/'))) {
@@ -120,6 +139,8 @@ export function AdminSidebar() {
       })
       return newExpanded
     })
+    
+    requestAnimationFrame(restoreScrollPosition)
   }, [pathname])
 
   // Fechar sidebar ao mudar de rota (mobile)
@@ -128,11 +149,13 @@ export function AdminSidebar() {
   }, [pathname])
 
   const toggleExpanded = (label: string) => {
+    saveScrollPosition()
     setExpandedItems(prev =>
       prev.includes(label)
         ? prev.filter(item => item !== label)
         : [...prev, label]
     )
+    requestAnimationFrame(restoreScrollPosition)
   }
 
   const isActive = (href?: string, children?: NavChild[]) => {
@@ -157,7 +180,7 @@ export function AdminSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav ref={navRef} className="flex-1 p-4 space-y-1 overflow-y-auto scroll-smooth">
         {navigation.map((item) => (
           <div key={item.label}>
             {item.href ? (

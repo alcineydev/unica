@@ -5,12 +5,10 @@ import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import {
   Bell,
-  Search,
   ChevronDown,
   User,
   Settings,
-  LogOut,
-  Sun
+  LogOut
 } from 'lucide-react'
 
 export function AdminHeader() {
@@ -20,25 +18,11 @@ export function AdminHeader() {
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-30">
-      {/* Search */}
-      <div className="flex-1 max-w-md">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all"
-          />
-        </div>
-      </div>
+      {/* Spacer para compensar botão hamburger no mobile */}
+      <div className="flex-1 ml-12 lg:ml-0" />
 
       {/* Right Side */}
       <div className="flex items-center gap-2">
-        {/* Theme Toggle (visual only - tema fixo) */}
-        <button className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all">
-          <Sun className="w-5 h-5" />
-        </button>
-
         {/* Notifications */}
         <div className="relative">
           <button
