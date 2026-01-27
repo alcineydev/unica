@@ -8,16 +8,31 @@ import {
   ChevronDown,
   User,
   Settings,
-  LogOut
+  LogOut,
+  Menu
 } from 'lucide-react'
+import { useSidebar } from '@/contexts/sidebar-context'
 
 export function AdminHeader() {
   const { data: session } = useSession()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  const { toggleMobile } = useSidebar()
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-end px-6 sticky top-0 z-30">
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={toggleMobile}
+        className="lg:hidden flex items-center justify-center w-10 h-10 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-all -ml-2"
+        aria-label="Abrir menu"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Spacer desktop */}
+      <div className="hidden lg:block flex-1" />
+
       {/* Right Side */}
       <div className="flex items-center gap-2">
         {/* Notifications */}

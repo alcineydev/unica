@@ -12,7 +12,6 @@ import {
   Settings,
   ChevronRight,
   LogOut,
-  Menu,
   X,
   PanelLeftClose,
   PanelLeft
@@ -92,10 +91,9 @@ const navigation: NavItem[] = [
 export function AdminSidebar() {
   const pathname = usePathname()
   const [expandedItems, setExpandedItems] = useState<string[]>([])
-  const [mobileOpen, setMobileOpen] = useState(false)
   const [activePopover, setActivePopover] = useState<string | null>(null)
   const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null)
-  const { isCollapsed, toggle } = useSidebar()
+  const { isCollapsed, toggle, isMobileOpen, closeMobile } = useSidebar()
 
   // Refs para preservar posição do scroll e fechar popover por clique externo
   const navRef = useRef<HTMLElement>(null)
@@ -132,13 +130,13 @@ export function AdminSidebar() {
   useEffect(() => {
     saveScrollPosition()
     const raf = requestAnimationFrame(() => {
-      setMobileOpen(false)
+      closeMobile()
       setActivePopover(null)
       setPopoverPosition(null)
       restoreScrollPosition()
     })
     return () => cancelAnimationFrame(raf)
-  }, [pathname])
+  }, [pathname, closeMobile])
 
   const toggleMobileExpanded = (label: string) => {
     saveScrollPosition()
@@ -352,20 +350,11 @@ export function AdminSidebar() {
 
   return (
     <>
-      {/* Mobile Toggle */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-navy-900 rounded-xl text-white shadow-lg"
-        aria-label="Abrir menu lateral"
-      >
-        <Menu className="w-6 h-6" />
-      </button>
-
       {/* Mobile Overlay */}
-      {mobileOpen && (
+      {isMobileOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={() => setMobileOpen(false)}
+          onClick={closeMobile}
         />
       )}
 
@@ -373,10 +362,10 @@ export function AdminSidebar() {
         {/* Sidebar Mobile */}
         <aside className={cn(
           "lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-navy-900 flex flex-col transform transition-transform duration-300",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <button
-            onClick={() => setMobileOpen(false)}
+            onClick={closeMobile}
             className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white"
             aria-label="Fechar menu lateral"
           >
