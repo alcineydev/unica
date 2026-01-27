@@ -14,9 +14,12 @@ import {
   LogOut,
   Menu,
   X,
+  PanelLeftClose,
+  PanelLeft
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
+import { useSidebar } from '@/contexts/sidebar-context'
 
 interface NavChild {
   label: string
@@ -92,6 +95,7 @@ export function AdminSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [activePopover, setActivePopover] = useState<string | null>(null)
   const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null)
+  const { isCollapsed, toggle } = useSidebar()
 
   // Refs para preservar posição do scroll e fechar popover por clique externo
   const navRef = useRef<HTMLElement>(null)
@@ -175,10 +179,12 @@ export function AdminSidebar() {
           <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-lg">U</span>
           </div>
-          <div>
-            <span className="text-white text-xl font-bold">UNICA</span>
-            <span className="text-slate-400 text-xs block">Admin</span>
-          </div>
+          {!isCollapsed && (
+            <div>
+              <span className="text-white text-xl font-bold">UNICA</span>
+              <span className="text-slate-400 text-xs block">Admin</span>
+            </div>
+          )}
         </Link>
       </div>
 
@@ -190,15 +196,17 @@ export function AdminSidebar() {
               // Link direto
               <Link
                 href={item.href}
+                title={isCollapsed ? item.label : undefined}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                  "flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                  isCollapsed ? "justify-center" : "gap-3",
                   isActive(item.href)
                     ? "bg-brand-600 text-white shadow-lg shadow-brand-600/30"
                     : "text-slate-300 hover:bg-white/5 hover:text-white"
                 )}
               >
                 <item.icon className="w-5 h-5" />
-                {item.label}
+                {!isCollapsed && item.label}
               </Link>
             ) : (
               // Com submenu
@@ -211,8 +219,10 @@ export function AdminSidebar() {
                       toggleMobileExpanded(item.label)
                     }
                   }}
+                  title={isCollapsed ? item.label : undefined}
                   className={cn(
-                    "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                    "w-full flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                    isCollapsed ? "justify-center" : "justify-between",
                     activePopover === item.label
                       ? "bg-white/10 text-white"
                       : isActive(undefined, item.children)
@@ -220,14 +230,16 @@ export function AdminSidebar() {
                         : "text-slate-300 hover:bg-white/5 hover:text-white"
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-3")}>
                     <item.icon className="w-5 h-5" />
-                    {item.label}
+                    {!isCollapsed && item.label}
                   </div>
-                  <ChevronRight className={cn(
-                    "w-4 h-4 transition-transform duration-150",
-                    activePopover === item.label ? "rotate-90" : ""
-                  )} />
+                  {!isCollapsed && (
+                    <ChevronRight className={cn(
+                      "w-4 h-4 transition-transform duration-150",
+                      activePopover === item.label ? "rotate-90" : ""
+                    )} />
+                  )}
                 </button>
 
                 {/* Submenu inline (mobile) */}
@@ -313,13 +325,27 @@ export function AdminSidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-white/10">
-        <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all"
-        >
-          <LogOut className="w-5 h-5" />
-          Sair
-        </button>
+        <div className="space-y-2">
+          <button
+            onClick={toggle}
+            className="w-full flex items-center justify-center lg:justify-start gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white transition-all"
+            title={isCollapsed ? "Expandir menu" : "Recolher menu"}
+          >
+            {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
+            {!isCollapsed && <span>Recolher menu</span>}
+          </button>
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all",
+              isCollapsed ? "justify-center" : ""
+            )}
+            title={isCollapsed ? "Sair" : undefined}
+          >
+            <LogOut className="w-5 h-5" />
+            {!isCollapsed && <span>Sair</span>}
+          </button>
+        </div>
       </div>
     </>
   )
@@ -360,7 +386,13 @@ export function AdminSidebar() {
         </aside>
 
         {/* Sidebar Desktop */}
-        <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-64 bg-navy-900 flex-col shadow-xl">
+        <aside
+          className={cn(
+            "hidden lg:flex fixed inset-y-0 left-0 z-40 flex-col shadow-xl transition-all duration-300",
+            isCollapsed ? "w-20" : "w-64",
+            "bg-navy-900"
+          )}
+        >
           {sidebarContent}
         </aside>
       </div>

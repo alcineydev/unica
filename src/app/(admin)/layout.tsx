@@ -1,8 +1,7 @@
 import { Metadata } from 'next'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { AdminSidebar } from '@/components/admin/sidebar'
-import { AdminHeader } from '@/components/admin/header'
+import { AdminLayoutClient } from '@/components/admin/admin-layout-client'
 
 export const metadata: Metadata = {
   title: {
@@ -27,17 +26,5 @@ export default async function AdminLayout({
     redirect('/app')
   }
 
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <AdminSidebar />
-
-      <div className="lg:pl-72">
-        <AdminHeader />
-
-        <main className="p-6">
-          {children}
-        </main>
-      </div>
-    </div>
-  )
+  return <AdminLayoutClient>{children}</AdminLayoutClient>
 }
