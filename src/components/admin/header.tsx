@@ -17,10 +17,7 @@ export function AdminHeader() {
   const [showNotifications, setShowNotifications] = useState(false)
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-30">
-      {/* Spacer para compensar botão hamburger no mobile */}
-      <div className="flex-1 ml-12 lg:ml-0" />
-
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-end px-6 sticky top-0 z-30">
       {/* Right Side */}
       <div className="flex items-center gap-2">
         {/* Notifications */}
@@ -28,6 +25,7 @@ export function AdminHeader() {
           <button
             onClick={() => setShowNotifications(!showNotifications)}
             className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all relative"
+            aria-label="Abrir notificações"
           >
             <Bell className="w-5 h-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />

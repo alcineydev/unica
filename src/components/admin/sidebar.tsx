@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type MouseEvent } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -10,22 +10,10 @@ import {
   CreditCard,
   Bell,
   Settings,
-  ChevronDown,
   ChevronRight,
-  Gift,
-  MapPin,
-  Tag,
   LogOut,
   Menu,
   X,
-  List,
-  Plus,
-  MessageCircle,
-  Smartphone,
-  Mail,
-  Plug,
-  BarChart3,
-  Clock
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
@@ -103,6 +91,7 @@ export function AdminSidebar() {
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [mobileOpen, setMobileOpen] = useState(false)
   const [activePopover, setActivePopover] = useState<string | null>(null)
+  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null)
 
   // Refs para preservar posição do scroll e fechar popover por clique externo
   const navRef = useRef<HTMLElement>(null)
@@ -124,9 +113,10 @@ export function AdminSidebar() {
 
   // Fechar popover ao clicar fora da sidebar
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: globalThis.MouseEvent) => {
       if (activePopover && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
         setActivePopover(null)
+        setPopoverPosition(null)
       }
     }
 
@@ -137,9 +127,13 @@ export function AdminSidebar() {
   // Fechar sidebar mobile e popover ao mudar de rota, preservando scroll
   useEffect(() => {
     saveScrollPosition()
-    setMobileOpen(false)
-    setActivePopover(null)
-    requestAnimationFrame(restoreScrollPosition)
+    const raf = requestAnimationFrame(() => {
+      setMobileOpen(false)
+      setActivePopover(null)
+      setPopoverPosition(null)
+      restoreScrollPosition()
+    })
+    return () => cancelAnimationFrame(raf)
   }, [pathname])
 
   const toggleMobileExpanded = (label: string) => {
@@ -152,8 +146,19 @@ export function AdminSidebar() {
     requestAnimationFrame(restoreScrollPosition)
   }
 
-  const togglePopover = (label: string) => {
-    setActivePopover(prev => (prev === label ? null : label))
+  const togglePopover = (label: string, event: MouseEvent<HTMLButtonElement>) => {
+    if (activePopover === label) {
+      setActivePopover(null)
+      setPopoverPosition(null)
+      return
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect()
+    setPopoverPosition({
+      top: rect.top,
+      left: rect.right + 8
+    })
+    setActivePopover(label)
   }
 
   const isActive = (href?: string, children?: NavChild[]) => {
@@ -162,7 +167,7 @@ export function AdminSidebar() {
     return false
   }
 
-  const SidebarContent = () => (
+  const sidebarContent = (
     <>
       {/* Logo */}
       <div className="p-6 border-b border-white/10">
@@ -199,9 +204,12 @@ export function AdminSidebar() {
               // Com submenu
               <>
                 <button
-                  onClick={() => {
-                    toggleMobileExpanded(item.label)
-                    togglePopover(item.label)
+                  onClick={(e) => {
+                    if (window.innerWidth >= 1024) {
+                      togglePopover(item.label, e)
+                    } else {
+                      toggleMobileExpanded(item.label)
+                    }
                   }}
                   className={cn(
                     "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all",
@@ -257,8 +265,14 @@ export function AdminSidebar() {
                 )}
 
                 {/* Popover submenu (desktop) */}
-                {activePopover === item.label && item.children && (
-                  <div className="hidden lg:block absolute left-full top-0 ml-2 w-56 bg-navy-800 rounded-xl shadow-xl p-2 z-50 border border-white/10 animate-in fade-in-0 zoom-in-95">
+                {activePopover === item.label && item.children && popoverPosition && (
+                  <div
+                    className="hidden lg:block fixed w-56 bg-navy-800 rounded-xl shadow-xl p-2 z-[100] border border-white/10 animate-in fade-in-0 zoom-in-95"
+                    style={{
+                      top: popoverPosition.top,
+                      left: popoverPosition.left
+                    }}
+                  >
                     {item.children.map((child) => (
                       child.disabled ? (
                         <div
@@ -342,12 +356,12 @@ export function AdminSidebar() {
           >
             <X className="w-6 h-6" />
           </button>
-          <SidebarContent />
+          {sidebarContent}
         </aside>
 
         {/* Sidebar Desktop */}
         <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-64 bg-navy-900 flex-col shadow-xl">
-          <SidebarContent />
+          {sidebarContent}
         </aside>
       </div>
     </>
