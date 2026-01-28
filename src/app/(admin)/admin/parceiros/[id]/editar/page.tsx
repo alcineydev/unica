@@ -18,16 +18,13 @@ import { GalleryUpload } from '@/components/ui/gallery-upload'
 import { ArrowLeft, Save, Loader2, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { PARTNER_CATEGORIES } from '@/constants'
-
 const partnerSchema = z.object({
   companyName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   tradeName: z.string().optional(),
   phone: z.string().optional(),
   whatsapp: z.string().min(10, 'WhatsApp inválido'),
   description: z.string().optional(),
-  category: z.string().min(1, 'Selecione uma categoria'),
-  categoryId: z.string().optional(),
+  categoryId: z.string().min(1, 'Selecione uma categoria'),
   cityId: z.string().min(1, 'Selecione uma cidade'),
   address: z.string().optional(),
   addressNumber: z.string().optional(),
@@ -73,7 +70,6 @@ interface Partner {
   companyName: string
   tradeName: string | null
   cnpj: string
-  category: string
   categoryId: string | null
   description: string | null
   logo: string | null
@@ -175,7 +171,6 @@ export default function EditarParceiroPage() {
           phone: formatPhone(contact.phone || ''),
           whatsapp: formatPhone(contact.whatsapp || ''),
           description: p.description || '',
-          category: p.category || '',
           categoryId: p.categoryId || '',
           cityId: p.cityId || '',
           address: addr.street || '',
@@ -376,26 +371,7 @@ export default function EditarParceiroPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category">Segmento *</Label>
-              <Select
-                value={watch('category') || 'none'}
-                onValueChange={(value) => setValue('category', value === 'none' ? '' : value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o segmento" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Selecione...</SelectItem>
-                  {PARTNER_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.category && <p className="text-xs text-destructive">{errors.category.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="categoryId">Categoria</Label>
+              <Label htmlFor="categoryId">Categoria *</Label>
               <Select
                 value={watch('categoryId') || 'none'}
                 onValueChange={(value) => setValue('categoryId', value === 'none' ? '' : value)}

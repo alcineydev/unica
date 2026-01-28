@@ -401,6 +401,7 @@ enum SubscriptionStatus {
   SUSPENDED
   CANCELED
   EXPIRED
+  GUEST       // Convidado - acesso total sem cobrança
 }
 
 enum TransactionType {

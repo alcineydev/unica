@@ -95,6 +95,11 @@ export const SUBSCRIPTION_STATUS = {
     label: 'Expirado',
     color: 'red',
   },
+  GUEST: {
+    value: 'GUEST',
+    label: 'Convidado',
+    color: 'purple',
+  },
 } as const
 
 // Status de transação com labels

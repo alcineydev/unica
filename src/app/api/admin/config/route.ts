@@ -14,7 +14,18 @@ export async function GET() {
       where: { key: 'global' }
     })
 
-    return NextResponse.json({ config: configRecord?.value || null })
+    // Deserializar o JSON string para objeto
+    let configValue = null
+    if (configRecord?.value) {
+      try {
+        configValue = JSON.parse(configRecord.value)
+      } catch {
+        // Se não for JSON válido, retornar como está
+        configValue = configRecord.value
+      }
+    }
+
+    return NextResponse.json({ config: configValue })
 
   } catch (error) {
     console.error('Erro ao buscar configurações:', error)
@@ -32,6 +43,9 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
+    // Serializar o objeto para JSON string
+    const valueString = JSON.stringify(body)
+
     const existing = await prisma.config.findFirst({
       where: { key: 'global' }
     })
@@ -39,13 +53,13 @@ export async function POST(request: NextRequest) {
     if (existing) {
       await prisma.config.update({
         where: { id: existing.id },
-        data: { value: body }
+        data: { value: valueString }
       })
     } else {
       await prisma.config.create({
         data: {
           key: 'global',
-          value: body,
+          value: valueString,
           description: 'Configurações globais do sistema',
           category: 'SYSTEM'
         }

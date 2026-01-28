@@ -136,7 +136,7 @@ const subscriberSchema = z.object({
   phone: z.string().min(10, 'Telefone inválido'),
   cityId: z.string().optional().or(z.literal('')),
   planId: z.string().optional().or(z.literal('')),
-  subscriptionStatus: z.enum(['PENDING', 'ACTIVE', 'SUSPENDED', 'CANCELED', 'INACTIVE', 'EXPIRED']),
+  subscriptionStatus: z.enum(['PENDING', 'ACTIVE', 'SUSPENDED', 'CANCELED', 'INACTIVE', 'EXPIRED', 'GUEST']),
 })
 
 type SubscriberFormData = z.infer<typeof subscriberSchema>
@@ -186,6 +186,7 @@ function getStatusLabel(status: string | undefined | null): string {
     'EXPIRED': 'Expirado',
     'SUSPENDED': 'Suspenso',
     'CANCELED': 'Cancelado',
+    'GUEST': 'Convidado',
   }
   return statusMap[status] || status
 }
@@ -200,6 +201,7 @@ function getStatusColor(status: string | undefined | null): string {
     'EXPIRED': 'bg-red-500/10 text-red-600 border-red-500/20',
     'SUSPENDED': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
     'CANCELED': 'bg-red-500/10 text-red-600 border-red-500/20',
+    'GUEST': 'bg-purple-500/10 text-purple-600 border-purple-500/20',
   }
   return colorMap[status] || 'bg-gray-500/10 text-gray-600 border-gray-500/20'
 }
