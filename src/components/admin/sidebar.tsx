@@ -178,10 +178,10 @@ export function AdminSidebar() {
             <span className="text-white font-bold text-lg">U</span>
           </div>
           {!isCollapsed && (
-            <div>
-              <span className="text-white text-xl font-bold">UNICA</span>
-              <span className="text-slate-400 text-xs block">Admin</span>
-            </div>
+          <div>
+            <span className="text-white text-xl font-bold">UNICA</span>
+            <span className="text-slate-400 text-xs block">Admin</span>
+          </div>
           )}
         </Link>
       </div>
@@ -225,7 +225,7 @@ export function AdminSidebar() {
                       ? "bg-white/10 text-white"
                       : isActive(undefined, item.children)
                         ? "bg-white/5 text-white"
-                        : "text-slate-300 hover:bg-white/5 hover:text-white"
+                      : "text-slate-300 hover:bg-white/5 hover:text-white"
                   )}
                 >
                   <div className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-3")}>
@@ -332,17 +332,17 @@ export function AdminSidebar() {
             {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
             {!isCollapsed && <span>Recolher menu</span>}
           </button>
-          <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
             className={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all",
               isCollapsed ? "justify-center" : ""
             )}
             title={isCollapsed ? "Sair" : undefined}
-          >
-            <LogOut className="w-5 h-5" />
+        >
+          <LogOut className="w-5 h-5" />
             {!isCollapsed && <span>Sair</span>}
-          </button>
+        </button>
         </div>
       </div>
     </>
@@ -359,22 +359,22 @@ export function AdminSidebar() {
       )}
 
       <div ref={sidebarRef}>
-        {/* Sidebar Mobile */}
-        <aside className={cn(
-          "lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-navy-900 flex flex-col transform transition-transform duration-300",
+      {/* Sidebar Mobile */}
+      <aside className={cn(
+        "lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-navy-900 flex flex-col transform transition-transform duration-300",
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
-        )}>
-          <button
+      )}>
+        <button
             onClick={closeMobile}
-            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white"
+          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white"
             aria-label="Fechar menu lateral"
-          >
-            <X className="w-6 h-6" />
-          </button>
+        >
+          <X className="w-6 h-6" />
+        </button>
           {sidebarContent}
-        </aside>
+      </aside>
 
-        {/* Sidebar Desktop */}
+      {/* Sidebar Desktop */}
         <aside
           className={cn(
             "hidden lg:flex fixed inset-y-0 left-0 z-40 flex-col shadow-xl transition-all duration-300",
@@ -383,7 +383,7 @@ export function AdminSidebar() {
           )}
         >
           {sidebarContent}
-        </aside>
+      </aside>
       </div>
     </>
   )
