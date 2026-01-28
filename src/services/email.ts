@@ -35,8 +35,31 @@ class EmailService {
 
   constructor(config: EmailConfig) {
     this.apiKey = config.apiKey
-    this.fromEmail = config.fromEmail || 'noreply@unica.com.br'
-    this.fromName = config.fromName || 'Unica Clube de Benefícios'
+    // Extrair apenas o email se vier no formato "Nome <email@example.com>"
+    this.fromEmail = this.extractEmail(config.fromEmail) || 'noreply@unicabeneficios.com.br'
+    this.fromName = config.fromName || 'UNICA Benefícios'
+  }
+
+  /**
+   * Extrai apenas o endereço de email de uma string
+   * Aceita: "email@example.com" ou "Nome <email@example.com>"
+   */
+  private extractEmail(input?: string): string | null {
+    if (!input) return null
+    
+    // Se já é só o email (sem < >), retorna como está
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (emailRegex.test(input.trim())) {
+      return input.trim()
+    }
+    
+    // Se está no formato "Nome <email@example.com>", extrai o email
+    const match = input.match(/<([^>]+)>/)
+    if (match && match[1]) {
+      return match[1].trim()
+    }
+    
+    return null
   }
 
   private async request<T>(
@@ -348,7 +371,7 @@ class EmailService {
       await this.request('/emails', {
         method: 'POST',
         body: JSON.stringify({
-          from: `Test <${this.fromEmail}>`,
+          from: `${this.fromName} <${this.fromEmail}>`,
           to: ['test@test.local'],
           subject: 'Test',
           text: 'Test',
