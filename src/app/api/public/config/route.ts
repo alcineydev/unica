@@ -1,55 +1,93 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
-export const dynamic = 'force-dynamic'
+// Cache para evitar muitas consultas ao banco
+let configCache: Record<string, unknown> | null = null
+let cacheTimestamp: number = 0
+const CACHE_DURATION = 60 * 1000 // 1 minuto
+
+interface PublicConfig {
+  siteName: string
+  siteDescription: string
+  logo: string | null
+  favicon: string | null
+  email: string
+  phone: string
+  whatsapp: string
+  address: string
+  instagram: string
+  facebook: string
+  website: string
+}
+
+const defaultConfig: PublicConfig = {
+  siteName: 'UNICA - Clube de Benefícios',
+  siteDescription: 'Seu clube de benefícios e descontos exclusivos',
+  logo: null,
+  favicon: null,
+  email: '',
+  phone: '',
+  whatsapp: '',
+  address: '',
+  instagram: '',
+  facebook: '',
+  website: ''
+}
 
 export async function GET() {
   try {
-    // Buscar configurações globais
-    const configRecord = await prisma.config.findFirst({
+    const now = Date.now()
+    
+    // Retornar do cache se ainda válido
+    if (configCache && (now - cacheTimestamp) < CACHE_DURATION) {
+      return NextResponse.json(configCache)
+    }
+
+    // Buscar configuração do banco
+    const config = await prisma.config.findFirst({
       where: { key: 'global' }
     })
 
-    // Buscar configurações do sistema (cores do tema)
-    const systemConfigs = await prisma.systemConfig.findMany({
-      where: {
-        category: 'theme'
-      }
-    })
+    if (!config) {
+      return NextResponse.json(defaultConfig)
+    }
 
-    // Converter para objeto key-value
-    const themeColors: Record<string, string> = {}
-    systemConfigs.forEach(config => {
-      themeColors[config.key] = config.value || ''
-    })
+    // Parse do valor JSON
+    let configData: Partial<PublicConfig> = {}
+    try {
+      configData = JSON.parse(config.value)
+    } catch {
+      configData = {}
+    }
 
-    // Retornar apenas campos públicos - cast via unknown para satisfazer TypeScript
-    const config = (configRecord?.value as unknown as Record<string, unknown>) || {}
+    // Estruturar resposta com valores públicos
+    const publicConfig: PublicConfig = {
+      siteName: configData.siteName || defaultConfig.siteName,
+      siteDescription: configData.siteDescription || defaultConfig.siteDescription,
+      logo: configData.logo || null,
+      favicon: configData.favicon || null,
+      email: configData.email || '',
+      phone: configData.phone || '',
+      whatsapp: configData.whatsapp || '',
+      address: configData.address || '',
+      instagram: configData.instagram || '',
+      facebook: configData.facebook || '',
+      website: configData.website || ''
+    }
 
-    return NextResponse.json({
-      config: {
-        siteName: config.siteName,
-        siteDescription: config.siteDescription,
-        logo: config.logo,
-        whatsapp: config.whatsapp,
-        email: config.email,
-        phone: config.phone,
-        instagram: config.instagram,
-        facebook: config.facebook
-      },
-      // Cores do tema
-      color_primary: themeColors.color_primary,
-      color_primary_light: themeColors.color_primary_light,
-      color_secondary: themeColors.color_secondary,
-      color_accent: themeColors.color_accent,
-      color_background_dark: themeColors.color_background_dark,
-      color_background_light: themeColors.color_background_light,
-      color_text_dark: themeColors.color_text_dark,
-      color_text_light: themeColors.color_text_light
-    })
+    // Atualizar cache
+    configCache = publicConfig
+    cacheTimestamp = now
 
+    return NextResponse.json(publicConfig)
   } catch (error) {
-    console.error('Erro ao buscar configurações:', error)
-    return NextResponse.json({ config: null })
+    console.error('[PUBLIC CONFIG] Erro:', error)
+    return NextResponse.json(defaultConfig)
   }
+}
+
+// Função para invalidar cache (chamada após salvar config)
+export function invalidateConfigCache() {
+  configCache = null
+  cacheTimestamp = 0
 }

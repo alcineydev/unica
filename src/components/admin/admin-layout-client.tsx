@@ -2,6 +2,7 @@
 
 import { type ReactNode } from 'react'
 import { SidebarProvider, useSidebar } from '@/contexts/sidebar-context'
+import { ConfigProvider } from '@/contexts/config-context'
 import { AdminSidebar } from './sidebar'
 import { AdminHeader } from './header'
 import { cn } from '@/lib/utils'
@@ -29,8 +30,10 @@ function LayoutContent({ children }: { children: ReactNode }) {
 
 export function AdminLayoutClient({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider>
-      <LayoutContent>{children}</LayoutContent>
-    </SidebarProvider>
+    <ConfigProvider>
+      <SidebarProvider>
+        <LayoutContent>{children}</LayoutContent>
+      </SidebarProvider>
+    </ConfigProvider>
   )
 }

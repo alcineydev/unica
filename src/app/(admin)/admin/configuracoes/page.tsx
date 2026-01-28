@@ -22,6 +22,7 @@ import {
   Facebook
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useConfig } from '@/contexts/config-context'
 
 interface GlobalConfig {
   // Identidade
@@ -66,6 +67,7 @@ export default function ConfiguracoesAdminPage() {
   const [config, setConfig] = useState<GlobalConfig>(defaultConfig)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const { refetch: refetchGlobalConfig } = useConfig()
 
   useEffect(() => {
     fetchConfig()
@@ -97,6 +99,8 @@ export default function ConfiguracoesAdminPage() {
 
       if (response.ok) {
         toast.success('Configurações salvas com sucesso!')
+        // Atualizar config global (logo no sidebar/header)
+        await refetchGlobalConfig()
       } else {
         toast.error('Erro ao salvar configurações')
       }
