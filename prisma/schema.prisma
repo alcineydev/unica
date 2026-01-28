@@ -41,6 +41,7 @@ model User {
   parceiro  Parceiro?
   pushSubscriptions      PushSubscription[]
   adminPushNotifications AdminPushNotification[]
+  passwordResetTokens    PasswordResetToken[]
 
   @@index([role])
   @@index([isActive])
@@ -630,4 +631,19 @@ model Page {
   @@index([slug])
   @@index([isPublished])
   @@map("pages")
+}
+
+/// Token para recuperação de senha
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
