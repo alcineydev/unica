@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
-// Cache para evitar muitas consultas ao banco
-let configCache: Record<string, unknown> | null = null
-let cacheTimestamp: number = 0
-const CACHE_DURATION = 60 * 1000 // 1 minuto
-
 interface PublicConfig {
   siteName: string
   siteDescription: string
@@ -19,6 +14,11 @@ interface PublicConfig {
   facebook: string
   website: string
 }
+
+// Cache para evitar muitas consultas ao banco
+let configCache: PublicConfig | null = null
+let cacheTimestamp: number = 0
+const CACHE_DURATION = 60 * 1000 // 1 minuto
 
 const defaultConfig: PublicConfig = {
   siteName: 'UNICA - Clube de Benefícios',
