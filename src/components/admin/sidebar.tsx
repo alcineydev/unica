@@ -19,7 +19,7 @@ import {
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/contexts/sidebar-context'
-import { useConfig } from '@/contexts/config-context'
+import { LogoDisplay } from '@/components/ui/logo-display'
 
 interface NavChild {
   label: string
@@ -95,7 +95,6 @@ export function AdminSidebar() {
   const [activePopover, setActivePopover] = useState<string | null>(null)
   const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null)
   const { isCollapsed, toggle, isMobileOpen, closeMobile } = useSidebar()
-  const { config } = useConfig()
 
   // Refs para preservar posição do scroll e fechar popover por clique externo
   const navRef = useRef<HTMLElement>(null)
@@ -175,28 +174,12 @@ export function AdminSidebar() {
     <>
       {/* Logo */}
       <div className="p-6 border-b border-white/10">
-        <Link href="/admin" className="flex items-center gap-3">
-          {config.logo ? (
-            <img 
-              src={config.logo} 
-              alt={config.siteName} 
-              className="w-10 h-10 object-contain rounded-xl bg-white/10"
-            />
-          ) : (
-            <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-lg">
-                {config.siteName?.charAt(0) || 'U'}
-              </span>
-            </div>
-          )}
-          {!isCollapsed && (
-          <div>
-            <span className="text-white text-xl font-bold truncate max-w-[140px] block">
-              {config.siteName?.split(' - ')[0] || 'UNICA'}
-            </span>
-            <span className="text-slate-400 text-xs block">Admin</span>
-          </div>
-          )}
+        <Link href="/admin" className="flex items-center">
+          <LogoDisplay 
+            variant="dark" 
+            showText={!isCollapsed}
+            textClassName="text-white max-w-[140px]"
+          />
         </Link>
       </div>
 

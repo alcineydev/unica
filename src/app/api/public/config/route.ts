@@ -1,49 +1,64 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
-interface PublicConfig {
-  siteName: string
-  siteDescription: string
-  logo: string | null
-  favicon: string | null
-  email: string
-  phone: string
-  whatsapp: string
-  address: string
-  instagram: string
-  facebook: string
-  website: string
+interface LogoConfig {
+  type: 'image' | 'text'
+  imageLight: string | null
+  imageDark: string | null
+  text: string
+  size: 'small' | 'medium' | 'large'
 }
 
-// Cache para evitar muitas consultas ao banco
+interface PublicConfig {
+  logo: LogoConfig
+  favicon: string | null
+  siteName: string
+  siteDescription: string
+  primaryColor: string
+  contactEmail: string
+  contactPhone: string
+  contactWhatsapp: string
+  address: string
+  socialFacebook: string
+  socialInstagram: string
+  socialLinkedin: string
+}
+
 let configCache: PublicConfig | null = null
 let cacheTimestamp: number = 0
-const CACHE_DURATION = 60 * 1000 // 1 minuto
+const CACHE_DURATION = 60 * 1000
+
+const defaultLogo: LogoConfig = {
+  type: 'text',
+  imageLight: null,
+  imageDark: null,
+  text: 'UNICA',
+  size: 'medium'
+}
 
 const defaultConfig: PublicConfig = {
+  logo: defaultLogo,
+  favicon: null,
   siteName: 'UNICA - Clube de Benefícios',
   siteDescription: 'Seu clube de benefícios e descontos exclusivos',
-  logo: null,
-  favicon: null,
-  email: '',
-  phone: '',
-  whatsapp: '',
+  primaryColor: '#2563eb',
+  contactEmail: '',
+  contactPhone: '',
+  contactWhatsapp: '',
   address: '',
-  instagram: '',
-  facebook: '',
-  website: ''
+  socialFacebook: '',
+  socialInstagram: '',
+  socialLinkedin: ''
 }
 
 export async function GET() {
   try {
     const now = Date.now()
     
-    // Retornar do cache se ainda válido
     if (configCache && (now - cacheTimestamp) < CACHE_DURATION) {
       return NextResponse.json(configCache)
     }
 
-    // Buscar configuração do banco
     const config = await prisma.config.findFirst({
       where: { key: 'global' }
     })
@@ -52,30 +67,36 @@ export async function GET() {
       return NextResponse.json(defaultConfig)
     }
 
-    // Parse do valor JSON
-    let configData: Partial<PublicConfig> = {}
+    let configData: Record<string, unknown> = {}
     try {
       configData = JSON.parse(config.value)
     } catch {
       configData = {}
     }
 
-    // Estruturar resposta com valores públicos
+    const logoData = (configData.logo as Record<string, unknown>) || {}
+    
     const publicConfig: PublicConfig = {
-      siteName: configData.siteName || defaultConfig.siteName,
-      siteDescription: configData.siteDescription || defaultConfig.siteDescription,
-      logo: configData.logo || null,
-      favicon: configData.favicon || null,
-      email: configData.email || '',
-      phone: configData.phone || '',
-      whatsapp: configData.whatsapp || '',
-      address: configData.address || '',
-      instagram: configData.instagram || '',
-      facebook: configData.facebook || '',
-      website: configData.website || ''
+      logo: {
+        type: (logoData.type as 'image' | 'text') || 'text',
+        imageLight: (logoData.imageLight as string) || null,
+        imageDark: (logoData.imageDark as string) || null,
+        text: (logoData.text as string) || 'UNICA',
+        size: (logoData.size as 'small' | 'medium' | 'large') || 'medium'
+      },
+      favicon: (configData.favicon as string) || null,
+      siteName: (configData.siteName as string) || defaultConfig.siteName,
+      siteDescription: (configData.siteDescription as string) || defaultConfig.siteDescription,
+      primaryColor: (configData.primaryColor as string) || defaultConfig.primaryColor,
+      contactEmail: (configData.contactEmail as string) || '',
+      contactPhone: (configData.contactPhone as string) || '',
+      contactWhatsapp: (configData.contactWhatsapp as string) || '',
+      address: (configData.address as string) || '',
+      socialFacebook: (configData.socialFacebook as string) || '',
+      socialInstagram: (configData.socialInstagram as string) || '',
+      socialLinkedin: (configData.socialLinkedin as string) || ''
     }
 
-    // Atualizar cache
     configCache = publicConfig
     cacheTimestamp = now
 
@@ -84,10 +105,4 @@ export async function GET() {
     console.error('[PUBLIC CONFIG] Erro:', error)
     return NextResponse.json(defaultConfig)
   }
-}
-
-// Função para invalidar cache (chamada após salvar config)
-export function invalidateConfigCache() {
-  configCache = null
-  cacheTimestamp = 0
 }

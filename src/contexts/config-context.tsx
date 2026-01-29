@@ -2,18 +2,31 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 
+interface LogoConfig {
+  type: 'image' | 'text'
+  imageLight: string | null
+  imageDark: string | null
+  text: string
+  size: 'small' | 'medium' | 'large'
+}
+
 interface SystemConfig {
+  // Logo
+  logo: LogoConfig
+  favicon: string | null
+  // Identidade
   siteName: string
   siteDescription: string
-  logo: string | null
-  favicon: string | null
-  email: string
-  phone: string
-  whatsapp: string
+  primaryColor: string
+  // Contato
+  contactEmail: string
+  contactPhone: string
+  contactWhatsapp: string
   address: string
-  instagram: string
-  facebook: string
-  website: string
+  // Social
+  socialFacebook: string
+  socialInstagram: string
+  socialLinkedin: string
 }
 
 interface ConfigContextType {
@@ -22,18 +35,27 @@ interface ConfigContextType {
   refetch: () => Promise<void>
 }
 
+const defaultLogo: LogoConfig = {
+  type: 'text',
+  imageLight: null,
+  imageDark: null,
+  text: 'UNICA',
+  size: 'medium'
+}
+
 const defaultConfig: SystemConfig = {
+  logo: defaultLogo,
+  favicon: null,
   siteName: 'UNICA - Clube de Benefícios',
   siteDescription: 'Seu clube de benefícios e descontos exclusivos',
-  logo: null,
-  favicon: null,
-  email: '',
-  phone: '',
-  whatsapp: '',
+  primaryColor: '#2563eb',
+  contactEmail: '',
+  contactPhone: '',
+  contactWhatsapp: '',
   address: '',
-  instagram: '',
-  facebook: '',
-  website: ''
+  socialFacebook: '',
+  socialInstagram: '',
+  socialLinkedin: ''
 }
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined)
@@ -47,7 +69,19 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       const response = await fetch('/api/public/config')
       if (response.ok) {
         const data = await response.json()
-        setConfig(data)
+        // Garantir que logo tenha a estrutura correta
+        const logoData = data.logo || {}
+        setConfig({
+          ...defaultConfig,
+          ...data,
+          logo: {
+            type: logoData.type || 'text',
+            imageLight: logoData.imageLight || null,
+            imageDark: logoData.imageDark || null,
+            text: logoData.text || 'UNICA',
+            size: logoData.size || 'medium'
+          }
+        })
       }
     } catch (error) {
       console.error('Erro ao buscar configurações:', error)
@@ -79,3 +113,16 @@ export function useConfig() {
   }
   return context
 }
+
+// Helper para tamanho do logo em pixels
+export function getLogoSize(size: 'small' | 'medium' | 'large'): number {
+  switch (size) {
+    case 'small': return 28
+    case 'medium': return 36
+    case 'large': return 44
+    default: return 36
+  }
+}
+
+// Exportar tipos para uso em outros arquivos
+export type { LogoConfig, SystemConfig }
