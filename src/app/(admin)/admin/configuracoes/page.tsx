@@ -6,13 +6,14 @@ import { useConfig } from '@/contexts/config-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { 
-  Loader2, Save, Image as ImageIcon, Type, Upload, X, 
+import {
+  Loader2, Save, Image as ImageIcon, Type, Upload, X,
   User, Mail, Phone, Lock, Palette, Globe, MessageSquare,
   Sun, Moon
 } from 'lucide-react'
@@ -77,7 +78,7 @@ const defaultFormData: FormData = {
 export default function ConfiguracoesPage() {
   const { data: session, update: updateSession } = useSession()
   const { refetch: refetchConfig } = useConfig()
-  
+
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('identidade')
@@ -105,7 +106,7 @@ export default function ConfiguracoesPage() {
       if (response.ok) {
         const data = await response.json()
         const configData = data.config || {}
-        
+
         setFormData(prev => ({
           ...prev,
           // Logo
@@ -377,9 +378,9 @@ export default function ConfiguracoesPage() {
                     <div className="border-2 border-dashed rounded-xl p-4 text-center bg-white">
                       {formData.logoImageLight ? (
                         <div className="relative inline-block">
-                          <img 
-                            src={formData.logoImageLight} 
-                            alt="Logo claro" 
+                          <img
+                            src={formData.logoImageLight}
+                            alt="Logo claro"
                             className="h-20 object-contain mx-auto"
                           />
                           <button
@@ -416,9 +417,9 @@ export default function ConfiguracoesPage() {
                     <div className="border-2 border-dashed rounded-xl p-4 text-center bg-gray-800">
                       {formData.logoImageDark ? (
                         <div className="relative inline-block">
-                          <img 
-                            src={formData.logoImageDark} 
-                            alt="Logo escuro" 
+                          <img
+                            src={formData.logoImageDark}
+                            alt="Logo escuro"
                             className="h-20 object-contain mx-auto"
                           />
                           <button
@@ -491,16 +492,16 @@ export default function ConfiguracoesPage() {
                 <div className="flex gap-4">
                   <div className="bg-white border rounded-xl p-4 flex items-center gap-3">
                     {formData.logoType === 'image' && formData.logoImageLight ? (
-                      <img 
-                        src={formData.logoImageLight} 
-                        alt="Preview" 
+                      <img
+                        src={formData.logoImageLight}
+                        alt="Preview"
                         style={{ height: getLogoSizeValue(formData.logoSize) }}
                         className="object-contain"
                       />
                     ) : (
-                      <div 
+                      <div
                         className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold"
-                        style={{ 
+                        style={{
                           width: getLogoSizeValue(formData.logoSize),
                           height: getLogoSizeValue(formData.logoSize),
                           fontSize: getLogoSizeValue(formData.logoSize) * 0.45
@@ -513,16 +514,16 @@ export default function ConfiguracoesPage() {
                   </div>
                   <div className="bg-gray-800 border rounded-xl p-4 flex items-center gap-3">
                     {formData.logoType === 'image' && (formData.logoImageDark || formData.logoImageLight) ? (
-                      <img 
-                        src={formData.logoImageDark || formData.logoImageLight} 
-                        alt="Preview" 
+                      <img
+                        src={formData.logoImageDark || formData.logoImageLight}
+                        alt="Preview"
                         style={{ height: getLogoSizeValue(formData.logoSize) }}
                         className="object-contain"
                       />
                     ) : (
-                      <div 
+                      <div
                         className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold"
-                        style={{ 
+                        style={{
                           width: getLogoSizeValue(formData.logoSize),
                           height: getLogoSizeValue(formData.logoSize),
                           fontSize: getLogoSizeValue(formData.logoSize) * 0.45
@@ -550,9 +551,9 @@ export default function ConfiguracoesPage() {
               <div className="border-2 border-dashed rounded-xl p-4 text-center w-fit">
                 {formData.favicon ? (
                   <div className="relative inline-block">
-                    <img 
-                      src={formData.favicon} 
-                      alt="Favicon" 
+                    <img
+                      src={formData.favicon}
+                      alt="Favicon"
                       className="w-16 h-16 object-contain"
                     />
                     <button
@@ -649,18 +650,16 @@ export default function ConfiguracoesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Telefone</Label>
-                  <Input
+                  <PhoneInput
                     value={formData.contactPhone}
-                    onChange={(e) => handleChange('contactPhone', e.target.value)}
-                    placeholder="(00) 0000-0000"
+                    onChange={(value) => handleChange('contactPhone', value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>WhatsApp</Label>
-                  <Input
+                  <PhoneInput
                     value={formData.contactWhatsapp}
-                    onChange={(e) => handleChange('contactWhatsapp', e.target.value)}
-                    placeholder="(00) 00000-0000"
+                    onChange={(value) => handleChange('contactWhatsapp', value)}
                   />
                 </div>
               </div>
@@ -751,15 +750,10 @@ export default function ConfiguracoesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Telefone</Label>
-                  <div className="relative">
-                    <Input
-                      value={formData.userPhone}
-                      onChange={(e) => handleChange('userPhone', e.target.value)}
-                      placeholder="(00) 00000-0000"
-                      className="pr-10"
-                    />
-                    <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  </div>
+                  <PhoneInput
+                    value={formData.userPhone}
+                    onChange={(value) => handleChange('userPhone', value)}
+                  />
                 </div>
               </div>
             </CardContent>
