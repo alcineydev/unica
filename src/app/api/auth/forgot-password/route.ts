@@ -7,29 +7,29 @@ import crypto from 'crypto'
 function getBaseUrl(req: NextRequest): string {
   const host = req.headers.get('host')
   const protocol = req.headers.get('x-forwarded-proto') || 'https'
-  
+
   if (host && host.includes('unicabeneficios.com.br')) {
     return `${protocol}://${host}`
   }
-  
+
   if (process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.trim() !== '') {
     return process.env.NEXTAUTH_URL.trim()
   }
-  
+
   if (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.trim() !== '') {
     return process.env.NEXT_PUBLIC_APP_URL.trim()
   }
-  
+
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`
   }
-  
+
   return 'https://app.unicabeneficios.com.br'
 }
 
 export async function POST(request: NextRequest) {
   console.log('[FORGOT-PASSWORD] ========== INICIANDO ==========')
-  
+
   try {
     // ETAPA 1: Parse do body
     console.log('[FORGOT-PASSWORD] Etapa 1: Parsing body...')
@@ -73,9 +73,9 @@ export async function POST(request: NextRequest) {
     // Sempre retornar sucesso por segurança
     if (!user) {
       console.log('[FORGOT-PASSWORD] Usuário não existe, retornando sucesso fake')
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: true,
-        message: 'Se o email existir, você receberá as instruções' 
+        message: 'Se o email existir, você receberá as instruções'
       })
     }
 
@@ -83,9 +83,9 @@ export async function POST(request: NextRequest) {
     console.log('[FORGOT-PASSWORD] Etapa 3: Invalidando tokens anteriores...')
     try {
       await prisma.passwordResetToken.updateMany({
-        where: { 
+        where: {
           userId: user.id,
-          used: false 
+          used: false
         },
         data: { used: true }
       })
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
         <h1 style="color: #7c3aed;">UNICA Benefícios</h1>
         <div style="background: #f8fafc; border-radius: 12px; padding: 30px;">
           <h2>Recuperação de Senha</h2>
-          <p>Olá${user.name ? ` ${user.name}` : ''},</p>
+          <p>Olá,</p>
           <p>Clique no botão abaixo para criar uma nova senha:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${resetUrl}" style="background: #7c3aed; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold;">
@@ -153,18 +153,18 @@ export async function POST(request: NextRequest) {
     console.log('[FORGOT-PASSWORD] Etapa 8: Enviando email...')
     console.log('[FORGOT-PASSWORD] Etapa 8: RESEND_API_KEY existe?', !!process.env.RESEND_API_KEY)
     console.log('[FORGOT-PASSWORD] Etapa 8: EMAIL_FROM:', process.env.EMAIL_FROM || 'não definido')
-    
+
     try {
       const emailService = getEmailService()
       console.log('[FORGOT-PASSWORD] Etapa 8: EmailService obtido')
-      
+
       await emailService.sendEmail({
         to: user.email,
         subject: 'Recuperação de Senha - UNICA Benefícios',
         html: emailHtml,
         text: `Acesse ${resetUrl} para redefinir sua senha.`
       })
-      
+
       console.log('[FORGOT-PASSWORD] Etapa 8: OK - Email enviado!')
     } catch (emailError: any) {
       console.error('[FORGOT-PASSWORD] Etapa 8: ERRO ao enviar email:', emailError)
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[FORGOT-PASSWORD] ========== SUCESSO ==========')
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       message: 'Se o email existir, você receberá as instruções'
     })
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
     console.error('[FORGOT-PASSWORD] Mensagem:', error?.message)
     console.error('[FORGOT-PASSWORD] Stack:', error?.stack)
     console.error('[FORGOT-PASSWORD] Erro completo:', JSON.stringify(error, null, 2))
-    
+
     return NextResponse.json(
       { error: 'Erro ao processar solicitação' },
       { status: 500 }
