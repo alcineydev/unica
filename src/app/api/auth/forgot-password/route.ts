@@ -156,16 +156,20 @@ export async function POST(request: NextRequest) {
 
     try {
       const emailService = getEmailService()
-      console.log('[FORGOT-PASSWORD] Etapa 8: EmailService obtido')
+      console.log('[FORGOT-PASSWORD] Etapa 8: EmailService obtido:', emailService ? 'OK' : 'NULL')
 
-      await emailService.sendEmail({
-        to: user.email,
-        subject: 'Recuperação de Senha - UNICA Benefícios',
-        html: emailHtml,
-        text: `Acesse ${resetUrl} para redefinir sua senha.`
-      })
-
-      console.log('[FORGOT-PASSWORD] Etapa 8: OK - Email enviado!')
+      if (!emailService) {
+        console.error('[FORGOT-PASSWORD] Etapa 8: ERRO - EmailService é null')
+        // Continuar sem enviar email - token já foi criado
+      } else {
+        await emailService.sendEmail({
+          to: user.email,
+          subject: 'Recuperação de Senha - UNICA Benefícios',
+          html: emailHtml,
+          text: `Acesse ${resetUrl} para redefinir sua senha.`
+        })
+        console.log('[FORGOT-PASSWORD] Etapa 8: OK - Email enviado!')
+      }
     } catch (emailError: any) {
       console.error('[FORGOT-PASSWORD] Etapa 8: ERRO ao enviar email:', emailError)
       console.error('[FORGOT-PASSWORD] Etapa 8: Tipo:', typeof emailError)
