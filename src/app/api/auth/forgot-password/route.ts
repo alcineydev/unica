@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { getEmailService } from '@/services/email'
 import crypto from 'crypto'
 
-// Função para detectar URL base de forma robusta
+// Função para detectar URL base
 function getBaseUrl(req: NextRequest): string {
-  // 1. Tentar pegar do header da requisição
   const host = req.headers.get('host')
   const protocol = req.headers.get('x-forwarded-proto') || 'https'
   
@@ -13,215 +12,181 @@ function getBaseUrl(req: NextRequest): string {
     return `${protocol}://${host}`
   }
   
-  // 2. Tentar variável de ambiente NEXTAUTH_URL
-  const nextAuthUrl = process.env.NEXTAUTH_URL
-  if (nextAuthUrl && nextAuthUrl.trim() !== '') {
-    return nextAuthUrl.trim()
+  if (process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.trim() !== '') {
+    return process.env.NEXTAUTH_URL.trim()
   }
   
-  // 3. Tentar NEXT_PUBLIC_APP_URL
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL
-  if (appUrl && appUrl.trim() !== '') {
-    return appUrl.trim()
+  if (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.trim() !== '') {
+    return process.env.NEXT_PUBLIC_APP_URL.trim()
   }
   
-  // 4. Detectar por VERCEL_URL
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`
   }
   
-  // 5. Fallback final
   return 'https://app.unicabeneficios.com.br'
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[FORGOT-PASSWORD] ========== INICIANDO ==========')
+  
   try {
-    const body = await request.json()
-    const { email } = body
+    // ETAPA 1: Parse do body
+    console.log('[FORGOT-PASSWORD] Etapa 1: Parsing body...')
+    let body
+    try {
+      body = await request.json()
+      console.log('[FORGOT-PASSWORD] Etapa 1: OK - Body parsed')
+    } catch (parseError) {
+      console.error('[FORGOT-PASSWORD] Etapa 1: ERRO no parse do body:', parseError)
+      return NextResponse.json({ error: 'Erro ao ler requisição' }, { status: 400 })
+    }
 
-    console.log('[FORGOT-PASSWORD] Iniciando para email:', email)
+    const { email } = body
+    console.log('[FORGOT-PASSWORD] Email recebido:', email ? email.substring(0, 3) + '***' : 'vazio')
 
     if (!email) {
-      return NextResponse.json(
-        { error: 'Email é obrigatório' },
-        { status: 400 }
-      )
+      console.log('[FORGOT-PASSWORD] Email vazio')
+      return NextResponse.json({ error: 'Email é obrigatório' }, { status: 400 })
     }
 
-    // Validar formato do email
+    // Validar formato
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Formato de email inválido' },
-        { status: 400 }
-      )
+      console.log('[FORGOT-PASSWORD] Email inválido')
+      return NextResponse.json({ error: 'Formato de email inválido' }, { status: 400 })
     }
 
-    // Buscar usuário pelo email
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() }
-    })
+    // ETAPA 2: Buscar usuário
+    console.log('[FORGOT-PASSWORD] Etapa 2: Buscando usuário...')
+    let user
+    try {
+      user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() }
+      })
+      console.log('[FORGOT-PASSWORD] Etapa 2: OK - Usuário:', user ? 'encontrado' : 'não encontrado')
+    } catch (dbError) {
+      console.error('[FORGOT-PASSWORD] Etapa 2: ERRO ao buscar usuário:', dbError)
+      return NextResponse.json({ error: 'Erro ao buscar usuário' }, { status: 500 })
+    }
 
-    // SEGURANÇA: Sempre retornar sucesso (não revelar se email existe)
+    // Sempre retornar sucesso por segurança
     if (!user) {
-      console.log('[FORGOT-PASSWORD] Email não encontrado:', email)
+      console.log('[FORGOT-PASSWORD] Usuário não existe, retornando sucesso fake')
       return NextResponse.json({ 
         success: true,
         message: 'Se o email existir, você receberá as instruções' 
       })
     }
 
-    console.log('[FORGOT-PASSWORD] Usuário encontrado:', user.id)
-
-    // Verificar se usuário está ativo
-    if (!user.isActive) {
-      console.log('[FORGOT-PASSWORD] Usuário inativo:', email)
-      return NextResponse.json({ 
-        success: true,
-        message: 'Se o email existir, você receberá as instruções' 
+    // ETAPA 3: Invalidar tokens anteriores
+    console.log('[FORGOT-PASSWORD] Etapa 3: Invalidando tokens anteriores...')
+    try {
+      await prisma.passwordResetToken.updateMany({
+        where: { 
+          userId: user.id,
+          used: false 
+        },
+        data: { used: true }
       })
+      console.log('[FORGOT-PASSWORD] Etapa 3: OK')
+    } catch (tokenError) {
+      console.error('[FORGOT-PASSWORD] Etapa 3: ERRO ao invalidar tokens:', tokenError)
+      // Continuar mesmo com erro aqui
     }
 
-    // Invalidar tokens anteriores do usuário
-    await prisma.passwordResetToken.updateMany({
-      where: { 
-        userId: user.id,
-        used: false 
-      },
-      data: { used: true }
-    })
-
-    // Gerar novo token
+    // ETAPA 4: Gerar token
+    console.log('[FORGOT-PASSWORD] Etapa 4: Gerando token...')
     const token = crypto.randomBytes(32).toString('hex')
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000)
+    console.log('[FORGOT-PASSWORD] Etapa 4: OK - Token gerado')
 
-    console.log('[FORGOT-PASSWORD] Token gerado:', token.substring(0, 10) + '...')
+    // ETAPA 5: Salvar token no banco
+    console.log('[FORGOT-PASSWORD] Etapa 5: Salvando token no banco...')
+    try {
+      await prisma.passwordResetToken.create({
+        data: {
+          token,
+          userId: user.id,
+          expiresAt
+        }
+      })
+      console.log('[FORGOT-PASSWORD] Etapa 5: OK - Token salvo')
+    } catch (createError: any) {
+      console.error('[FORGOT-PASSWORD] Etapa 5: ERRO ao criar token:', createError)
+      console.error('[FORGOT-PASSWORD] Etapa 5: Código do erro:', createError?.code)
+      console.error('[FORGOT-PASSWORD] Etapa 5: Mensagem:', createError?.message)
+      return NextResponse.json({ error: 'Erro ao criar token de recuperação' }, { status: 500 })
+    }
 
-    // Salvar token no banco
-    await prisma.passwordResetToken.create({
-      data: {
-        token,
-        userId: user.id,
-        expiresAt
-      }
-    })
-
-    // Montar URL de reset
+    // ETAPA 6: Montar URL
+    console.log('[FORGOT-PASSWORD] Etapa 6: Montando URL...')
     const baseUrl = getBaseUrl(request)
     const resetUrl = `${baseUrl}/redefinir-senha?token=${token}`
+    console.log('[FORGOT-PASSWORD] Etapa 6: OK - Base URL:', baseUrl)
 
-    // DEBUG: Logs importantes
-    console.log('[FORGOT-PASSWORD] ====== DEBUG URLs ======')
-    console.log('[FORGOT-PASSWORD] Host header:', request.headers.get('host'))
-    console.log('[FORGOT-PASSWORD] NEXTAUTH_URL:', process.env.NEXTAUTH_URL)
-    console.log('[FORGOT-PASSWORD] NEXT_PUBLIC_APP_URL:', process.env.NEXT_PUBLIC_APP_URL)
-    console.log('[FORGOT-PASSWORD] Base URL final:', baseUrl)
-    console.log('[FORGOT-PASSWORD] Reset URL completa:', resetUrl)
-    console.log('[FORGOT-PASSWORD] ========================')
-
-    // Verificar se a URL está válida
-    if (!resetUrl || resetUrl === '/redefinir-senha?token=' || !resetUrl.startsWith('http')) {
-      console.error('[FORGOT-PASSWORD] ERRO: URL inválida!', resetUrl)
-    }
-
-    // HTML do email
+    // ETAPA 7: Preparar email
+    console.log('[FORGOT-PASSWORD] Etapa 7: Preparando email...')
     const emailHtml = `
       <!DOCTYPE html>
       <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      </head>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #7c3aed; margin: 0;">UNICA Benefícios</h1>
-        </div>
-        
-        <div style="background: #f8fafc; border-radius: 12px; padding: 30px; margin-bottom: 20px;">
-          <h2 style="margin-top: 0; color: #1e293b;">Recuperação de Senha</h2>
-          
-          <p>Olá,</p>
-          
-          <p>Recebemos uma solicitação para redefinir a senha da sua conta.</p>
-          
+      <head><meta charset="utf-8"></head>
+      <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #7c3aed;">UNICA Benefícios</h1>
+        <div style="background: #f8fafc; border-radius: 12px; padding: 30px;">
+          <h2>Recuperação de Senha</h2>
+          <p>Olá${user.name ? ` ${user.name}` : ''},</p>
           <p>Clique no botão abaixo para criar uma nova senha:</p>
-          
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" 
-               style="background: #7c3aed; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            <a href="${resetUrl}" style="background: #7c3aed; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold;">
               Redefinir Minha Senha
             </a>
           </div>
-          
-          <p style="color: #64748b; font-size: 14px;">
-            Ou copie e cole este link no seu navegador:
-          </p>
-          <p style="color: #7c3aed; font-size: 12px; word-break: break-all;">
-            ${resetUrl}
-          </p>
-          
-          <p style="color: #64748b; font-size: 14px;">
-            Este link expira em <strong>1 hora</strong>.
-          </p>
-          
-          <p style="color: #64748b; font-size: 14px;">
-            Se você não solicitou esta alteração, ignore este email. Sua senha permanecerá a mesma.
-          </p>
-        </div>
-        
-        <div style="text-align: center; color: #94a3b8; font-size: 12px;">
-          <p>UNICA Clube de Benefícios</p>
-          <p>Este é um email automático, não responda.</p>
+          <p style="color: #64748b; font-size: 14px;">Link: ${resetUrl}</p>
+          <p style="color: #64748b; font-size: 14px;">Este link expira em 1 hora.</p>
         </div>
       </body>
       </html>
     `
 
-    // Texto alternativo do email
-    const emailText = `Recuperação de Senha - UNICA Benefícios
-
-Olá,
-
-Recebemos uma solicitação para redefinir a senha da sua conta.
-
-Acesse o link abaixo para criar uma nova senha:
-${resetUrl}
-
-Este link expira em 1 hora.
-
-Se você não solicitou esta alteração, ignore este email.`
-
-    // Enviar email usando EmailService
+    // ETAPA 8: Enviar email
+    console.log('[FORGOT-PASSWORD] Etapa 8: Enviando email...')
+    console.log('[FORGOT-PASSWORD] Etapa 8: RESEND_API_KEY existe?', !!process.env.RESEND_API_KEY)
+    console.log('[FORGOT-PASSWORD] Etapa 8: EMAIL_FROM:', process.env.EMAIL_FROM || 'não definido')
+    
     try {
       const emailService = getEmailService()
+      console.log('[FORGOT-PASSWORD] Etapa 8: EmailService obtido')
       
-      if (emailService) {
-        console.log('[FORGOT-PASSWORD] Enviando email para:', user.email)
-        
-        await emailService.sendEmail({
-          to: user.email,
-          subject: 'Recuperação de Senha - UNICA Benefícios',
-          html: emailHtml,
-          text: emailText
-        })
-
-        console.log('[FORGOT-PASSWORD] Email enviado com sucesso!')
-      } else {
-        console.warn('[FORGOT-PASSWORD] EmailService não configurado - RESEND_API_KEY não definida')
-        console.log('[FORGOT-PASSWORD] Reset URL (debug):', resetUrl)
-      }
-
-    } catch (emailError) {
-      console.error('[FORGOT-PASSWORD] Erro ao enviar email:', emailError)
+      await emailService.sendEmail({
+        to: user.email,
+        subject: 'Recuperação de Senha - UNICA Benefícios',
+        html: emailHtml,
+        text: `Acesse ${resetUrl} para redefinir sua senha.`
+      })
+      
+      console.log('[FORGOT-PASSWORD] Etapa 8: OK - Email enviado!')
+    } catch (emailError: any) {
+      console.error('[FORGOT-PASSWORD] Etapa 8: ERRO ao enviar email:', emailError)
+      console.error('[FORGOT-PASSWORD] Etapa 8: Tipo:', typeof emailError)
+      console.error('[FORGOT-PASSWORD] Etapa 8: Mensagem:', emailError?.message)
+      console.error('[FORGOT-PASSWORD] Etapa 8: Stack:', emailError?.stack)
+      // NÃO retornar erro - o token já foi criado, apenas logar
     }
 
+    console.log('[FORGOT-PASSWORD] ========== SUCESSO ==========')
     return NextResponse.json({ 
       success: true,
       message: 'Se o email existir, você receberá as instruções'
     })
 
-  } catch (error) {
-    console.error('[FORGOT-PASSWORD] Erro geral:', error)
+  } catch (error: any) {
+    console.error('[FORGOT-PASSWORD] ========== ERRO GERAL ==========')
+    console.error('[FORGOT-PASSWORD] Tipo:', typeof error)
+    console.error('[FORGOT-PASSWORD] Mensagem:', error?.message)
+    console.error('[FORGOT-PASSWORD] Stack:', error?.stack)
+    console.error('[FORGOT-PASSWORD] Erro completo:', JSON.stringify(error, null, 2))
+    
     return NextResponse.json(
       { error: 'Erro ao processar solicitação' },
       { status: 500 }
