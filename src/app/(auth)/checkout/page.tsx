@@ -8,16 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { 
-  Loader2, 
-  ArrowLeft, 
-  CreditCard, 
-  QrCode, 
+import {
+  Loader2,
+  ArrowLeft,
+  CreditCard,
+  QrCode,
   Gift,
   Shield,
   Check
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { TermsAcceptance } from '@/components/checkout/terms-acceptance'
+import { useTermsConsent } from '@/hooks/use-terms-consent'
 
 interface Plan {
   id: string
@@ -37,6 +39,8 @@ function CheckoutForm() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentType, setPaymentType] = useState<'monthly' | 'yearly'>('monthly')
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card'>('pix')
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const { registerConsent } = useTermsConsent()
 
   useEffect(() => {
     if (planId) {
@@ -63,8 +67,8 @@ function CheckoutForm() {
 
   const getPrice = () => {
     if (!plan) return 0
-    return paymentType === 'yearly' && plan.yearlyPrice 
-      ? plan.yearlyPrice 
+    return paymentType === 'yearly' && plan.yearlyPrice
+      ? plan.yearlyPrice
       : plan.price
   }
 
@@ -72,6 +76,9 @@ function CheckoutForm() {
     setIsProcessing(true)
 
     try {
+      // Registrar aceite dos termos
+      await registerConsent()
+
       const response = await fetch('/api/checkout/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -201,10 +208,9 @@ function CheckoutForm() {
             </CardHeader>
             <CardContent className="space-y-4">
               <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'pix' | 'card')}>
-                <div 
-                  className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                    paymentMethod === 'pix' ? 'border-primary bg-primary/5' : ''
-                  }`}
+                <div
+                  className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${paymentMethod === 'pix' ? 'border-primary bg-primary/5' : ''
+                    }`}
                   onClick={() => setPaymentMethod('pix')}
                 >
                   <RadioGroupItem value="pix" id="pix" />
@@ -214,10 +220,9 @@ function CheckoutForm() {
                     <span className="block text-sm text-muted-foreground">Aprovação instantânea</span>
                   </Label>
                 </div>
-                <div 
-                  className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                    paymentMethod === 'card' ? 'border-primary bg-primary/5' : ''
-                  }`}
+                <div
+                  className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${paymentMethod === 'card' ? 'border-primary bg-primary/5' : ''
+                    }`}
                   onClick={() => setPaymentMethod('card')}
                 >
                   <RadioGroupItem value="card" id="card" />
@@ -229,10 +234,13 @@ function CheckoutForm() {
                 </div>
               </RadioGroup>
 
-              <Button 
-                className="w-full h-12 text-base" 
+              {/* Aceite de Termos */}
+              <TermsAcceptance onAcceptanceChange={setTermsAccepted} />
+
+              <Button
+                className="w-full h-12 text-base"
                 onClick={handleCheckout}
-                disabled={isProcessing}
+                disabled={isProcessing || !termsAccepted}
               >
                 {isProcessing ? (
                   <>

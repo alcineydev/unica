@@ -233,7 +233,17 @@ export default function PaginasLegaisPage() {
                                     <Badge variant={page.isActive ? 'default' : 'secondary'}>
                                         {page.isActive ? 'Ativa' : 'Inativa'}
                                     </Badge>
-                                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            window.open(PAGE_URLS[page.slug], '_blank')
+                                        }}
+                                    >
+                                        <ExternalLink className="h-4 w-4" />
+                                    </Button>
                                 </div>
                             </div>
                         </CardContent>
