@@ -138,14 +138,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
     })
 
-    // Se tiver nome, atualizar também no User
-    if (name && assinante.userId) {
-      await prisma.user.update({
-        where: { id: assinante.userId },
-        data: { name: name.trim() }
-      })
-    }
-
     return NextResponse.json(assinante)
   } catch (error) {
     console.error('[ASSINANTE PATCH]', error)
