@@ -5,16 +5,18 @@ import prisma from '@/lib/prisma'
 // GET - Buscar página por slug
 export async function GET(
     request: NextRequest,
-    { params }: { params: { slug: string } }
+    { params }: { params: Promise<{ slug: string }> }
 ) {
     try {
+        const { slug } = await params
+
         const session = await auth()
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
         }
 
         const page = await prisma.legalPage.findUnique({
-            where: { slug: params.slug }
+            where: { slug }
         })
 
         if (!page) {
@@ -31,9 +33,11 @@ export async function GET(
 // PUT - Atualizar página
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { slug: string } }
+    { params }: { params: Promise<{ slug: string }> }
 ) {
     try {
+        const { slug } = await params
+
         const session = await auth()
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -56,7 +60,7 @@ export async function PUT(
         }
 
         const currentPage = await prisma.legalPage.findUnique({
-            where: { slug: params.slug }
+            where: { slug }
         })
 
         if (!currentPage) {
@@ -67,7 +71,7 @@ export async function PUT(
         const newVersion = contentChanged ? currentPage.version + 1 : currentPage.version
 
         const updatedPage = await prisma.legalPage.update({
-            where: { slug: params.slug },
+            where: { slug },
             data: {
                 title: title || currentPage.title,
                 content,
