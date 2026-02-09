@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
                 data: {
                     email: email.toLowerCase().trim(),
                     password: hashedPassword,
-                    role: 'SUBSCRIBER',
+                    role: 'ASSINANTE',
                     phone: phone || null
                 }
             })
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
                     result.assinante.user.email,
                     {
                         name: result.assinante.name,
-                        planName: result.assinante.plan.name
+                        planName: (result.assinante.plan as { name: string }).name
                     }
                 )
             }
