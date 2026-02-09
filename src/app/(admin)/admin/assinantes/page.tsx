@@ -1,33 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback, Component, ReactNode } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { toast } from 'sonner'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import {
-  Plus,
-  Users,
-  Pencil,
-  Trash2,
-  Loader2,
-  Search,
-  MoreHorizontal,
-  QrCode,
-  MapPin,
-  CreditCard,
-  Coins,
-  AlertTriangle,
-  AlertCircle,
-} from 'lucide-react'
-
-import { UserAvatar } from '@/components/ui/user-avatar'
+import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -37,466 +16,321 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Skeleton } from '@/components/ui/skeleton'
-import { SUBSCRIPTION_STATUS } from '@/constants'
+import { 
+  Plus, 
+  MoreHorizontal, 
+  Pencil, 
+  Trash2, 
+  Eye,
+  User,
+  MapPin,
+  Phone,
+  Mail,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Users,
+  CreditCard,
+  Star,
+  PauseCircle
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { AdvancedFilters, FilterConfig } from '@/components/admin/filters'
+import { BulkActionsToolbar, BulkAction } from '@/components/admin/bulk-actions'
 
-// Error Boundary para capturar erros
-interface ErrorBoundaryProps {
-  children: ReactNode
+// Tipos
+interface Plan {
+  id: string
+  name: string
 }
-
-interface ErrorBoundaryState {
-  hasError: boolean
-  error: Error | null
-}
-
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props)
-    this.state = { hasError: false, error: null }
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error }
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[ErrorBoundary] Erro capturado:', error)
-    console.error('[ErrorBoundary] Info:', errorInfo)
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-6 space-y-4">
-          <div className="flex items-center gap-2 text-red-600">
-            <AlertCircle className="h-6 w-6" />
-            <h2 className="text-xl font-bold">Erro na página de Assinantes</h2>
-          </div>
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="font-medium text-red-800 mb-2">Mensagem do erro:</p>
-            <pre className="text-sm text-red-700 whitespace-pre-wrap break-words">
-              {this.state.error?.message || 'Erro desconhecido'}
-            </pre>
-          </div>
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <p className="font-medium text-gray-800 mb-2">Stack trace:</p>
-            <pre className="text-xs text-gray-600 whitespace-pre-wrap break-words overflow-auto max-h-64">
-              {this.state.error?.stack || 'Stack não disponível'}
-            </pre>
-          </div>
-          <Button onClick={() => window.location.reload()}>
-            Recarregar página
-          </Button>
-        </div>
-      )
-    }
-
-    return this.props.children
-  }
-}
-
-// Schema de validação
-const subscriberSchema = z.object({
-  email: z.string().email('Email inválido').or(z.literal('')),
-  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').or(z.literal('')),
-  name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-  cpf: z.string().length(11, 'CPF deve ter 11 dígitos').or(z.literal('')),
-  phone: z.string().min(10, 'Telefone inválido'),
-  cityId: z.string().optional().or(z.literal('')),
-  planId: z.string().optional().or(z.literal('')),
-  subscriptionStatus: z.enum(['PENDING', 'ACTIVE', 'SUSPENDED', 'CANCELED', 'INACTIVE', 'EXPIRED', 'GUEST']),
-})
-
-type SubscriberFormData = z.infer<typeof subscriberSchema>
 
 interface City {
   id: string
   name: string
-  state: string
 }
 
-interface Plan {
-  id: string
-  name: string
-  price: string | number
-}
-
-interface Subscriber {
+interface Assinante {
   id: string
   name: string
   cpf: string
-  phone: string
-  points: string | number
-  cashback: string | number
-  qrCode: string
-  subscriptionStatus?: string | null
-  city?: City | null
-  plan?: Plan | null
-  planStartDate?: string | null
-  planEndDate?: string | null
+  phone?: string
+  subscriptionStatus: string
+  points: number
+  cashback: number
+  plan?: Plan
+  city?: City
   user?: {
     email: string
-    isActive: boolean
-    avatar?: string | null
-  } | null
-  _count?: {
-    transactions: number
+    image?: string
   }
+  createdAt: string
 }
 
-// Função para obter label do status com fallback seguro
-function getStatusLabel(status: string | undefined | null): string {
-  if (!status) return 'Pendente'
-  const statusMap: Record<string, string> = {
-    'ACTIVE': 'Ativo',
-    'PENDING': 'Pendente',
-    'INACTIVE': 'Inativo',
-    'EXPIRED': 'Expirado',
-    'SUSPENDED': 'Suspenso',
-    'CANCELED': 'Cancelado',
-    'GUEST': 'Convidado',
-  }
-  return statusMap[status] || status
-}
+// Status de assinatura
+const SUBSCRIPTION_STATUS = [
+  { value: 'PENDING', label: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'ACTIVE', label: 'Ativo', color: 'bg-green-100 text-green-800' },
+  { value: 'INACTIVE', label: 'Inativo', color: 'bg-gray-100 text-gray-800' },
+  { value: 'SUSPENDED', label: 'Suspenso', color: 'bg-orange-100 text-orange-800' },
+  { value: 'CANCELED', label: 'Cancelado', color: 'bg-red-100 text-red-800' },
+  { value: 'EXPIRED', label: 'Expirado', color: 'bg-purple-100 text-purple-800' },
+  { value: 'GUEST', label: 'Convidado', color: 'bg-blue-100 text-blue-800' },
+]
 
-// Função para obter cor do status com fallback seguro
-function getStatusColor(status: string | undefined | null): string {
-  if (!status) return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
-  const colorMap: Record<string, string> = {
-    'ACTIVE': 'bg-green-500/10 text-green-600 border-green-500/20',
-    'PENDING': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
-    'INACTIVE': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
-    'EXPIRED': 'bg-red-500/10 text-red-600 border-red-500/20',
-    'SUSPENDED': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-    'CANCELED': 'bg-red-500/10 text-red-600 border-red-500/20',
-    'GUEST': 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-  }
-  return colorMap[status] || 'bg-gray-500/10 text-gray-600 border-gray-500/20'
-}
-
-// Componente principal da página (envolvido no ErrorBoundary)
 export default function AssinantesPage() {
-  return (
-    <ErrorBoundary>
-      <AssinantesContent />
-    </ErrorBoundary>
-  )
-}
-
-function AssinantesContent() {
-  const [subscribers, setSubscribers] = useState<Subscriber[]>([])
-  const [cities, setCities] = useState<City[]>([])
+  // Estados de dados
+  const [assinantes, setAssinantes] = useState<Assinante[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [filterCity, setFilterCity] = useState<string>('all')
-  const [filterPlan, setFilterPlan] = useState<string>('all')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedSubscriber, setSelectedSubscriber] = useState<Subscriber | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showPlanWarning, setShowPlanWarning] = useState(false)
+  const [cities, setCities] = useState<City[]>([])
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<SubscriberFormData>({
-    resolver: zodResolver(subscriberSchema),
+  // Estados de filtros
+  const [search, setSearch] = useState('')
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({
+    status: 'all',
+    plan: 'all',
+    city: 'all'
   })
 
-  // Observa mudanças no status para mostrar aviso e limpar plano
-  const watchedStatus = watch('subscriptionStatus')
-  const currentStatus = watchedStatus || 'PENDING' // Fallback para evitar undefined
-  const currentPlanId = watch('planId') || 'none'
-  const currentCityId = watch('cityId') || 'none'
+  // Estados de seleção
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
 
-  // Função para lidar com mudança de status
-  function handleStatusChange(newStatus: string) {
-    setValue('subscriptionStatus', newStatus as SubscriberFormData['subscriptionStatus'])
-    
-    // Se status não é ACTIVE, remove o plano
-    if (newStatus !== 'ACTIVE') {
-      setValue('planId', 'none')
-      // Mostra aviso apenas se assinante tinha um plano
-      if (selectedSubscriber?.plan || (currentPlanId && currentPlanId !== 'none')) {
-        setShowPlanWarning(true)
-      }
-    } else {
-      setShowPlanWarning(false)
-    }
-  }
-
-  // Buscar assinantes
-  const fetchSubscribers = useCallback(async () => {
+  // Buscar dados
+  const fetchData = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/subscribers')
-      const result = await response.json()
-      
-      if (response.ok) {
-        setSubscribers(result.data)
-      } else {
-        toast.error(result.error || 'Erro ao carregar assinantes')
+      setLoading(true)
+      const [assinantesRes, plansRes, citiesRes] = await Promise.all([
+        fetch('/api/admin/assinantes'),
+        fetch('/api/admin/planos'),
+        fetch('/api/admin/cities')
+      ])
+
+      if (assinantesRes.ok) {
+        const data = await assinantesRes.json()
+        setAssinantes(Array.isArray(data) ? data : data.assinantes || [])
       }
-    } catch {
+
+      if (plansRes.ok) {
+        const data = await plansRes.json()
+        setPlans(Array.isArray(data) ? data : data.plans || [])
+      }
+
+      if (citiesRes.ok) {
+        const data = await citiesRes.json()
+        setCities(Array.isArray(data) ? data : [])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error)
       toast.error('Erro ao carregar assinantes')
     } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  // Buscar cidades
-  const fetchCities = useCallback(async () => {
-    try {
-      const response = await fetch('/api/admin/cities')
-      const result = await response.json()
-      if (response.ok) setCities(result.data)
-    } catch {
-      console.error('Erro ao carregar cidades')
-    }
-  }, [])
-
-  // Buscar planos
-  const fetchPlans = useCallback(async () => {
-    try {
-      const response = await fetch('/api/admin/plans')
-      const result = await response.json()
-      if (response.ok) setPlans(result.data)
-    } catch {
-      console.error('Erro ao carregar planos')
+      setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchSubscribers()
-    fetchCities()
-    fetchPlans()
-  }, [fetchSubscribers, fetchCities, fetchPlans])
+    fetchData()
+  }, [fetchData])
 
-  // Abrir modal para criar
-  function handleCreate() {
-    setSelectedSubscriber(null)
-    setShowPlanWarning(false)
-    reset({
-      email: '',
-      password: '',
-      name: '',
-      cpf: '',
-      phone: '',
-      cityId: 'none',
-      planId: 'none',
-      subscriptionStatus: 'ACTIVE',
-    })
-    setIsDialogOpen(true)
-  }
-
-  // Abrir modal para editar
-  function handleEdit(subscriber: Subscriber) {
-    setSelectedSubscriber(subscriber)
-    setShowPlanWarning(false)
-    reset({
-      email: '',
-      password: '',
-      name: subscriber.name || '',
-      cpf: subscriber.cpf || '',
-      phone: subscriber.phone || '',
-      cityId: subscriber.city?.id || 'none',
-      planId: subscriber.plan?.id || 'none',
-      subscriptionStatus: (subscriber.subscriptionStatus as SubscriberFormData['subscriptionStatus']) || 'PENDING',
-    })
-    setIsDialogOpen(true)
-  }
-
-  // Abrir confirmação de exclusão
-  function handleDeleteClick(subscriber: Subscriber) {
-    setSelectedSubscriber(subscriber)
-    setIsDeleteDialogOpen(true)
-  }
-
-  // Salvar assinante (criar)
-  async function onSubmitCreate(data: SubscriberFormData) {
-    setIsSubmitting(true)
-
-    // Converte 'none' de volta para valores que a API entende
-    const payload = {
-      ...data,
-      cityId: data.cityId === 'none' ? '' : data.cityId,
-      planId: data.planId === 'none' ? '' : data.planId,
+  // Configuração dos filtros
+  const filtersConfig: FilterConfig[] = useMemo(() => [
+    {
+      id: 'status',
+      label: 'Status',
+      type: 'select',
+      placeholder: 'Todos os status',
+      options: SUBSCRIPTION_STATUS.map(s => ({ value: s.value, label: s.label }))
+    },
+    {
+      id: 'plan',
+      label: 'Plano',
+      type: 'select',
+      placeholder: 'Todos os planos',
+      options: plans.map(plan => ({ value: plan.id, label: plan.name }))
+    },
+    {
+      id: 'city',
+      label: 'Cidade',
+      type: 'select',
+      placeholder: 'Todas as cidades',
+      options: cities.map(city => ({ value: city.id, label: city.name }))
     }
+  ], [plans, cities])
 
+  // Filtrar assinantes
+  const filteredAssinantes = useMemo(() => {
+    return assinantes.filter(assinante => {
+      // Busca
+      const searchLower = search.toLowerCase()
+      const matchesSearch = !search || 
+        assinante.name?.toLowerCase().includes(searchLower) ||
+        assinante.cpf?.includes(search) ||
+        assinante.user?.email?.toLowerCase().includes(searchLower) ||
+        assinante.phone?.includes(search)
+
+      // Status
+      const matchesStatus = filterValues.status === 'all' || 
+        assinante.subscriptionStatus === filterValues.status
+
+      // Plano
+      const matchesPlan = filterValues.plan === 'all' || 
+        assinante.plan?.id === filterValues.plan
+
+      // Cidade
+      const matchesCity = filterValues.city === 'all' || 
+        assinante.city?.id === filterValues.city
+
+      return matchesSearch && matchesStatus && matchesPlan && matchesCity
+    })
+  }, [assinantes, search, filterValues])
+
+  // Handlers de filtro
+  const handleFilterChange = (filterId: string, value: string) => {
+    setFilterValues(prev => ({ ...prev, [filterId]: value }))
+    setSelectedIds([])
+  }
+
+  const handleClearFilters = () => {
+    setSearch('')
+    setFilterValues({
+      status: 'all',
+      plan: 'all',
+      city: 'all'
+    })
+    setSelectedIds([])
+  }
+
+  // Handlers de seleção
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(filteredAssinantes.map(a => a.id))
+    } else {
+      setSelectedIds([])
+    }
+  }
+
+  const handleSelectItem = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id])
+    } else {
+      setSelectedIds(prev => prev.filter(i => i !== id))
+    }
+  }
+
+  const isAllSelected = filteredAssinantes.length > 0 && 
+    selectedIds.length === filteredAssinantes.length
+
+  const isIndeterminate = selectedIds.length > 0 && 
+    selectedIds.length < filteredAssinantes.length
+
+  // Ações em lote
+  const handleBulkAction = async (action: string, ids: string[], extraData?: Record<string, any>) => {
     try {
-      const response = await fetch('/api/admin/subscribers', {
+      setActionLoading(true)
+      const response = await fetch('/api/admin/assinantes/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ action, ids, ...extraData })
       })
 
-      const result = await response.json()
+      const data = await response.json()
 
-      if (response.ok) {
-        toast.success('Assinante criado com sucesso!')
-        setIsDialogOpen(false)
-        fetchSubscribers()
-      } else {
-        toast.error(result.error || 'Erro ao criar assinante')
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao executar ação')
       }
-    } catch {
-      toast.error('Erro ao criar assinante')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
-  // Salvar assinante (editar)
-  async function onSubmitEdit(data: SubscriberFormData) {
-    if (!selectedSubscriber) return
-    setIsSubmitting(true)
-
-    const { email, password, cpf, ...rest } = data
-    
-    // Converte 'none' de volta para valores que a API entende
-    const editData = {
-      ...rest,
-      cityId: rest.cityId === 'none' ? null : rest.cityId,
-      planId: rest.planId === 'none' ? null : rest.planId,
-    }
-
-    try {
-      console.log('[EDIT] Payload enviado:', editData)
-      
-      const response = await fetch(`/api/admin/subscribers/${selectedSubscriber.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editData),
-      })
-
-      const result = await response.json()
-      console.log('[EDIT] Resposta:', result)
-
-      if (response.ok) {
-        toast.success('Assinante atualizado!')
-        setIsDialogOpen(false)
-        fetchSubscribers()
-      } else {
-        console.error('[EDIT] Erro:', result)
-        toast.error(result.error || 'Erro ao atualizar assinante')
-      }
+      toast.success(data.message)
+      fetchData()
+      setSelectedIds([])
     } catch (error) {
-      console.error('[EDIT] Exceção:', error)
-      toast.error('Erro ao atualizar assinante')
+      toast.error(error instanceof Error ? error.message : 'Erro ao executar ação')
+      throw error
     } finally {
-      setIsSubmitting(false)
+      setActionLoading(false)
     }
   }
 
-  // Excluir assinante
-  async function handleDelete() {
-    if (!selectedSubscriber) return
-    setIsSubmitting(true)
+  const bulkActions: BulkAction[] = [
+    {
+      id: 'activate',
+      label: 'Ativar',
+      icon: <CheckCircle className="h-4 w-4" />,
+      onClick: (ids) => handleBulkAction('activate', ids)
+    },
+    {
+      id: 'deactivate',
+      label: 'Desativar',
+      icon: <XCircle className="h-4 w-4" />,
+      onClick: (ids) => handleBulkAction('deactivate', ids)
+    },
+    {
+      id: 'suspend',
+      label: 'Suspender',
+      icon: <PauseCircle className="h-4 w-4" />,
+      onClick: (ids) => handleBulkAction('suspend', ids)
+    },
+    {
+      id: 'delete',
+      label: 'Excluir',
+      icon: <Trash2 className="h-4 w-4" />,
+      variant: 'destructive',
+      requiresConfirmation: true,
+      onClick: (ids) => handleBulkAction('delete', ids)
+    }
+  ]
+
+  // Ações individuais
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este assinante?')) return
 
     try {
-      const response = await fetch(`/api/admin/subscribers/${selectedSubscriber.id}`, {
-        method: 'DELETE',
+      const response = await fetch(`/api/admin/assinantes/${id}`, {
+        method: 'DELETE'
       })
 
-      const result = await response.json()
+      if (!response.ok) throw new Error('Erro ao excluir')
 
-      if (response.ok) {
-        toast.success('Assinante excluído!')
-        setIsDeleteDialogOpen(false)
-        fetchSubscribers()
-      } else {
-        toast.error(result.error || 'Erro ao excluir assinante')
-      }
-    } catch {
+      toast.success('Assinante excluído')
+      fetchData()
+    } catch (error) {
       toast.error('Erro ao excluir assinante')
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
-  // Alterar status
-  async function handleChangeStatus(subscriber: Subscriber, newStatus: string) {
-    try {
-      const response = await fetch(`/api/admin/subscribers/${subscriber.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscriptionStatus: newStatus }),
-      })
-
-      const result = await response.json()
-
-      if (response.ok) {
-        toast.success('Status atualizado!')
-        fetchSubscribers()
-      } else {
-        toast.error(result.error || 'Erro ao alterar status')
-      }
-    } catch {
-      toast.error('Erro ao alterar status')
-    }
+  // Obter status formatado
+  const getStatusBadge = (status: string) => {
+    const statusConfig = SUBSCRIPTION_STATUS.find(s => s.value === status)
+    return (
+      <Badge className={statusConfig?.color || 'bg-gray-100 text-gray-800'}>
+        {statusConfig?.label || status}
+      </Badge>
+    )
   }
 
   // Formatar CPF
-  function formatCPF(cpf: string): string {
+  const formatCPF = (cpf: string) => {
+    if (!cpf) return ''
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
   }
 
-  // Formatar moeda
-  function formatCurrency(value: string | number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(Number(value))
-  }
+  // Items selecionados
+  const selectedItems = filteredAssinantes
+    .filter(a => selectedIds.includes(a.id))
+    .map(a => ({ id: a.id, name: a.name }))
 
-  // Filtrar assinantes
-  const filteredSubscribers = subscribers.filter(subscriber => {
-    const matchesSearch = 
-      (subscriber.name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (subscriber.cpf || '').includes(search) ||
-      (subscriber.user?.email || '').toLowerCase().includes(search.toLowerCase())
-    const matchesStatus = filterStatus === 'all' || (subscriber.subscriptionStatus || 'PENDING') === filterStatus
-    const matchesCity = filterCity === 'all' || subscriber.city?.id === filterCity
-    const matchesPlan = filterPlan === 'all' || subscriber.plan?.id === filterPlan
-    return matchesSearch && matchesStatus && matchesCity && matchesPlan
-  })
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -505,223 +339,152 @@ function AssinantesContent() {
         <div>
           <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight">Assinantes</h1>
           <p className="text-sm text-muted-foreground">
-            Gerencie os clientes do clube de benefícios
+            Gerencie os assinantes do clube
           </p>
         </div>
-        <Button onClick={handleCreate} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Assinante
+        <Button asChild className="w-full sm:w-auto">
+          <Link href="/admin/assinantes/novo">
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Assinante
+          </Link>
         </Button>
       </div>
 
+      {/* Toolbar de ações em lote */}
+      <BulkActionsToolbar
+        selectedIds={selectedIds}
+        selectedItems={selectedItems}
+        onClearSelection={() => setSelectedIds([])}
+        itemType="assinantes"
+        actions={bulkActions}
+        isLoading={actionLoading}
+      />
+
       {/* Filtros */}
-      <div className="flex flex-col gap-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar assinante..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {Object.entries(SUBSCRIPTION_STATUS).map(([key, value]) => (
-                <SelectItem key={key} value={key}>
-                  {value.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterCity} onValueChange={setFilterCity}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Cidade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              {cities.map((city) => (
-                <SelectItem key={city.id} value={city.id}>
-                  {city.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterPlan} onValueChange={setFilterPlan}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Plano" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {plans.map((plan) => (
-                <SelectItem key={plan.id} value={plan.id}>
-                  {plan.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <AdvancedFilters
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Buscar por nome, CPF, email ou telefone..."
+        filters={filtersConfig}
+        filterValues={filterValues}
+        onFilterChange={handleFilterChange}
+        onClearFilters={handleClearFilters}
+        totalResults={assinantes.length}
+        filteredResults={filteredAssinantes.length}
+      />
 
-      {/* Lista de Assinantes */}
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : filteredSubscribers.length === 0 ? (
-        <div className="text-center py-12">
-          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">
-            {search || filterStatus !== 'all' || filterCity !== 'all' || filterPlan !== 'all'
-              ? 'Nenhum assinante encontrado' 
-              : 'Nenhum assinante cadastrado'}
-          </p>
-        </div>
-      ) : (
-        <>
-          {/* Mobile: Cards */}
-          <div className="lg:hidden space-y-3">
-            {filteredSubscribers.map((subscriber) => (
-              <Card key={subscriber.id} className="overflow-hidden">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <UserAvatar
-                      src={subscriber.user?.avatar}
-                      name={subscriber.name}
-                      size="md"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-medium truncate">{subscriber.name || 'Sem nome'}</p>
-                        <Badge 
-                          variant="outline" 
-                          className={getStatusColor(subscriber.subscriptionStatus)}
-                        >
-                          {getStatusLabel(subscriber.subscriptionStatus)}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground truncate">{subscriber.user?.email}</p>
-                      <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
-                        {subscriber.plan && (
-                          <span className="flex items-center gap-1">
-                            <CreditCard className="h-3 w-3" />
-                            {subscriber.plan.name}
-                          </span>
-                        )}
-                        {subscriber.city && (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {subscriber.city.name}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <Coins className="h-3 w-3 text-yellow-500" />
-                          {Number(subscriber.points || 0).toFixed(0)} pts
-                        </span>
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/admin/assinantes/${subscriber.id}`}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toast.info(`QR Code: ${subscriber.qrCode}`)}>
-                          <QrCode className="mr-2 h-4 w-4" />
-                          Ver QR Code
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDeleteClick(subscriber)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+      {/* Lista vazia */}
+      {filteredAssinantes.length === 0 && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="font-semibold text-lg mb-2">Nenhum assinante encontrado</h3>
+            <p className="text-muted-foreground mb-4">
+              {assinantes.length === 0 
+                ? 'Comece adicionando seu primeiro assinante.'
+                : 'Tente ajustar os filtros para encontrar o que procura.'}
+            </p>
+            {assinantes.length === 0 && (
+              <Button asChild>
+                <Link href="/admin/assinantes/novo">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Assinante
+                </Link>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Desktop: Table */}
-          <div className="hidden lg:block rounded-md border">
+      {/* Tabela Desktop */}
+      {filteredAssinantes.length > 0 && (
+        <div className="hidden md:block">
+          <Card>
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={isAllSelected}
+                      ref={(el) => {
+                        if (el) (el as any).indeterminate = isIndeterminate
+                      }}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
                   <TableHead>Assinante</TableHead>
                   <TableHead>Plano</TableHead>
                   <TableHead>Cidade</TableHead>
-                  <TableHead className="text-right">Pontos</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="w-[70px]"></TableHead>
+                  <TableHead>Pontos</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSubscribers.map((subscriber) => (
-                  <TableRow key={subscriber.id}>
+                {filteredAssinantes.map((assinante) => (
+                  <TableRow 
+                    key={assinante.id}
+                    className={selectedIds.includes(assinante.id) ? 'bg-blue-50' : ''}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.includes(assinante.id)}
+                        onCheckedChange={(checked) => handleSelectItem(assinante.id, checked === true)}
+                        aria-label={`Selecionar ${assinante.name}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <UserAvatar 
-                          src={subscriber.user?.avatar} 
-                          name={subscriber.name} 
-                          size="sm"
-                        />
+                        {assinante.user?.image ? (
+                          <Image
+                            src={assinante.user.image}
+                            alt={assinante.name}
+                            width={40}
+                            height={40}
+                            className="rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                            <User className="h-5 w-5 text-gray-400" />
+                          </div>
+                        )}
                         <div>
-                          <p className="font-medium">{subscriber.name || 'Sem nome'}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {subscriber.cpf ? formatCPF(subscriber.cpf) : '-'} • {subscriber.user?.email || '-'}
+                          <p className="font-medium">{assinante.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {formatCPF(assinante.cpf)} • {assinante.user?.email}
                           </p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {subscriber.plan ? (
+                      {assinante.plan ? (
                         <div className="flex items-center gap-1">
                           <CreditCard className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm">{subscriber.plan.name}</span>
+                          {assinante.plan.name}
                         </div>
                       ) : (
-                        <Badge variant="outline" className="text-xs">Sem plano</Badge>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {subscriber.city ? (
-                        <div className="flex items-center gap-1 text-sm">
-                          <MapPin className="h-3 w-3 text-muted-foreground" />
-                          {subscriber.city.name}
+                      {assinante.city ? (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
+                          {assinante.city.name}
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Coins className="h-3 w-3 text-yellow-500" />
-                        <span className="font-medium">{Number(subscriber.points || 0).toFixed(0)}</span>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 text-yellow-500" />
+                        {assinante.points || 0}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
-                      <Badge 
-                        variant="outline" 
-                        className={getStatusColor(subscriber.subscriptionStatus)}
-                      >
-                        {getStatusLabel(subscriber.subscriptionStatus)}
-                      </Badge>
+                    <TableCell>
+                      {getStatusBadge(assinante.subscriptionStatus)}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -732,40 +495,23 @@ function AssinantesContent() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link href={`/admin/assinantes/${subscriber.id}`}>
-                              <Pencil className="mr-2 h-4 w-4" />
+                            <Link href={`/admin/assinantes/${assinante.id}`}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Visualizar
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/assinantes/${assinante.id}/editar`}>
+                              <Pencil className="h-4 w-4 mr-2" />
                               Editar
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => toast.info(`QR Code: ${subscriber.qrCode}`)}>
-                            <QrCode className="mr-2 h-4 w-4" />
-                            Ver QR Code
-                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleChangeStatus(subscriber, 'ACTIVE')}
-                            disabled={(subscriber.subscriptionStatus || 'PENDING') === 'ACTIVE'}
+                            onClick={() => handleDelete(assinante.id)}
+                            className="text-red-600"
                           >
-                            Ativar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleChangeStatus(subscriber, 'SUSPENDED')}
-                            disabled={(subscriber.subscriptionStatus || 'PENDING') === 'SUSPENDED'}
-                          >
-                            Suspender
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleChangeStatus(subscriber, 'CANCELED')}
-                            disabled={(subscriber.subscriptionStatus || 'PENDING') === 'CANCELED'}
-                          >
-                            Cancelar
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDeleteClick(subscriber)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <Trash2 className="h-4 w-4 mr-2" />
                             Excluir
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -775,237 +521,129 @@ function AssinantesContent() {
                 ))}
               </TableBody>
             </Table>
-          </div>
-        </>
+          </Card>
+        </div>
       )}
 
-      {/* Dialog Criar/Editar */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedSubscriber ? 'Editar Assinante' : 'Novo Assinante'}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedSubscriber 
-                ? 'Altere os dados do assinante' 
-                : 'Preencha os dados para cadastrar um novo assinante'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form 
-            onSubmit={handleSubmit(selectedSubscriber ? onSubmitEdit : onSubmitCreate)} 
-            className="space-y-4"
-          >
-            {/* Dados de acesso (apenas criar) */}
-            {!selectedSubscriber && (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="email@exemplo.com"
-                    {...register('email')}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email.message}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    {...register('password')}
-                  />
-                  {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password.message}</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Dados pessoais */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo</Label>
-              <Input
-                id="name"
-                placeholder="Nome do assinante"
-                {...register('name')}
+      {/* Cards Mobile */}
+      {filteredAssinantes.length > 0 && (
+        <div className="md:hidden space-y-3">
+          {/* Selecionar todos mobile */}
+          <Card className="p-3">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={isAllSelected}
+                ref={(el) => {
+                  if (el) (el as any).indeterminate = isIndeterminate
+                }}
+                onCheckedChange={handleSelectAll}
               />
-              {errors.name && (
-                <p className="text-sm text-destructive">{errors.name.message}</p>
-              )}
+              <span className="text-sm text-muted-foreground">
+                Selecionar todos ({filteredAssinantes.length})
+              </span>
             </div>
+          </Card>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              {!selectedSubscriber && (
-                <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF</Label>
-                  <Input
-                    id="cpf"
-                    placeholder="00000000000"
-                    maxLength={11}
-                    {...register('cpf')}
-                  />
-                  {errors.cpf && (
-                    <p className="text-sm text-destructive">{errors.cpf.message}</p>
-                  )}
-                </div>
-              )}
-              <div className={`space-y-2 ${selectedSubscriber ? 'col-span-2' : ''}`}>
-                <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  placeholder="66999999999"
-                  {...register('phone')}
-                />
-                {errors.phone && (
-                  <p className="text-sm text-destructive">{errors.phone.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Cidade</Label>
-                <Select
-                  value={currentCityId}
-                  onValueChange={(value) => setValue('cityId', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Selecione uma cidade</SelectItem>
-                    {cities.map((city) => (
-                      <SelectItem key={city.id} value={city.id}>
-                        {city.name} - {city.state}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.cityId && (
-                  <p className="text-sm text-destructive">{errors.cityId.message}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Plano</Label>
-                <Select
-                  value={currentPlanId}
-                  onValueChange={(value) => setValue('planId', value)}
-                  disabled={(currentStatus || 'PENDING') !== 'ACTIVE'}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={(currentStatus || 'PENDING') !== 'ACTIVE' ? 'Indisponível' : 'Selecione'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sem plano</SelectItem>
-                    {plans.map((plan) => (
-                      <SelectItem key={plan.id} value={plan.id}>
-                        {plan.name} - {formatCurrency(plan.price)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {(currentStatus || 'PENDING') !== 'ACTIVE' && (
-                  <p className="text-xs text-muted-foreground">
-                    Plano só pode ser atribuído quando status for &quot;Ativo&quot;
-                  </p>
-                )}
-                {errors.planId && (
-                  <p className="text-sm text-destructive">{errors.planId.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select
-                value={currentStatus || 'PENDING'}
-                onValueChange={handleStatusChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(SUBSCRIPTION_STATUS).map(([key, value]) => (
-                    <SelectItem key={key} value={key}>
-                      {value.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Aviso de remoção de plano */}
-            {showPlanWarning && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium text-amber-800">Plano será removido</p>
-                  <p className="text-amber-700">
-                    Ao mudar o status para diferente de &quot;Ativo&quot;, o plano atual será desvinculado do assinante.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  'Salvar'
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Confirmar Exclusão */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o assinante <strong>{selectedSubscriber?.name}</strong>?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isSubmitting}
+          {filteredAssinantes.map((assinante) => (
+            <Card 
+              key={assinante.id}
+              className={selectedIds.includes(assinante.id) ? 'border-blue-500 bg-blue-50' : ''}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Excluindo...
-                </>
-              ) : (
-                'Excluir'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    checked={selectedIds.includes(assinante.id)}
+                    onCheckedChange={(checked) => handleSelectItem(assinante.id, checked === true)}
+                    className="mt-1"
+                  />
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        {assinante.user?.image ? (
+                          <Image
+                            src={assinante.user.image}
+                            alt={assinante.name}
+                            width={40}
+                            height={40}
+                            className="rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                            <User className="h-5 w-5 text-gray-400" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium">{assinante.name}</p>
+                          <p className="text-sm text-muted-foreground">{formatCPF(assinante.cpf)}</p>
+                        </div>
+                      </div>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/assinantes/${assinante.id}`}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Visualizar
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/assinantes/${assinante.id}/editar`}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Editar
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(assinante.id)}
+                            className="text-red-600"
+                          >
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {assinante.plan && (
+                        <Badge variant="outline" className="text-xs">
+                          <CreditCard className="h-3 w-3 mr-1" />
+                          {assinante.plan.name}
+                        </Badge>
+                      )}
+                      {assinante.city && (
+                        <Badge variant="secondary" className="text-xs">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {assinante.city.name}
+                        </Badge>
+                      )}
+                      <Badge variant="secondary" className="text-xs">
+                        <Star className="h-3 w-3 mr-1 text-yellow-500" />
+                        {assinante.points || 0} pts
+                      </Badge>
+                      {getStatusBadge(assinante.subscriptionStatus)}
+                    </div>
+
+                    {assinante.user?.email && (
+                      <div className="mt-3 pt-3 border-t text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {assinante.user.email}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
-
