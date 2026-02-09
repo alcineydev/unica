@@ -36,6 +36,12 @@ model User {
   isActive  Boolean    @default(true)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  
+  // Troca de email
+  pendingEmail      String?
+  emailChangeToken  String?
+  emailChangeExpiry DateTime?
+  
   admin     Admin?
   assinante Assinante?
   parceiro  Parceiro?
@@ -58,6 +64,22 @@ model Admin {
   permissions Json     @default("{}")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  // Redes Sociais
+  facebook    String?
+  instagram   String?
+  tiktok      String?
+  youtube     String?
+  
+  // Endereço
+  cep         String?
+  logradouro  String?
+  numero      String?
+  complemento String?
+  bairro      String?
+  cidade      String?
+  estado      String?
+  
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("admins")
