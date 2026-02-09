@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
-// GET - Buscar assinante por ID
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+interface RouteParams {
+  params: Promise<{ id: string }>
+}
+
+// GET - Buscar assinante por ID com todos os dados
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth()
-
-    if (!session?.user || !['ADMIN', 'DEVELOPER'].includes(session.user.role as string)) {
-      return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
     const { id } = await params
@@ -19,54 +19,76 @@ export async function GET(
     const assinante = await prisma.assinante.findUnique({
       where: { id },
       include: {
-        user: true,
-        plan: true
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
+            createdAt: true,
+          }
+        },
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            description: true,
+          }
+        },
+        city: {
+          select: {
+            id: true,
+            name: true,
+          }
+        },
+        transactions: {
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          include: {
+            parceiro: {
+              select: {
+                id: true,
+                tradeName: true,
+                companyName: true,
+                logo: true,
+              }
+            }
+          }
+        }
       }
     })
 
     if (!assinante) {
-      return NextResponse.json({ error: 'Assinante nao encontrado' }, { status: 404 })
+      return NextResponse.json({ error: 'Assinante não encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json({
-      assinante: {
-        id: assinante.id,
-        name: assinante.name,
-        email: assinante.user.email,
-        phone: assinante.phone || assinante.user.phone,
-        cpf: assinante.cpf,
-        avatar: assinante.user.avatar,
-        dataNascimento: assinante.birthDate?.toISOString().split('T')[0] || null,
-        endereco: assinante.address as any,
-        subscriptionStatus: assinante.subscriptionStatus,
-        points: assinante.points,
-        cashback: assinante.cashback,
-        qrCode: assinante.qrCode,
-        plan: assinante.plan ? {
-          id: assinante.plan.id,
-          name: assinante.plan.name
-        } : null,
-        createdAt: assinante.createdAt.toISOString(),
-        updatedAt: assinante.updatedAt.toISOString()
-      }
-    })
+    // Calcular estatísticas
+    const stats = {
+      totalTransactions: assinante.transactions?.length || 0,
+      totalSpent: assinante.transactions?.reduce((sum, t) =>
+        t.type === 'PURCHASE' ? sum + Number(t.amount) : sum, 0) || 0,
+      totalSaved: assinante.transactions?.reduce((sum, t) =>
+        sum + Number(t.discountApplied || 0), 0) || 0,
+      totalCashback: assinante.transactions?.reduce((sum, t) =>
+        sum + Number(t.cashbackGenerated || 0), 0) || 0,
+      totalPointsUsed: assinante.transactions?.reduce((sum, t) =>
+        sum + Number(t.pointsUsed || 0), 0) || 0,
+    }
 
+    return NextResponse.json({ ...assinante, stats })
   } catch (error) {
-    console.error('[ADMIN ASSINANTE GET] Erro:', error)
-    return NextResponse.json({ error: 'Erro ao buscar assinante' }, { status: 500 })
+    console.error('[ASSINANTE GET]', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
-// PUT - Atualizar assinante
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// PATCH - Atualizar assinante
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth()
-
-    if (!session?.user || !['ADMIN', 'DEVELOPER'].includes(session.user.role as string)) {
-      return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
     const { id } = await params
@@ -74,97 +96,94 @@ export async function PUT(
 
     const {
       name,
-      phone,
       cpf,
-      dataNascimento,
-      endereco,
+      phone,
+      birthDate,
+      planId,
+      cityId,
       subscriptionStatus,
-      planId
+      points,
+      cashback,
+      address,
+      number,
+      complement,
+      neighborhood,
+      zipCode,
     } = body
 
-    // Verificar se assinante existe
-    const assinanteExistente = await prisma.assinante.findUnique({
-      where: { id }
-    })
-
-    if (!assinanteExistente) {
-      return NextResponse.json({ error: 'Assinante nao encontrado' }, { status: 404 })
-    }
-
-    // Atualizar assinante - pontos e cashback nao sao editaveis manualmente
+    // Atualizar assinante
     const assinante = await prisma.assinante.update({
       where: { id },
       data: {
-        name,
-        phone,
-        cpf,
-        birthDate: dataNascimento ? new Date(dataNascimento) : null,
-        address: endereco || undefined,
+        name: name?.trim(),
+        cpf: cpf?.replace(/\D/g, ''),
+        phone: phone?.replace(/\D/g, ''),
+        birthDate: birthDate ? new Date(birthDate) : undefined,
+        planId: planId || null,
+        cityId: cityId || null,
         subscriptionStatus,
-        planId: planId || null
+        points: points !== undefined ? Number(points) : undefined,
+        cashback: cashback !== undefined ? Number(cashback) : undefined,
+        address: address ? {
+          address,
+          number,
+          complement,
+          neighborhood,
+          zipCode: zipCode?.replace(/\D/g, '')
+        } : undefined,
       },
       include: {
         user: true,
-        plan: true
+        plan: true,
+        city: true,
       }
     })
 
-    // Atualizar telefone no User tambem
-    if (phone) {
+    // Se tiver nome, atualizar também no User
+    if (name && assinante.userId) {
       await prisma.user.update({
         where: { id: assinante.userId },
-        data: { phone }
+        data: { name: name.trim() }
       })
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Assinante atualizado com sucesso',
-      assinante
-    })
-
+    return NextResponse.json(assinante)
   } catch (error) {
-    console.error('[ADMIN ASSINANTE PUT] Erro:', error)
-    return NextResponse.json({ error: 'Erro ao atualizar assinante' }, { status: 500 })
+    console.error('[ASSINANTE PATCH]', error)
+    return NextResponse.json({ error: 'Erro ao atualizar' }, { status: 500 })
   }
 }
 
 // DELETE - Excluir assinante
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth()
-
-    if (!session?.user || !['ADMIN', 'DEVELOPER'].includes(session.user.role as string)) {
-      return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
     const { id } = await params
 
-    // Buscar assinante para pegar userId
     const assinante = await prisma.assinante.findUnique({
-      where: { id }
+      where: { id },
+      select: { userId: true }
     })
 
     if (!assinante) {
-      return NextResponse.json({ error: 'Assinante nao encontrado' }, { status: 404 })
+      return NextResponse.json({ error: 'Assinante não encontrado' }, { status: 404 })
     }
 
-    // Deletar assinante e user em transacao
-    await prisma.$transaction([
-      prisma.assinante.delete({ where: { id } }),
-      prisma.user.delete({ where: { id: assinante.userId } })
-    ])
+    // Deletar assinante (transactions serão deletadas por cascade)
+    await prisma.assinante.delete({ where: { id } })
 
-    return NextResponse.json({
-      success: true,
-      message: 'Assinante excluido com sucesso'
-    })
+    // Deletar usuário relacionado
+    if (assinante.userId) {
+      await prisma.user.delete({ where: { id: assinante.userId } }).catch(() => { })
+    }
 
+    return NextResponse.json({ message: 'Assinante excluído com sucesso' })
   } catch (error) {
-    console.error('[ADMIN ASSINANTE DELETE] Erro:', error)
-    return NextResponse.json({ error: 'Erro ao excluir assinante' }, { status: 500 })
+    console.error('[ASSINANTE DELETE]', error)
+    return NextResponse.json({ error: 'Erro ao excluir' }, { status: 500 })
   }
 }

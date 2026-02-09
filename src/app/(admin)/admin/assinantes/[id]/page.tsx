@@ -1,247 +1,342 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   ArrowLeft,
+  Loader2,
   Save,
   User,
-  Mail,
-  Phone,
   CreditCard,
+  MapPin,
   Calendar,
-  Loader2,
-  History,
   QrCode,
+  Star,
+  TrendingUp,
+  ShoppingBag,
   Wallet,
-  Crown,
-  Star
+  Gift,
+  Building2,
+  Copy,
+  ExternalLink,
+  Receipt,
+  PiggyBank,
+  Download
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { QRCodeSVG } from 'qrcode.react'
 
-interface Assinante {
-  id: string
-  name: string
-  email: string
-  phone: string
-  cpf: string
-  avatar?: string
-  dataNascimento?: string
-  endereco?: {
-    cep?: string
-    logradouro?: string
-    numero?: string
-    complemento?: string
-    bairro?: string
-    cidade?: string
-    estado?: string
-  }
-  subscriptionStatus: string
-  points: number
-  cashback: number
-  qrCode?: string
-  plan?: {
-    id: string
-    name: string
-  }
-  createdAt: string
-  updatedAt: string
-}
-
+// Tipos
 interface Plan {
   id: string
   name: string
+  price: number
+  description?: string
 }
 
-export default function AssinanteDetalhesPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+interface City {
+  id: string
+  name: string
+}
+
+interface Parceiro {
+  id: string
+  tradeName?: string
+  companyName: string
+  logo?: string
+}
+
+interface Transaction {
+  id: string
+  type: string
+  amount: number
+  discountApplied: number
+  cashbackGenerated: number
+  pointsUsed: number
+  description?: string
+  status: string
+  createdAt: string
+  parceiro?: Parceiro
+}
+
+interface AssinanteData {
+  id: string
+  name: string
+  cpf: string
+  phone?: string
+  birthDate?: string
+  qrCode: string
+  points: number
+  cashback: number
+  subscriptionStatus: string
+  address?: any
+  createdAt: string
+  user?: {
+    id: string
+    name: string
+    email: string
+    avatar?: string
+    createdAt: string
+  }
+  plan?: Plan
+  city?: City
+  transactions?: Transaction[]
+  stats?: {
+    totalTransactions: number
+    totalSpent: number
+    totalSaved: number
+    totalCashback: number
+    totalPointsUsed: number
+  }
+}
+
+const SUBSCRIPTION_STATUS = [
+  { value: 'PENDING', label: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'ACTIVE', label: 'Ativo', color: 'bg-green-100 text-green-800' },
+  { value: 'INACTIVE', label: 'Inativo', color: 'bg-gray-100 text-gray-800' },
+  { value: 'SUSPENDED', label: 'Suspenso', color: 'bg-orange-100 text-orange-800' },
+  { value: 'CANCELED', label: 'Cancelado', color: 'bg-red-100 text-red-800' },
+  { value: 'EXPIRED', label: 'Expirado', color: 'bg-purple-100 text-purple-800' },
+  { value: 'GUEST', label: 'Convidado', color: 'bg-blue-100 text-blue-800' },
+]
+
+const TRANSACTION_TYPES: Record<string, { label: string; icon: any; color: string }> = {
+  PURCHASE: { label: 'Compra', icon: ShoppingBag, color: 'text-blue-600' },
+  CASHBACK: { label: 'Cashback', icon: PiggyBank, color: 'text-green-600' },
+  BONUS: { label: 'Bônus', icon: Gift, color: 'text-purple-600' },
+  MONTHLY_POINTS: { label: 'Pontos Mensais', icon: Star, color: 'text-yellow-600' },
+  REFUND: { label: 'Reembolso', icon: Receipt, color: 'text-red-600' },
+}
+
+export default function EditarAssinantePage() {
   const router = useRouter()
+  const params = useParams()
+  const id = params.id as string
 
-  const [assinante, setAssinante] = useState<Assinante | null>(null)
+  // Estados
+  const [assinante, setAssinante] = useState<AssinanteData | null>(null)
   const [plans, setPlans] = useState<Plan[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [formData, setFormData] = useState<Partial<Assinante>>({})
+  const [cities, setCities] = useState<City[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [showQRModal, setShowQRModal] = useState(false)
+  const [activeTab, setActiveTab] = useState('dados')
 
-  useEffect(() => {
-    fetchData()
-  }, [id])
+  const [formData, setFormData] = useState({
+    name: '',
+    cpf: '',
+    phone: '',
+    birthDate: '',
+    planId: '',
+    cityId: '',
+    subscriptionStatus: 'PENDING',
+    points: 0,
+    cashback: 0,
+    address: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    zipCode: '',
+  })
 
-  const fetchData = async () => {
+  // Carregar dados
+  const fetchData = useCallback(async () => {
     try {
-      const assinanteRes = await fetch(`/api/admin/assinantes/${id}`)
-      const assinanteData = await assinanteRes.json()
+      setLoading(true)
+      const [assinanteRes, plansRes, citiesRes] = await Promise.all([
+        fetch(`/api/admin/assinantes/${id}`),
+        fetch('/api/admin/plans'),
+        fetch('/api/admin/cities')
+      ])
 
-      if (assinanteData.error) {
-        toast.error(assinanteData.error)
-        router.push('/admin/assinantes')
-        return
-      }
+      if (assinanteRes.ok) {
+        const data = await assinanteRes.json()
+        setAssinante(data)
 
-      setAssinante(assinanteData.assinante)
-      setFormData(assinanteData.assinante)
+        // Extrair endereço do JSON
+        const addr = data.address || {}
 
-      // Buscar planos - usando API publica que nao requer auth
-      const plansRes = await fetch('/api/public/plans')
-      const plansData = await plansRes.json()
-
-      // A resposta e { plans: [...] }
-      if (Array.isArray(plansData)) {
-        setPlans(plansData)
-      } else if (plansData.plans) {
-        setPlans(plansData.plans)
+        setFormData({
+          name: data.name || data.user?.name || '',
+          cpf: formatCPF(data.cpf || ''),
+          phone: formatPhone(data.phone || ''),
+          birthDate: data.birthDate ? data.birthDate.split('T')[0] : '',
+          planId: data.plan?.id || '',
+          cityId: data.city?.id || '',
+          subscriptionStatus: data.subscriptionStatus || 'PENDING',
+          points: data.points || 0,
+          cashback: data.cashback || 0,
+          address: addr.address || '',
+          number: addr.number || '',
+          complement: addr.complement || '',
+          neighborhood: addr.neighborhood || '',
+          zipCode: formatCEP(addr.zipCode || ''),
+        })
       } else {
-        setPlans([])
+        toast.error('Assinante não encontrado')
+        router.push('/admin/assinantes')
       }
 
+      if (plansRes.ok) {
+        const data = await plansRes.json()
+        setPlans(Array.isArray(data) ? data : data.data || [])
+      }
+
+      if (citiesRes.ok) {
+        const data = await citiesRes.json()
+        setCities(Array.isArray(data) ? data : [])
+      }
     } catch (error) {
-      console.error('Erro ao buscar dados:', error)
+      console.error('Erro ao carregar dados:', error)
       toast.error('Erro ao carregar dados')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
-  }
+  }, [id, router])
 
-  const updateField = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
+  useEffect(() => {
+    if (id) fetchData()
+  }, [id, fetchData])
 
-  const updateEndereco = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      endereco: { ...prev.endereco, [field]: value }
-    }))
-  }
-
-  const maskCPF = (value: string) => {
-    return value
-      .replace(/\D/g, '')
-      .slice(0, 11)
+  // Formatadores
+  const formatCPF = (value: string) => {
+    const numbers = value.replace(/\D/g, '')
+    return numbers
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+      .slice(0, 14)
   }
 
-  const maskPhone = (value: string) => {
-    return value
-      .replace(/\D/g, '')
-      .slice(0, 11)
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '')
+    if (numbers.length <= 10) {
+      return numbers
+        .replace(/(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{4})(\d)/, '$1-$2')
+    }
+    return numbers
       .replace(/(\d{2})(\d)/, '($1) $2')
       .replace(/(\d{5})(\d)/, '$1-$2')
+      .slice(0, 15)
   }
 
-  const maskCEP = (value: string) => {
-    return value
-      .replace(/\D/g, '')
-      .slice(0, 8)
-      .replace(/(\d{5})(\d)/, '$1-$2')
+  const formatCEP = (value: string) => {
+    const numbers = value.replace(/\D/g, '')
+    return numbers.replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9)
   }
 
-  const buscarCEP = async (cep: string) => {
-    const cepLimpo = cep.replace(/\D/g, '')
-    if (cepLimpo.length !== 8) return
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value)
+  }
 
-    try {
-      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
-      const data = await response.json()
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
 
-      if (!data.erro) {
-        setFormData(prev => ({
-          ...prev,
-          endereco: {
-            ...prev.endereco,
-            cep: cep,
-            logradouro: data.logradouro || '',
-            bairro: data.bairro || '',
-            cidade: data.localidade || '',
-            estado: data.uf || ''
-          }
-        }))
-      }
-    } catch (error) {
-      console.error('Erro ao buscar CEP:', error)
+  // Handlers
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+
+    if (name === 'cpf') {
+      setFormData(prev => ({ ...prev, cpf: formatCPF(value) }))
+    } else if (name === 'phone') {
+      setFormData(prev => ({ ...prev, phone: formatPhone(value) }))
+    } else if (name === 'zipCode') {
+      setFormData(prev => ({ ...prev, zipCode: formatCEP(value) }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
     }
   }
 
-  const handleSave = async () => {
-    setIsSaving(true)
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value === 'none' ? '' : value }))
+  }
 
+  const handleSubmit = async () => {
+    setSaving(true)
     try {
       const response = await fetch(`/api/admin/assinantes/${id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          phone: formData.phone?.replace(/\D/g, ''),
-          cpf: formData.cpf?.replace(/\D/g, ''),
-          endereco: formData.endereco,
-          subscriptionStatus: formData.subscriptionStatus,
-          planId: formData.plan?.id || null
-          // Pontos e cashback nao sao editaveis manualmente
-        })
+        body: JSON.stringify(formData)
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        toast.error(data.error || 'Erro ao salvar')
-        return
+        const data = await response.json()
+        throw new Error(data.error || 'Erro ao salvar')
       }
 
       toast.success('Assinante atualizado com sucesso!')
       fetchData()
-
     } catch (error) {
-      console.error('Erro ao salvar:', error)
-      toast.error('Erro ao salvar alteracoes')
+      toast.error(error instanceof Error ? error.message : 'Erro ao salvar')
     } finally {
-      setIsSaving(false)
+      setSaving(false)
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return 'bg-green-100 text-green-800'
-      case 'PENDING': return 'bg-yellow-100 text-yellow-800'
-      case 'INACTIVE': return 'bg-gray-100 text-gray-800'
-      case 'CANCELLED': return 'bg-red-100 text-red-800'
-      case 'EXPIRED': return 'bg-orange-100 text-orange-800'
-      default: return 'bg-gray-100 text-gray-800'
+  const copyQRCode = () => {
+    if (assinante?.qrCode) {
+      navigator.clipboard.writeText(assinante.qrCode)
+      toast.success('QR Code copiado!')
     }
   }
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return 'Ativo'
-      case 'PENDING': return 'Pendente'
-      case 'INACTIVE': return 'Inativo'
-      case 'CANCELLED': return 'Cancelado'
-      case 'EXPIRED': return 'Expirado'
-      default: return status
-    }
-  }
-
-  if (isLoading) {
+  const getStatusBadge = (status: string) => {
+    const statusConfig = SUBSCRIPTION_STATUS.find(s => s.value === status)
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-10 rounded" />
-          <Skeleton className="h-8 w-48" />
-        </div>
-        <div className="grid lg:grid-cols-3 gap-6">
-          <Skeleton className="h-64 lg:col-span-1" />
-          <Skeleton className="h-96 lg:col-span-2" />
+      <Badge className={statusConfig?.color || 'bg-gray-100 text-gray-800'}>
+        {statusConfig?.label || status}
+      </Badge>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[600px]">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-muted-foreground">Carregando dados do assinante...</p>
         </div>
       </div>
     )
@@ -250,324 +345,273 @@ export default function AssinanteDetalhesPage({ params }: { params: Promise<{ id
   if (!assinante) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Assinante nao encontrado</p>
-        <Link href="/admin/assinantes">
-          <Button variant="link">Voltar para lista</Button>
-        </Link>
+        <p className="text-muted-foreground">Assinante não encontrado</p>
+        <Button asChild className="mt-4">
+          <Link href="/admin/assinantes">Voltar</Link>
+        </Button>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/admin/assinantes">
-            <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/admin/assinantes">
               <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <div>
             <h1 className="text-2xl font-bold">Editar Assinante</h1>
             <p className="text-muted-foreground">Gerencie os dados do assinante</p>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Salvando...
-            </>
+        <Button onClick={handleSubmit} disabled={saving}>
+          {saving ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Salvar Alteracoes
-            </>
+            <Save className="h-4 w-4 mr-2" />
           )}
+          Salvar Alterações
         </Button>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      {/* Layout Principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Coluna Esquerda - Perfil e QR Code */}
         <div className="space-y-6">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="relative inline-block mb-4">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={assinante.avatar} />
-                  <AvatarFallback className="text-2xl bg-primary/10">
-                    {assinante.name?.charAt(0)?.toUpperCase() || 'A'}
-                  </AvatarFallback>
-                </Avatar>
+          {/* Card Perfil */}
+          <Card className="overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 h-20" />
+            <CardContent className="pt-0 -mt-10">
+              <div className="flex flex-col items-center">
+                {/* Avatar */}
+                <div className="relative">
+                  {assinante.user?.avatar ? (
+                    <Image
+                      src={assinante.user.avatar}
+                      alt={assinante.name}
+                      width={96}
+                      height={96}
+                      className="rounded-full border-4 border-white shadow-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                      <span className="text-3xl font-bold text-white">
+                        {assinante.name?.charAt(0)?.toUpperCase() || 'A'}
+                      </span>
+                    </div>
+                  )}
+                  {/* Status indicator */}
+                  <div className={`absolute bottom-1 right-1 w-5 h-5 rounded-full border-2 border-white ${assinante.subscriptionStatus === 'ACTIVE' ? 'bg-green-500' :
+                      assinante.subscriptionStatus === 'PENDING' ? 'bg-yellow-500' : 'bg-gray-400'
+                    }`} />
+                </div>
+
+                {/* Nome e Email */}
+                <h2 className="mt-4 text-xl font-bold text-center">{assinante.name}</h2>
+                <p className="text-sm text-muted-foreground">{assinante.user?.email}</p>
+
+                {/* Status Badge */}
+                <div className="mt-2">
+                  {getStatusBadge(assinante.subscriptionStatus)}
+                </div>
+
+                {/* Plano */}
+                {assinante.plan && (
+                  <div className="mt-3 px-4 py-2 bg-blue-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-blue-600" />
+                      <span className="font-medium text-blue-900">{assinante.plan.name}</span>
+                    </div>
+                    {assinante.plan.price > 0 && (
+                      <p className="text-xs text-blue-600 text-center mt-1">
+                        {formatCurrency(assinante.plan.price)}/mês
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Data de cadastro */}
+                <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>Membro desde {new Date(assinante.createdAt).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
+                </div>
               </div>
-              <h2 className="text-xl font-semibold">{assinante.name}</h2>
-              <p className="text-muted-foreground">{assinante.email}</p>
-              <Badge className={`mt-3 ${getStatusColor(assinante.subscriptionStatus)}`}>
-                {getStatusLabel(assinante.subscriptionStatus)}
-              </Badge>
             </CardContent>
           </Card>
 
+          {/* Card QR Code */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Crown className="h-4 w-4" />
-                Plano Atual
+                <QrCode className="h-5 w-5 text-blue-600" />
+                QR Code do Assinante
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {assinante.plan ? (
-                <div className="text-lg font-semibold">{assinante.plan.name}</div>
-              ) : (
-                <div className="text-muted-foreground">Sem plano</div>
-              )}
+              <div
+                className="flex flex-col items-center cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => setShowQRModal(true)}
+              >
+                <div className="p-4 bg-white rounded-xl border-2 border-dashed border-gray-200 hover:border-blue-300 transition-colors">
+                  <QRCodeSVG
+                    value={assinante.qrCode}
+                    size={140}
+                    level="H"
+                    includeMargin
+                  />
+                </div>
+                <p className="mt-3 font-mono text-sm text-muted-foreground">
+                  {assinante.qrCode}
+                </p>
+                <div className="flex gap-2 mt-3">
+                  <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); copyQRCode(); }}>
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copiar
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowQRModal(true)}>
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Ampliar
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
+          {/* Card Estatísticas */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Wallet className="h-4 w-4" />
-                Saldo
-              </CardTitle>
+              <CardTitle className="text-base">Resumo</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Pontos</span>
-                <span className="font-semibold">{assinante.points || 0}</span>
+              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Star className="h-5 w-5 text-yellow-600" />
+                  <span className="text-sm font-medium">Pontos</span>
+                </div>
+                <span className="text-lg font-bold text-yellow-700">{assinante.points}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Cashback</span>
-                <span className="font-semibold">R$ {Number(assinante.cashback || 0).toFixed(2)}</span>
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-green-600" />
+                  <span className="text-sm font-medium">Cashback</span>
+                </div>
+                <span className="text-lg font-bold text-green-700">{formatCurrency(assinante.cashback)}</span>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <History className="h-4 w-4" />
-                Informacoes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Criado em</span>
-                <span>{new Date(assinante.createdAt).toLocaleDateString('pt-BR')}</span>
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="h-5 w-5 text-blue-600" />
+                  <span className="text-sm font-medium">Compras</span>
+                </div>
+                <span className="text-lg font-bold text-blue-700">{assinante.stats?.totalTransactions || 0}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Atualizado em</span>
-                <span>{new Date(assinante.updatedAt).toLocaleDateString('pt-BR')}</span>
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-purple-600" />
+                  <span className="text-sm font-medium">Economia</span>
+                </div>
+                <span className="text-lg font-bold text-purple-700">{formatCurrency(assinante.stats?.totalSaved || 0)}</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Coluna Direita - Tabs */}
         <div className="lg:col-span-2">
           <Card>
-            <CardContent className="p-6">
-              <Tabs defaultValue="dados" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-6">
-                  <TabsTrigger value="dados">Dados Pessoais</TabsTrigger>
-                  <TabsTrigger value="endereco">Endereco</TabsTrigger>
-                  <TabsTrigger value="assinatura">Assinatura</TabsTrigger>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <CardHeader className="pb-0">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="dados" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">Dados Pessoais</span>
+                    <span className="sm:hidden">Dados</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="endereco" className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    <span className="hidden sm:inline">Endereço</span>
+                    <span className="sm:hidden">End.</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="transacoes" className="flex items-center gap-2">
+                    <Receipt className="h-4 w-4" />
+                    <span className="hidden sm:inline">Transações</span>
+                    <span className="sm:hidden">Trans.</span>
+                  </TabsTrigger>
                 </TabsList>
+              </CardHeader>
 
-                <TabsContent value="dados" className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
+              <CardContent className="pt-6">
+                {/* Tab Dados Pessoais */}
+                <TabsContent value="dados" className="mt-0 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Nome Completo</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="name"
-                          className="pl-10"
-                          value={formData.name || ''}
-                          onChange={(e) => updateField('name', e.target.value)}
-                        />
-                      </div>
+                      <Input
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        placeholder="Nome do assinante"
+                      />
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="email"
-                          className="pl-10"
-                          value={formData.email || ''}
-                          disabled
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">Email nao pode ser alterado</p>
+                      <Label>Email</Label>
+                      <Input
+                        value={assinante.user?.email || ''}
+                        disabled
+                        className="bg-gray-50"
+                      />
+                      <p className="text-xs text-muted-foreground">Email não pode ser alterado</p>
                     </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="cpf">CPF</Label>
-                      <div className="relative">
-                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="cpf"
-                          className="pl-10"
-                          value={formData.cpf ? maskCPF(formData.cpf) : ''}
-                          onChange={(e) => updateField('cpf', e.target.value.replace(/\D/g, ''))}
-                        />
-                      </div>
+                      <Input
+                        id="cpf"
+                        name="cpf"
+                        value={formData.cpf}
+                        onChange={handleChange}
+                        placeholder="000.000.000-00"
+                        maxLength={14}
+                      />
                     </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="phone">Telefone</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="phone"
-                          className="pl-10"
-                          value={formData.phone ? maskPhone(formData.phone) : ''}
-                          onChange={(e) => updateField('phone', e.target.value.replace(/\D/g, ''))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="dataNascimento">Data de Nascimento</Label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        id="dataNascimento"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="(00) 00000-0000"
+                        maxLength={15}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="birthDate">Data de Nascimento</Label>
+                      <Input
+                        id="birthDate"
+                        name="birthDate"
                         type="date"
-                        className="pl-10"
-                        value={formData.dataNascimento || ''}
-                        onChange={(e) => updateField('dataNascimento', e.target.value)}
+                        value={formData.birthDate}
+                        onChange={handleChange}
                       />
                     </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="endereco" className="space-y-4">
-                  <div className="grid md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="cep">CEP</Label>
-                      <Input
-                        id="cep"
-                        value={formData.endereco?.cep ? maskCEP(formData.endereco.cep) : ''}
-                        onChange={(e) => {
-                          updateEndereco('cep', e.target.value.replace(/\D/g, ''))
-                          if (e.target.value.replace(/\D/g, '').length === 8) {
-                            buscarCEP(e.target.value)
-                          }
-                        }}
-                        placeholder="00000-000"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2 space-y-2">
-                      <Label htmlFor="logradouro">Logradouro</Label>
-                      <Input
-                        id="logradouro"
-                        value={formData.endereco?.logradouro || ''}
-                        onChange={(e) => updateEndereco('logradouro', e.target.value)}
-                        placeholder="Rua, Avenida..."
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="numero">Numero</Label>
-                      <Input
-                        id="numero"
-                        value={formData.endereco?.numero || ''}
-                        onChange={(e) => updateEndereco('numero', e.target.value)}
-                      />
-                    </div>
-
-                    <div className="md:col-span-3 space-y-2">
-                      <Label htmlFor="complemento">Complemento</Label>
-                      <Input
-                        id="complemento"
-                        value={formData.endereco?.complemento || ''}
-                        onChange={(e) => updateEndereco('complemento', e.target.value)}
-                        placeholder="Apto, Bloco..."
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="bairro">Bairro</Label>
-                      <Input
-                        id="bairro"
-                        value={formData.endereco?.bairro || ''}
-                        onChange={(e) => updateEndereco('bairro', e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="cidade">Cidade</Label>
-                      <Input
-                        id="cidade"
-                        value={formData.endereco?.cidade || ''}
-                        onChange={(e) => updateEndereco('cidade', e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="estado">Estado</Label>
-                      <Input
-                        id="estado"
-                        value={formData.endereco?.estado || ''}
-                        onChange={(e) => updateEndereco('estado', e.target.value.toUpperCase())}
-                        maxLength={2}
-                        placeholder="UF"
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="assinatura" className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="status">Status da Assinatura</Label>
+                      <Label>Cidade</Label>
                       <Select
-                        value={formData.subscriptionStatus}
-                        onValueChange={(value) => updateField('subscriptionStatus', value)}
+                        value={formData.cityId || 'none'}
+                        onValueChange={(value) => handleSelectChange('cityId', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione o status" />
+                          <SelectValue placeholder="Selecione a cidade" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="PENDING">Pendente</SelectItem>
-                          <SelectItem value="ACTIVE">Ativo</SelectItem>
-                          <SelectItem value="INACTIVE">Inativo</SelectItem>
-                          <SelectItem value="CANCELLED">Cancelado</SelectItem>
-                          <SelectItem value="EXPIRED">Expirado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="plan">Plano</Label>
-                      <Select
-                        value={formData.plan?.id || 'none'}
-                        onValueChange={(value) => {
-                          if (value === 'none') {
-                            updateField('plan', null)
-                          } else {
-                            const plan = plans.find(p => p.id === value)
-                            updateField('plan', plan)
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o plano" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Sem plano</SelectItem>
-                          {plans.map((plan) => (
-                            <SelectItem key={plan.id} value={plan.id}>
-                              {plan.name}
+                          <SelectItem value="none">Não informada</SelectItem>
+                          {cities.map((city) => (
+                            <SelectItem key={city.id} value={city.id}>
+                              {city.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -577,51 +621,278 @@ export default function AssinanteDetalhesPage({ params }: { params: Promise<{ id
 
                   <Separator />
 
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Pontos Acumulados</Label>
-                      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                        <Star className="h-5 w-5 text-yellow-500" />
-                        <span className="text-2xl font-bold">{assinante?.points || 0}</span>
-                        <span className="text-muted-foreground">pontos</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Pontos sao acumulados automaticamente nas validacoes
-                      </p>
+                      <Label>Plano</Label>
+                      <Select
+                        value={formData.planId || 'none'}
+                        onValueChange={(value) => handleSelectChange('planId', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um plano" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sem plano</SelectItem>
+                          {plans.map((plan) => (
+                            <SelectItem key={plan.id} value={plan.id}>
+                              {plan.name} {plan.price > 0 ? `- ${formatCurrency(plan.price)}` : '(Gratuito)'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-
                     <div className="space-y-2">
-                      <Label>Cashback Disponivel</Label>
-                      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                        <Wallet className="h-5 w-5 text-green-500" />
-                        <span className="text-2xl font-bold">
-                          R$ {Number(assinante?.cashback || 0).toFixed(2)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Cashback e creditado automaticamente nas compras
-                      </p>
+                      <Label>Status da Assinatura</Label>
+                      <Select
+                        value={formData.subscriptionStatus}
+                        onValueChange={(value) => handleSelectChange('subscriptionStatus', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SUBSCRIPTION_STATUS.map((status) => (
+                            <SelectItem key={status.value} value={status.value}>
+                              {status.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="points">Pontos</Label>
+                      <Input
+                        id="points"
+                        name="points"
+                        type="number"
+                        value={formData.points}
+                        onChange={handleChange}
+                        min={0}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cashback">Cashback (R$)</Label>
+                      <Input
+                        id="cashback"
+                        name="cashback"
+                        type="number"
+                        step="0.01"
+                        value={formData.cashback}
+                        onChange={handleChange}
+                        min={0}
+                      />
                     </div>
                   </div>
+                </TabsContent>
 
-                  {assinante.qrCode && (
-                    <>
-                      <Separator />
-                      <div className="space-y-2">
-                        <Label>QR Code</Label>
-                        <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                          <QrCode className="h-5 w-5 text-muted-foreground" />
-                          <code className="text-sm">{assinante.qrCode}</code>
+                {/* Tab Endereço */}
+                <TabsContent value="endereco" className="mt-0 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="zipCode">CEP</Label>
+                      <Input
+                        id="zipCode"
+                        name="zipCode"
+                        value={formData.zipCode}
+                        onChange={handleChange}
+                        placeholder="00000-000"
+                        maxLength={9}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2 space-y-2">
+                      <Label htmlFor="address">Endereço</Label>
+                      <Input
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        placeholder="Rua, Avenida..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="number">Número</Label>
+                      <Input
+                        id="number"
+                        name="number"
+                        value={formData.number}
+                        onChange={handleChange}
+                        placeholder="Nº"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="complement">Complemento</Label>
+                      <Input
+                        id="complement"
+                        name="complement"
+                        value={formData.complement}
+                        onChange={handleChange}
+                        placeholder="Apto, Bloco..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="neighborhood">Bairro</Label>
+                      <Input
+                        id="neighborhood"
+                        name="neighborhood"
+                        value={formData.neighborhood}
+                        onChange={handleChange}
+                        placeholder="Bairro"
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Tab Transações */}
+                <TabsContent value="transacoes" className="mt-0">
+                  {(!assinante.transactions || assinante.transactions.length === 0) ? (
+                    <div className="text-center py-12">
+                      <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="font-semibold text-lg mb-2">Nenhuma transação</h3>
+                      <p className="text-muted-foreground">
+                        As transações do assinante aparecerão aqui quando ele realizar compras pelo app.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Resumo */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="p-3 bg-gray-50 rounded-lg text-center">
+                          <p className="text-2xl font-bold">{assinante.stats?.totalTransactions || 0}</p>
+                          <p className="text-xs text-muted-foreground">Total</p>
+                        </div>
+                        <div className="p-3 bg-blue-50 rounded-lg text-center">
+                          <p className="text-2xl font-bold text-blue-700">
+                            {formatCurrency(assinante.stats?.totalSpent || 0)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Gasto</p>
+                        </div>
+                        <div className="p-3 bg-green-50 rounded-lg text-center">
+                          <p className="text-2xl font-bold text-green-700">
+                            {formatCurrency(assinante.stats?.totalSaved || 0)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Economizado</p>
+                        </div>
+                        <div className="p-3 bg-yellow-50 rounded-lg text-center">
+                          <p className="text-2xl font-bold text-yellow-700">
+                            {formatCurrency(assinante.stats?.totalCashback || 0)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Cashback</p>
                         </div>
                       </div>
-                    </>
+
+                      {/* Tabela */}
+                      <div className="border rounded-lg overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Tipo</TableHead>
+                              <TableHead>Parceiro</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                              <TableHead className="text-right">Desconto</TableHead>
+                              <TableHead>Data</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {assinante.transactions.map((transaction) => {
+                              const typeConfig = TRANSACTION_TYPES[transaction.type] || {
+                                label: transaction.type,
+                                icon: Receipt,
+                                color: 'text-gray-600'
+                              }
+                              const TypeIcon = typeConfig.icon
+
+                              return (
+                                <TableRow key={transaction.id}>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <TypeIcon className={`h-4 w-4 ${typeConfig.color}`} />
+                                      <span className="text-sm">{typeConfig.label}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    {transaction.parceiro ? (
+                                      <div className="flex items-center gap-2">
+                                        {transaction.parceiro.logo ? (
+                                          <Image
+                                            src={transaction.parceiro.logo}
+                                            alt=""
+                                            width={24}
+                                            height={24}
+                                            className="rounded"
+                                          />
+                                        ) : (
+                                          <Building2 className="h-4 w-4 text-gray-400" />
+                                        )}
+                                        <span className="text-sm">
+                                          {transaction.parceiro.tradeName || transaction.parceiro.companyName}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <span className="text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right font-medium">
+                                    {formatCurrency(Number(transaction.amount))}
+                                  </TableCell>
+                                  <TableCell className="text-right text-green-600">
+                                    {Number(transaction.discountApplied) > 0
+                                      ? `-${formatCurrency(Number(transaction.discountApplied))}`
+                                      : '-'}
+                                  </TableCell>
+                                  <TableCell className="text-sm text-muted-foreground">
+                                    {formatDate(transaction.createdAt)}
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
                   )}
                 </TabsContent>
-              </Tabs>
-            </CardContent>
+              </CardContent>
+            </Tabs>
           </Card>
         </div>
       </div>
+
+      {/* Modal QR Code */}
+      <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">QR Code do Assinante</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center py-6">
+            <div className="p-6 bg-white rounded-2xl border shadow-sm">
+              <QRCodeSVG
+                value={assinante.qrCode}
+                size={250}
+                level="H"
+                includeMargin
+              />
+            </div>
+            <div className="mt-4 text-center">
+              <p className="font-mono text-lg font-bold">{assinante.qrCode}</p>
+              <p className="text-sm text-muted-foreground mt-1">{assinante.name}</p>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <Button variant="outline" onClick={copyQRCode}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copiar Código
+              </Button>
+              <Button>
+                <Download className="h-4 w-4 mr-2" />
+                Baixar QR Code
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
