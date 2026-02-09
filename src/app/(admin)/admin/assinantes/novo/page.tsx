@@ -15,7 +15,18 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, Loader2, Save, User } from 'lucide-react'
+import {
+    ArrowLeft,
+    Loader2,
+    Save,
+    User,
+    CreditCard,
+    MapPin,
+    Lock,
+    Eye,
+    EyeOff,
+    Mail
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Plan {
@@ -38,9 +49,13 @@ const SUBSCRIPTION_STATUS = [
 
 export default function NovoAssinantePage() {
     const router = useRouter()
-    const [loading, setLoading] = useState(false)
+
+    // Estados de dados
     const [plans, setPlans] = useState<Plan[]>([])
     const [cities, setCities] = useState<City[]>([])
+    const [loadingData, setLoadingData] = useState(true)
+    const [saving, setSaving] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState('')
 
     const [formData, setFormData] = useState({
@@ -48,24 +63,25 @@ export default function NovoAssinantePage() {
         email: '',
         cpf: '',
         phone: '',
+        password: '',
         planId: '',
         cityId: '',
         subscriptionStatus: 'PENDING',
-        password: ''
     })
 
     // Carregar planos e cidades
     useEffect(() => {
         const fetchData = async () => {
             try {
+                setLoadingData(true)
                 const [plansRes, citiesRes] = await Promise.all([
-                    fetch('/api/admin/planos'),
+                    fetch('/api/admin/plans'),
                     fetch('/api/admin/cities')
                 ])
 
                 if (plansRes.ok) {
                     const data = await plansRes.json()
-                    setPlans(Array.isArray(data) ? data : data.plans || [])
+                    setPlans(Array.isArray(data) ? data : data.data || [])
                 }
 
                 if (citiesRes.ok) {
@@ -74,24 +90,15 @@ export default function NovoAssinantePage() {
                 }
             } catch (error) {
                 console.error('Erro ao carregar dados:', error)
+            } finally {
+                setLoadingData(false)
             }
         }
 
         fetchData()
     }, [])
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
-        setError('')
-    }
-
-    const handleSelectChange = (name: string, value: string) => {
-        setFormData(prev => ({ ...prev, [name]: value }))
-        setError('')
-    }
-
-    // Formatar CPF
+    // Formatadores
     const formatCPF = (value: string) => {
         const numbers = value.replace(/\D/g, '')
         return numbers
@@ -101,7 +108,6 @@ export default function NovoAssinantePage() {
             .slice(0, 14)
     }
 
-    // Formatar telefone
     const formatPhone = (value: string) => {
         const numbers = value.replace(/\D/g, '')
         if (numbers.length <= 10) {
@@ -115,40 +121,56 @@ export default function NovoAssinantePage() {
             .slice(0, 15)
     }
 
-    const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({ ...prev, cpf: formatCPF(e.target.value) }))
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target
+
+        if (name === 'cpf') {
+            setFormData(prev => ({ ...prev, cpf: formatCPF(value) }))
+        } else if (name === 'phone') {
+            setFormData(prev => ({ ...prev, phone: formatPhone(value) }))
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }))
+        }
+        setError('')
     }
 
-    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({ ...prev, phone: formatPhone(e.target.value) }))
+    const handleSelectChange = (name: string, value: string) => {
+        setFormData(prev => ({ ...prev, [name]: value === 'none' ? '' : value }))
+        setError('')
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setLoading(true)
+        setSaving(true)
         setError('')
 
         try {
-            // Validações básicas
+            // Validações
             if (!formData.name.trim()) {
-                throw new Error('Nome é obrigatório')
+                throw new Error('Nome completo é obrigatório')
             }
-            if (!formData.email.trim()) {
-                throw new Error('Email é obrigatório')
+            if (!formData.email.includes('@')) {
+                throw new Error('E-mail válido é obrigatório')
             }
-            if (!formData.cpf.trim()) {
-                throw new Error('CPF é obrigatório')
+            if (!formData.cpf || formData.cpf.replace(/\D/g, '').length !== 11) {
+                throw new Error('CPF válido é obrigatório (11 dígitos)')
+            }
+            if (!formData.password || formData.password.length < 6) {
+                throw new Error('Senha é obrigatória (mínimo 6 caracteres)')
             }
 
             const response = await fetch('/api/admin/assinantes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    ...formData,
+                    name: formData.name.trim(),
+                    email: formData.email.trim().toLowerCase(),
                     cpf: formData.cpf.replace(/\D/g, ''),
                     phone: formData.phone.replace(/\D/g, ''),
+                    password: formData.password,
                     planId: formData.planId || null,
-                    cityId: formData.cityId || null
+                    cityId: formData.cityId || null,
+                    subscriptionStatus: formData.subscriptionStatus,
                 })
             })
 
@@ -158,14 +180,14 @@ export default function NovoAssinantePage() {
                 throw new Error(data.error || 'Erro ao criar assinante')
             }
 
-            toast.success('Assinante criado com sucesso!')
+            toast.success('Assinante criado com sucesso! E-mail de boas-vindas enviado.')
             router.push('/admin/assinantes')
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Erro ao criar assinante'
             setError(message)
             toast.error(message)
         } finally {
-            setLoading(false)
+            setSaving(false)
         }
     }
 
@@ -187,10 +209,18 @@ export default function NovoAssinantePage() {
                 </Button>
             </div>
 
+            {/* Aviso sobre email */}
+            <Alert>
+                <Mail className="h-4 w-4" />
+                <AlertDescription>
+                    Ao criar o assinante, um <strong>e-mail de boas-vindas</strong> será enviado automaticamente com os dados de acesso.
+                </AlertDescription>
+            </Alert>
+
             <form onSubmit={handleSubmit}>
-                <div className="grid gap-6 lg:grid-cols-2">
+                <div className="grid gap-6 lg:grid-cols-3">
                     {/* Dados Pessoais */}
-                    <Card>
+                    <Card className="lg:col-span-2">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <User className="h-5 w-5" />
@@ -229,14 +259,14 @@ export default function NovoAssinantePage() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="cpf">CPF *</Label>
                                     <Input
                                         id="cpf"
                                         name="cpf"
                                         value={formData.cpf}
-                                        onChange={handleCPFChange}
+                                        onChange={handleChange}
                                         placeholder="000.000.000-00"
                                         maxLength={14}
                                         required
@@ -249,25 +279,41 @@ export default function NovoAssinantePage() {
                                         id="phone"
                                         name="phone"
                                         value={formData.phone}
-                                        onChange={handlePhoneChange}
+                                        onChange={handleChange}
                                         placeholder="(00) 00000-0000"
                                         maxLength={15}
                                     />
                                 </div>
                             </div>
 
+                            {/* Senha OBRIGATÓRIA */}
                             <div className="space-y-2">
-                                <Label htmlFor="password">Senha (opcional)</Label>
-                                <Input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    placeholder="Deixe vazio para gerar automaticamente"
-                                />
+                                <Label htmlFor="password" className="flex items-center gap-2">
+                                    <Lock className="h-4 w-4" />
+                                    Senha *
+                                </Label>
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        name="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                        placeholder="Mínimo 6 caracteres"
+                                        required
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="absolute right-0 top-0 h-full px-3"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                </div>
                                 <p className="text-xs text-muted-foreground">
-                                    Se não informada, será gerada uma senha aleatória
+                                    O assinante receberá esta senha por e-mail.
                                 </p>
                             </div>
                         </CardContent>
@@ -276,36 +322,54 @@ export default function NovoAssinantePage() {
                     {/* Assinatura */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Assinatura</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <CreditCard className="h-5 w-5" />
+                                Assinatura
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {/* Plano */}
                             <div className="space-y-2">
-                                <Label htmlFor="planId">Plano</Label>
-                                <Select
-                                    value={formData.planId}
-                                    onValueChange={(value) => handleSelectChange('planId', value)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione um plano" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {plans.map((plan) => (
-                                            <SelectItem key={plan.id} value={plan.id}>
-                                                {plan.name} - R$ {plan.price?.toFixed(2)}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Label>Plano</Label>
+                                {loadingData ? (
+                                    <div className="flex items-center gap-2 h-10 px-3 border rounded-md">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span className="text-sm text-muted-foreground">Carregando...</span>
+                                    </div>
+                                ) : (
+                                    <Select
+                                        value={formData.planId || 'none'}
+                                        onValueChange={(value) => handleSelectChange('planId', value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione um plano" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Sem plano</SelectItem>
+                                            {plans.map((plan) => (
+                                                <SelectItem key={plan.id} value={plan.id}>
+                                                    {plan.name} - R$ {Number(plan.price).toFixed(2)}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                                {!loadingData && plans.length === 0 && (
+                                    <p className="text-xs text-amber-600">
+                                        Nenhum plano encontrado. <Link href="/admin/planos/novo" className="underline">Criar plano</Link>
+                                    </p>
+                                )}
                             </div>
 
+                            {/* Status */}
                             <div className="space-y-2">
-                                <Label htmlFor="subscriptionStatus">Status</Label>
+                                <Label>Status</Label>
                                 <Select
                                     value={formData.subscriptionStatus}
                                     onValueChange={(value) => handleSelectChange('subscriptionStatus', value)}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Selecione o status" />
+                                        <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {SUBSCRIPTION_STATUS.map((status) => (
@@ -317,23 +381,35 @@ export default function NovoAssinantePage() {
                                 </Select>
                             </div>
 
+                            {/* Cidade */}
                             <div className="space-y-2">
-                                <Label htmlFor="cityId">Cidade</Label>
-                                <Select
-                                    value={formData.cityId}
-                                    onValueChange={(value) => handleSelectChange('cityId', value)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione a cidade" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {cities.map((city) => (
-                                            <SelectItem key={city.id} value={city.id}>
-                                                {city.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Label className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4" />
+                                    Cidade
+                                </Label>
+                                {loadingData ? (
+                                    <div className="flex items-center gap-2 h-10 px-3 border rounded-md">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span className="text-sm text-muted-foreground">Carregando...</span>
+                                    </div>
+                                ) : (
+                                    <Select
+                                        value={formData.cityId || 'none'}
+                                        onValueChange={(value) => handleSelectChange('cityId', value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione a cidade" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Não informada</SelectItem>
+                                            {cities.map((city) => (
+                                                <SelectItem key={city.id} value={city.id}>
+                                                    {city.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -344,8 +420,8 @@ export default function NovoAssinantePage() {
                     <Button type="button" variant="outline" asChild>
                         <Link href="/admin/assinantes">Cancelar</Link>
                     </Button>
-                    <Button type="submit" disabled={loading}>
-                        {loading ? (
+                    <Button type="submit" disabled={saving}>
+                        {saving ? (
                             <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                 Salvando...
