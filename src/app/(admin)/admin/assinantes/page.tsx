@@ -22,11 +22,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { 
-  Plus, 
-  MoreHorizontal, 
-  Pencil, 
-  Trash2, 
+import {
+  Plus,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
   Eye,
   User,
   MapPin,
@@ -168,22 +168,22 @@ export default function AssinantesPage() {
     return assinantes.filter(assinante => {
       // Busca
       const searchLower = search.toLowerCase()
-      const matchesSearch = !search || 
+      const matchesSearch = !search ||
         assinante.name?.toLowerCase().includes(searchLower) ||
         assinante.cpf?.includes(search) ||
         assinante.user?.email?.toLowerCase().includes(searchLower) ||
         assinante.phone?.includes(search)
 
       // Status
-      const matchesStatus = filterValues.status === 'all' || 
+      const matchesStatus = filterValues.status === 'all' ||
         assinante.subscriptionStatus === filterValues.status
 
       // Plano
-      const matchesPlan = filterValues.plan === 'all' || 
+      const matchesPlan = filterValues.plan === 'all' ||
         assinante.plan?.id === filterValues.plan
 
       // Cidade
-      const matchesCity = filterValues.city === 'all' || 
+      const matchesCity = filterValues.city === 'all' ||
         assinante.city?.id === filterValues.city
 
       return matchesSearch && matchesStatus && matchesPlan && matchesCity
@@ -223,10 +223,10 @@ export default function AssinantesPage() {
     }
   }
 
-  const isAllSelected = filteredAssinantes.length > 0 && 
+  const isAllSelected = filteredAssinantes.length > 0 &&
     selectedIds.length === filteredAssinantes.length
 
-  const isIndeterminate = selectedIds.length > 0 && 
+  const isIndeterminate = selectedIds.length > 0 &&
     selectedIds.length < filteredAssinantes.length
 
   // Ações em lote
@@ -380,7 +380,7 @@ export default function AssinantesPage() {
             <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="font-semibold text-lg mb-2">Nenhum assinante encontrado</h3>
             <p className="text-muted-foreground mb-4">
-              {assinantes.length === 0 
+              {assinantes.length === 0
                 ? 'Comece adicionando seu primeiro assinante.'
                 : 'Tente ajustar os filtros para encontrar o que procura.'}
             </p>
@@ -423,7 +423,7 @@ export default function AssinantesPage() {
               </TableHeader>
               <TableBody>
                 {filteredAssinantes.map((assinante) => (
-                  <TableRow 
+                  <TableRow
                     key={assinante.id}
                     className={selectedIds.includes(assinante.id) ? 'bg-blue-50' : ''}
                   >
@@ -496,12 +496,6 @@ export default function AssinantesPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
                             <Link href={`/admin/assinantes/${assinante.id}`}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Visualizar
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/assinantes/${assinante.id}/editar`}>
                               <Pencil className="h-4 w-4 mr-2" />
                               Editar
                             </Link>
@@ -545,7 +539,7 @@ export default function AssinantesPage() {
           </Card>
 
           {filteredAssinantes.map((assinante) => (
-            <Card 
+            <Card
               key={assinante.id}
               className={selectedIds.includes(assinante.id) ? 'border-blue-500 bg-blue-50' : ''}
             >
@@ -556,7 +550,7 @@ export default function AssinantesPage() {
                     onCheckedChange={(checked) => handleSelectItem(assinante.id, checked === true)}
                     className="mt-1"
                   />
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3">
@@ -578,7 +572,7 @@ export default function AssinantesPage() {
                           <p className="text-sm text-muted-foreground">{formatCPF(assinante.cpf)}</p>
                         </div>
                       </div>
-                      
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -588,12 +582,6 @@ export default function AssinantesPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
                             <Link href={`/admin/assinantes/${assinante.id}`}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Visualizar
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/assinantes/${assinante.id}/editar`}>
                               <Pencil className="h-4 w-4 mr-2" />
                               Editar
                             </Link>
