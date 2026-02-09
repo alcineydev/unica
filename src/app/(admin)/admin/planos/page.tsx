@@ -270,7 +270,6 @@ export default function PlanosPage() {
         selectedIds={selectedIds}
         actions={bulkActions}
         itemType="plano"
-        itemNames={filteredPlans.filter(p => selectedIds.includes(p.id)).map(p => p.name)}
         onClearSelection={() => { setSelectedIds([]); setSelectAll(false) }}
       />
 
