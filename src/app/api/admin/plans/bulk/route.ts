@@ -71,7 +71,6 @@ export async function POST(request: NextRequest) {
                             isActive: false, // Cópia começa desativada
                             slug: `${plan.slug}-copia-${Date.now()}`,
                             features: plan.features,
-                            maxBenefits: plan.maxBenefits,
                             // Copiar benefícios associados
                             planBenefits: {
                                 create: plan.planBenefits.map(pb => ({
