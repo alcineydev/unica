@@ -147,7 +147,8 @@ export async function POST(request: NextRequest) {
                     planId: planId || null,
                     cityId: cityId || null,
                     points: 0,
-                    cashback: 0
+                    cashback: 0,
+                    qrCode: `UNICA-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`.toUpperCase()
                 },
                 include: {
                     user: {
@@ -165,12 +166,17 @@ export async function POST(request: NextRequest) {
         // Enviar email de boas-vindas
         try {
             const emailService = getEmailService()
-            if (emailService && result.assinante.plan) {
+            const assinante = result.assinante as typeof result.assinante & {
+                plan: { name: string } | null
+                user: { email: string }
+            }
+
+            if (emailService && assinante.plan) {
                 await emailService.sendWelcomeEmail(
-                    result.assinante.user.email,
+                    assinante.user.email,
                     {
-                        name: result.assinante.name,
-                        planName: (result.assinante.plan as { name: string }).name
+                        name: assinante.name,
+                        planName: assinante.plan.name
                     }
                 )
             }
