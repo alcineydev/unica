@@ -83,6 +83,7 @@ const navigation: NavItem[] = [
     children: [
       { label: 'Meu Perfil', href: '/admin/configuracoes' },
       { label: 'Integrações', href: '/admin/integracoes' },
+      { label: 'Páginas', href: '/admin/configuracoes/paginas' },
       { label: 'Cron Vencimentos', href: '/admin/cron' },
       { label: 'Diagnóstico Push', href: '/admin/diagnostics/push' },
     ]

@@ -48,6 +48,7 @@ model User {
   pushSubscriptions      PushSubscription[]
   adminPushNotifications AdminPushNotification[]
   passwordResetTokens    PasswordResetToken[]
+  termsConsents          TermsConsent[]
 
   @@index([role])
   @@index([isActive])
@@ -669,4 +670,40 @@ model PasswordResetToken {
   @@index([token])
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+// ==========================================
+// PÁGINAS LEGAIS
+// ==========================================
+
+model LegalPage {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  content   String   @db.Text
+  isActive  Boolean  @default(true)
+  version   Int      @default(1)
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  consents  TermsConsent[]
+
+  @@map("legal_pages")
+}
+
+model TermsConsent {
+  id          String   @id @default(cuid())
+  userId      String
+  legalPageId String
+  pageVersion Int
+  ipAddress   String?
+  userAgent   String?
+  acceptedAt  DateTime @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  legalPage   LegalPage @relation(fields: [legalPageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, legalPageId])
+  @@map("terms_consents")
 }
