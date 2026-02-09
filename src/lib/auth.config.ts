@@ -17,9 +17,9 @@ export const authConfig: NextAuthConfig = {
 
       // Rotas públicas
       const publicRoutes = ['/', '/login', '/cadastro', '/interesse-parceiro', '/recuperar-senha', '/redefinir-senha']
-      const publicPrefixes = ['/planos', '/checkout/', '/checkout', '/api/public', '/api/checkout', '/api/webhooks', '/api/manifest', '/api/auth', '/sw.js', '/icons/', '/recuperar-senha', '/redefinir-senha']
-      
-      const isPublicRoute = publicRoutes.includes(pathname) || 
+      const publicPrefixes = ['/planos', '/checkout/', '/checkout', '/termos', '/privacidade', '/aviso-legal', '/api/public', '/api/checkout', '/api/webhooks', '/api/manifest', '/api/auth', '/sw.js', '/icons/', '/recuperar-senha', '/redefinir-senha']
+
+      const isPublicRoute = publicRoutes.includes(pathname) ||
         publicPrefixes.some(prefix => pathname.startsWith(prefix))
 
       // Se é rota pública, permite acesso
@@ -57,13 +57,13 @@ export const authConfig: NextAuthConfig = {
         token.name = user.name
         token.avatar = user.avatar
       }
-      
+
       // Permitir atualização da sessão (para atualizar avatar/nome)
       if (trigger === 'update' && session) {
         if (session.user?.name) token.name = session.user.name
         if (session.user?.avatar !== undefined) token.avatar = session.user.avatar
       }
-      
+
       return token
     },
     session({ session, token }) {

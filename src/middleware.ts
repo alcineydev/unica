@@ -15,12 +15,13 @@ export const config = {
      * - api/webhooks (webhook routes)
      * - planos (public plans page)
      * - checkout (checkout pages)
+     * - termos, privacidade, aviso-legal (legal pages)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder assets
      */
-    '/((?!api/auth|api/public|api/checkout|api/webhooks|api/manifest|sw\\.js|planos|checkout|recuperar-senha|redefinir-senha|_next/static|_next/image|favicon.ico|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api/auth|api/public|api/checkout|api/webhooks|api/manifest|sw\\.js|planos|checkout|termos|privacidade|aviso-legal|recuperar-senha|redefinir-senha|_next/static|_next/image|favicon.ico|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
 
