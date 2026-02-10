@@ -1,33 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { toast } from 'sonner'
-import {
-  Plus,
-  Gift,
-  Pencil,
-  Trash2,
-  Loader2,
-  Search,
-  MoreHorizontal,
-  Power,
-  PowerOff,
-  Percent,
-  RefreshCcw,
-  Coins,
-  Star,
-} from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
+import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -36,14 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,31 +28,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Skeleton } from '@/components/ui/skeleton'
-import { BENEFIT_TYPES, PARTNER_CATEGORIES } from '@/constants'
-
-// Schema de validação
-const benefitSchema = z.object({
-  name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-  description: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres'),
-  type: z.enum(['DESCONTO', 'CASHBACK', 'PONTOS', 'ACESSO_EXCLUSIVO']),
-  category: z.string().optional(),
-  // Campos específicos por tipo
-  percentage: z.number().min(0.1).max(100).optional(),
-  monthlyPoints: z.number().min(1).optional(),
-})
-
-type BenefitFormData = z.infer<typeof benefitSchema>
+  Plus,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Loader2,
+  Gift,
+  Search,
+  X,
+  CheckCircle,
+  XCircle,
+  Filter,
+  Percent,
+  RefreshCcw,
+  Coins,
+  Star,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { BulkActionsToolbar, BulkAction } from '@/components/admin/bulk-actions/bulk-actions-toolbar'
+import { BENEFIT_TYPES } from '@/constants'
 
 interface Benefit {
   id: string
@@ -92,8 +58,7 @@ interface Benefit {
   value: Record<string, unknown>
   category: string | null
   isActive: boolean
-  createdAt: string
-  _count: {
+  _count?: {
     planBenefits: number
     benefitAccess: number
   }
@@ -115,42 +80,32 @@ const typeColors = {
 
 export default function BeneficiosPage() {
   const [benefits, setBenefits] = useState<Benefit[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filterType, setFilterType] = useState<string>('all')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedBenefit, setSelectedBenefit] = useState<Benefit | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState('all')
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<BenefitFormData>({
-    resolver: zodResolver(benefitSchema),
-  })
+  // Estados de seleção
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectAll, setSelectAll] = useState(false)
 
-  const watchType = watch('type')
-
-  // Buscar benefícios
+  // Carregar benefícios
   const fetchBenefits = useCallback(async () => {
     try {
+      setLoading(true)
       const response = await fetch('/api/admin/benefits?includeInactive=true')
       const result = await response.json()
-      
+
       if (response.ok) {
-        setBenefits(result.data)
+        setBenefits(Array.isArray(result) ? result : result.data || [])
       } else {
         toast.error(result.error || 'Erro ao carregar benefícios')
       }
-    } catch {
+    } catch (error) {
+      console.error('Erro ao carregar benefícios:', error)
       toast.error('Erro ao carregar benefícios')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }, [])
 
@@ -158,149 +113,93 @@ export default function BeneficiosPage() {
     fetchBenefits()
   }, [fetchBenefits])
 
-  // Abrir modal para criar
-  function handleCreate() {
-    setSelectedBenefit(null)
-    reset({
-      name: '',
-      description: '',
-      type: 'DESCONTO',
-      category: '',
-      percentage: 10,
-      monthlyPoints: 50,
-    })
-    setIsDialogOpen(true)
+  // Filtrar benefícios
+  const filteredBenefits = benefits.filter(benefit => {
+    // Filtro de busca
+    const matchesSearch = search === '' ||
+      benefit.name.toLowerCase().includes(search.toLowerCase()) ||
+      benefit.description?.toLowerCase().includes(search.toLowerCase())
+
+    // Filtro de status
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'active' && benefit.isActive) ||
+      (statusFilter === 'inactive' && !benefit.isActive)
+
+    // Filtro de tipo
+    const matchesType = typeFilter === 'all' ||
+      benefit.type === typeFilter
+
+    return matchesSearch && matchesStatus && matchesType
+  })
+
+  // Handlers de seleção
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
   }
 
-  // Abrir modal para editar
-  function handleEdit(benefit: Benefit) {
-    setSelectedBenefit(benefit)
-    const value = benefit.value as Record<string, number | string>
-    reset({
-      name: benefit.name,
-      description: benefit.description,
-      type: benefit.type,
-      category: benefit.category || '',
-      percentage: (value.percentage as number) || 10,
-      monthlyPoints: (value.monthlyPoints as number) || 50,
-    })
-    setIsDialogOpen(true)
-  }
-
-  // Abrir confirmação de exclusão
-  function handleDeleteClick(benefit: Benefit) {
-    setSelectedBenefit(benefit)
-    setIsDeleteDialogOpen(true)
-  }
-
-  // Salvar benefício
-  async function onSubmit(data: BenefitFormData) {
-    setIsSubmitting(true)
-
-    // Monta o objeto value baseado no tipo
-    let value: Record<string, unknown> = {}
-    switch (data.type) {
-      case 'DESCONTO':
-        value = { percentage: data.percentage, category: data.category }
-        break
-      case 'CASHBACK':
-        value = { percentage: data.percentage }
-        break
-      case 'PONTOS':
-        value = { monthlyPoints: data.monthlyPoints }
-        break
-      case 'ACESSO_EXCLUSIVO':
-        value = { tier: 'premium' }
-        break
+  const toggleSelectAll = () => {
+    if (selectAll) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(filteredBenefits.map(b => b.id))
     }
+    setSelectAll(!selectAll)
+  }
 
-    const payload = {
-      name: data.name,
-      description: data.description,
-      type: data.type,
-      value,
-      category: data.type === 'DESCONTO' ? data.category : null,
-    }
+  // Limpar seleção quando filtros mudam
+  useEffect(() => {
+    setSelectedIds([])
+    setSelectAll(false)
+  }, [search, statusFilter, typeFilter])
 
+  // Ações em lote
+  const handleBulkAction = async (action: string) => {
     try {
-      const url = selectedBenefit 
-        ? `/api/admin/benefits/${selectedBenefit.id}` 
-        : '/api/admin/benefits'
-      
-      const method = selectedBenefit ? 'PATCH' : 'POST'
-
-      const response = await fetch(url, {
-        method,
+      const response = await fetch('/api/admin/benefits/bulk', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ action, ids: selectedIds })
       })
 
-      const result = await response.json()
+      const data = await response.json()
 
-      if (response.ok) {
-        toast.success(selectedBenefit ? 'Benefício atualizado!' : 'Benefício criado!')
-        setIsDialogOpen(false)
-        fetchBenefits()
-      } else {
-        toast.error(result.error || 'Erro ao salvar benefício')
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro na operação')
       }
-    } catch {
-      toast.error('Erro ao salvar benefício')
-    } finally {
-      setIsSubmitting(false)
+
+      toast.success(data.message)
+      setSelectedIds([])
+      setSelectAll(false)
+      fetchBenefits()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro na operação')
     }
   }
 
-  // Excluir benefício
-  async function handleDelete() {
-    if (!selectedBenefit) return
-
-    setIsSubmitting(true)
+  // Excluir individual
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este benefício?')) return
 
     try {
-      const response = await fetch(`/api/admin/benefits/${selectedBenefit.id}`, {
-        method: 'DELETE',
+      const response = await fetch(`/api/admin/benefits/${id}`, {
+        method: 'DELETE'
       })
 
-      const result = await response.json()
-
-      if (response.ok) {
-        toast.success('Benefício excluído!')
-        setIsDeleteDialogOpen(false)
-        fetchBenefits()
-      } else {
-        toast.error(result.error || 'Erro ao excluir benefício')
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erro ao excluir')
       }
-    } catch {
-      toast.error('Erro ao excluir benefício')
-    } finally {
-      setIsSubmitting(false)
+
+      toast.success('Benefício excluído com sucesso')
+      fetchBenefits()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao excluir')
     }
   }
 
-  // Alternar status
-  async function handleToggleStatus(benefit: Benefit) {
-    try {
-      const response = await fetch(`/api/admin/benefits/${benefit.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !benefit.isActive }),
-      })
-
-      const result = await response.json()
-
-      if (response.ok) {
-        toast.success(benefit.isActive ? 'Benefício desativado!' : 'Benefício ativado!')
-        fetchBenefits()
-      } else {
-        toast.error(result.error || 'Erro ao alterar status')
-      }
-    } catch {
-      toast.error('Erro ao alterar status')
-    }
-  }
-
-  // Formatar valor para exibição
+  // Formatador de valor
   function formatValue(benefit: Benefit): string {
     const value = benefit.value as Record<string, number | string>
     switch (benefit.type) {
@@ -316,165 +215,207 @@ export default function BeneficiosPage() {
     }
   }
 
-  // Filtrar benefícios
-  const filteredBenefits = benefits.filter(benefit => {
-    const matchesSearch = benefit.name.toLowerCase().includes(search.toLowerCase()) ||
-      benefit.description.toLowerCase().includes(search.toLowerCase())
-    const matchesType = filterType === 'all' || benefit.type === filterType
-    return matchesSearch && matchesType
-  })
+  // Definir ações em lote
+  const bulkActions: BulkAction[] = [
+    {
+      id: 'activate',
+      label: 'Ativar',
+      icon: <CheckCircle className="h-4 w-4" />,
+      variant: 'success',
+      onClick: async () => { await handleBulkAction('activate') }
+    },
+    {
+      id: 'deactivate',
+      label: 'Desativar',
+      icon: <XCircle className="h-4 w-4" />,
+      variant: 'warning',
+      onClick: async () => { await handleBulkAction('deactivate') }
+    },
+    {
+      id: 'delete',
+      label: 'Excluir',
+      icon: <Trash2 className="h-4 w-4" />,
+      variant: 'destructive',
+      requiresConfirmation: true,
+      onClick: async () => { await handleBulkAction('delete') }
+    }
+  ]
+
+  // Contar filtros ativos
+  const activeFiltersCount = [
+    statusFilter !== 'all',
+    typeFilter !== 'all',
+    search !== ''
+  ].filter(Boolean).length
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header responsivo */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold">Benefícios</h1>
-          <p className="text-sm text-muted-foreground">Crie e gerencie os benefícios modulares do sistema</p>
+          <h1 className="text-2xl font-bold">Benefícios</h1>
+          <p className="text-muted-foreground">Gerencie os benefícios do clube</p>
         </div>
-        <Button onClick={handleCreate} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Benefício
+        <Button asChild>
+          <Link href="/admin/beneficios/novo">
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Benefício
+          </Link>
         </Button>
       </div>
 
-      {/* Filtros responsivos */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar benefício..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os tipos</SelectItem>
-            {Object.entries(BENEFIT_TYPES).map(([key, value]) => (
-              <SelectItem key={key} value={key}>
-                {value.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Toolbar de Ações em Lote */}
+      <BulkActionsToolbar
+        selectedIds={selectedIds}
+        actions={bulkActions}
+        itemType="benefício"
+        onClearSelection={() => { setSelectedIds([]); setSelectAll(false) }}
+      />
 
-      {/* Listagem */}
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : filteredBenefits.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Gift className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">
-              {search || filterType !== 'all' ? 'Nenhum benefício encontrado' : 'Nenhum benefício cadastrado'}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {/* Mobile: Cards */}
-          <div className="lg:hidden space-y-3">
-            {filteredBenefits.map((benefit) => {
-              const Icon = typeIcons[benefit.type]
-              return (
-                <Card key={benefit.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className={cn(
-                          "p-2 rounded-lg flex-shrink-0",
-                          typeColors[benefit.type]
-                        )}>
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-medium truncate">{benefit.name}</p>
-                            <Badge variant={benefit.isActive ? "default" : "secondary"} className={benefit.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
-                              {benefit.isActive ? 'Ativo' : 'Inativo'}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-green-600 font-medium">
-                            {formatValue(benefit)}
-                          </p>
-                          {benefit.description && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{benefit.description}</p>
-                          )}
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {benefit._count.planBenefits} planos usando
-                          </p>
-                        </div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(benefit)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleToggleStatus(benefit)}>
-                            {benefit.isActive ? (
-                              <>
-                                <PowerOff className="mr-2 h-4 w-4" />
-                                Desativar
-                              </>
-                            ) : (
-                              <>
-                                <Power className="mr-2 h-4 w-4" />
-                                Ativar
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleDeleteClick(benefit)} className="text-red-600">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+      {/* Filtros */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Busca */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome ou descrição..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+              {search && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setSearch('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Filtro de Status */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="active">Ativos</SelectItem>
+                <SelectItem value="inactive">Inativos</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Filtro de Tipo */}
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                {Object.entries(BENEFIT_TYPES).map(([key, value]) => (
+                  <SelectItem key={key} value={key}>
+                    {value.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Desktop: Table */}
-          <div className="hidden lg:block rounded-lg border overflow-hidden">
-            <Table>
-              <TableHeader>
+          {/* Resumo de filtros */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="flex items-center gap-2">
+              {activeFiltersCount > 0 && (
+                <>
+                  <Badge variant="secondary">
+                    <Filter className="h-3 w-3 mr-1" />
+                    {activeFiltersCount} filtro(s)
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearch('')
+                      setStatusFilter('all')
+                      setTypeFilter('all')
+                    }}
+                  >
+                    Limpar filtros
+                  </Button>
+                </>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {filteredBenefits.length} de {benefits.length} benefício(s)
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabela Desktop */}
+      <div className="hidden md:block">
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectAll && filteredBenefits.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Selecionar todos"
+                  />
+                </TableHead>
+                <TableHead>Benefício</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead className="text-center">Planos</TableHead>
+                <TableHead className="text-center">Parceiros</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="w-12"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredBenefits.length === 0 ? (
                 <TableRow>
-                  <TableHead>Benefício</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead className="text-center">Planos</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="w-[70px]"></TableHead>
+                  <TableCell colSpan={8} className="text-center py-8">
+                    <Gift className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground">Nenhum benefício encontrado</p>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredBenefits.map((benefit) => {
+              ) : (
+                filteredBenefits.map((benefit) => {
                   const Icon = typeIcons[benefit.type]
                   return (
-                    <TableRow key={benefit.id}>
+                    <TableRow
+                      key={benefit.id}
+                      className={selectedIds.includes(benefit.id) ? 'bg-blue-50' : ''}
+                    >
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.includes(benefit.id)}
+                          onCheckedChange={() => toggleSelect(benefit.id)}
+                          aria-label={`Selecionar ${benefit.name}`}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div>
                           <p className="font-medium">{benefit.name}</p>
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {benefit.description}
-                          </p>
+                          {benefit.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {benefit.description}
+                            </p>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -483,14 +424,26 @@ export default function BeneficiosPage() {
                           {BENEFIT_TYPES[benefit.type].label}
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {formatValue(benefit)}
+                      <TableCell>
+                        <span className="font-medium text-green-600">
+                          {formatValue(benefit)}
+                        </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        {benefit._count.planBenefits}
+                        <Badge variant="outline">
+                          {benefit._count?.planBenefits || 0}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant={benefit.isActive ? 'default' : 'secondary'} className={benefit.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
+                        <Badge variant="outline">
+                          {benefit._count?.benefitAccess || 0}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant={benefit.isActive ? 'default' : 'secondary'}
+                          className={benefit.isActive ? 'bg-green-100 text-green-800' : ''}
+                        >
                           {benefit.isActive ? 'Ativo' : 'Inativo'}
                         </Badge>
                       </TableCell>
@@ -502,29 +455,19 @@ export default function BeneficiosPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(benefit)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleToggleStatus(benefit)}>
-                              {benefit.isActive ? (
-                                <>
-                                  <PowerOff className="mr-2 h-4 w-4" />
-                                  Desativar
-                                </>
-                              ) : (
-                                <>
-                                  <Power className="mr-2 h-4 w-4" />
-                                  Ativar
-                                </>
-                              )}
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/beneficios/${benefit.id}`}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Editar
+                              </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleDeleteClick(benefit)}
+                              onClick={() => handleDelete(benefit.id)}
+                              className="text-red-600"
+                              disabled={(benefit._count?.planBenefits || 0) > 0 || (benefit._count?.benefitAccess || 0) > 0}
                             >
-                              <Trash2 className="mr-2 h-4 w-4" />
+                              <Trash2 className="h-4 w-4 mr-2" />
                               Excluir
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -532,175 +475,138 @@ export default function BeneficiosPage() {
                       </TableCell>
                     </TableRow>
                   )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </>
-      )}
+                })
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
 
-      {/* Dialog Criar/Editar */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedBenefit ? 'Editar Benefício' : 'Novo Benefício'}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedBenefit 
-                ? 'Altere os dados do benefício' 
-                : 'Preencha os dados para criar um novo benefício'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome do Benefício</Label>
-              <Input
-                id="name"
-                placeholder="Ex: Desconto em Alimentação"
-                {...register('name')}
+      {/* Cards Mobile */}
+      <div className="md:hidden space-y-4">
+        {/* Card de Seleção */}
+        <Card
+          className={`cursor-pointer transition-colors ${selectAll ? 'bg-blue-50 border-blue-200' : ''}`}
+          onClick={toggleSelectAll}
+        >
+          <CardContent className="py-3">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={selectAll && filteredBenefits.length > 0}
+                onCheckedChange={toggleSelectAll}
               />
-              {errors.name && (
-                <p className="text-sm text-destructive">{errors.name.message}</p>
+              <span className="text-sm font-medium">
+                {selectAll ? 'Desmarcar todos' : 'Selecionar todos'}
+              </span>
+              {selectedIds.length > 0 && (
+                <Badge variant="secondary" className="ml-auto">
+                  {selectedIds.length} selecionado(s)
+                </Badge>
               )}
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                placeholder="Descreva o benefício..."
-                rows={3}
-                {...register('description')}
-              />
-              {errors.description && (
-                <p className="text-sm text-destructive">{errors.description.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tipo de Benefício</Label>
-              <Select
-                value={watchType}
-                onValueChange={(value) => setValue('type', value as BenefitFormData['type'])}
+        {filteredBenefits.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <Gift className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+              <p className="text-muted-foreground">Nenhum benefício encontrado</p>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredBenefits.map((benefit) => {
+            const Icon = typeIcons[benefit.type]
+            return (
+              <Card
+                key={benefit.id}
+                className={`cursor-pointer transition-colors ${selectedIds.includes(benefit.id) ? 'bg-blue-50 border-blue-200' : ''
+                  }`}
+                onClick={() => toggleSelect(benefit.id)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(BENEFIT_TYPES).map(([key, value]) => (
-                    <SelectItem key={key} value={key}>
-                      <div className="flex items-center gap-2">
-                        {value.label}
+                <CardContent className="py-4">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={selectedIds.includes(benefit.id)}
+                      onCheckedChange={() => toggleSelect(benefit.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+
+                    <div className={`p-2 rounded-lg flex-shrink-0 ${typeColors[benefit.type]}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-medium truncate">{benefit.name}</h3>
+                        <Badge
+                          variant={benefit.isActive ? 'default' : 'secondary'}
+                          className={benefit.isActive ? 'bg-green-100 text-green-800' : ''}
+                        >
+                          {benefit.isActive ? 'Ativo' : 'Inativo'}
+                        </Badge>
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
-            {/* Campos específicos por tipo */}
-            {(watchType === 'DESCONTO' || watchType === 'CASHBACK') && (
-              <div className="space-y-2">
-                <Label htmlFor="percentage">Percentual (%)</Label>
-                <Input
-                  id="percentage"
-                  type="number"
-                  step="0.1"
-                  min="0.1"
-                  max="100"
-                  {...register('percentage', { valueAsNumber: true })}
-                />
-              </div>
-            )}
+                      {benefit.description && (
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                          {benefit.description}
+                        </p>
+                      )}
 
-            {watchType === 'DESCONTO' && (
-              <div className="space-y-2">
-                <Label>Categoria (opcional)</Label>
-                <Select
-                  value={watch('category') || 'all'}
-                  onValueChange={(value) => setValue('category', value === 'all' ? '' : value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas as categorias" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as categorias</SelectItem>
-                    {PARTNER_CATEGORIES.map((cat) => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+                      <div className="flex items-center gap-3 text-sm">
+                        <Badge variant="outline" className="text-xs">
+                          {BENEFIT_TYPES[benefit.type].label}
+                        </Badge>
+                        <span className="font-medium text-green-600">
+                          {formatValue(benefit)}
+                        </span>
+                      </div>
 
-            {watchType === 'PONTOS' && (
-              <div className="space-y-2">
-                <Label htmlFor="monthlyPoints">Pontos Mensais</Label>
-                <Input
-                  id="monthlyPoints"
-                  type="number"
-                  min="1"
-                  {...register('monthlyPoints', { valueAsNumber: true })}
-                />
-              </div>
-            )}
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+                        <span>{benefit._count?.planBenefits || 0} planos</span>
+                        <span>•</span>
+                        <span>{benefit._count?.benefitAccess || 0} parceiros</span>
+                      </div>
+                    </div>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  'Salvar'
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Confirmar Exclusão */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o benefício <strong>{selectedBenefit?.name}</strong>?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Excluindo...
-                </>
-              ) : (
-                'Excluir'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/beneficios/${benefit.id}`}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Editar
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDelete(benefit.id)
+                          }}
+                          className="text-red-600"
+                          disabled={(benefit._count?.planBenefits || 0) > 0 || (benefit._count?.benefitAccess || 0) > 0}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })
+        )}
+      </div>
     </div>
   )
 }
