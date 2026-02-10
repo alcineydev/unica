@@ -3,9 +3,9 @@ import prisma from '@/lib/prisma'
 import { hash } from 'bcryptjs'
 import { findCustomerById } from '@/lib/asaas'
 import { logger } from '@/lib/logger'
-import { 
-  notifyNewSubscriber, 
-  notifyPaymentConfirmed, 
+import {
+  notifyNewSubscriber,
+  notifyPaymentConfirmed,
   notifyPaymentOverdue,
   sendPushToSubscriber,
   sendPushToAdmins
@@ -13,7 +13,7 @@ import {
 import { getEmailService } from '@/services/email'
 
 // Tipos dos eventos do Asaas
-type AsaasPaymentEvent = 
+type AsaasPaymentEvent =
   | 'PAYMENT_CREATED'
   | 'PAYMENT_CONFIRMED'
   | 'PAYMENT_RECEIVED'
@@ -63,15 +63,15 @@ interface AsaasWebhookPayload {
 export async function POST(request: NextRequest) {
   try {
     logger.info('[WEBHOOK ASAAS] ========== RECEBENDO WEBHOOK ==========')
-    
+
     // Log de headers relevantes para debug
     const relevantHeaders: Record<string, string> = {}
     const headerKeys = ['asaas-access-token', 'access_token', 'x-access-token', 'authorization', 'content-type', 'user-agent']
     headerKeys.forEach(key => {
       const value = request.headers.get(key)
       if (value) {
-        relevantHeaders[key] = key.toLowerCase().includes('token') || key === 'authorization' 
-          ? `${value.substring(0, 15)}...` 
+        relevantHeaders[key] = key.toLowerCase().includes('token') || key === 'authorization'
+          ? `${value.substring(0, 15)}...`
           : value
       }
     })
@@ -84,10 +84,10 @@ export async function POST(request: NextRequest) {
     const savedToken = webhookTokenConfig?.value?.trim() || ''
 
     // Pegar token da requisição (várias formas possíveis)
-    const headerToken = request.headers.get('asaas-access-token') || 
-                        request.headers.get('access_token') ||
-                        request.headers.get('x-access-token') ||
-                        request.headers.get('authorization')?.replace('Bearer ', '')
+    const headerToken = request.headers.get('asaas-access-token') ||
+      request.headers.get('access_token') ||
+      request.headers.get('x-access-token') ||
+      request.headers.get('authorization')?.replace('Bearer ', '')
     const queryToken = request.nextUrl.searchParams.get('access_token')
     const receivedToken = (headerToken || queryToken || '').trim()
 
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     // Parsear payload
     const payload: AsaasWebhookPayload = await request.json()
-    
+
     logger.info('[WEBHOOK ASAAS] Evento:', payload.event)
     if (payload.payment) {
       logger.info('[WEBHOOK ASAAS] Payment ID:', payload.payment.id, '| Status:', payload.payment.status)
@@ -212,7 +212,7 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
   // Se encontrou assinante criado no checkout, apenas ativar
   if (assinante) {
     logger.info('[WEBHOOK ASAAS] Assinante encontrado (criado no checkout):', assinante.id)
-    
+
     const now = new Date()
     const planEndDate = new Date(now)
     planEndDate.setMonth(planEndDate.getMonth() + 1)
@@ -295,6 +295,19 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
       logger.error('[WEBHOOK ASAAS] Erro ao enviar push para admins:', pushError)
     }
 
+    // Notificação admin - Pagamento confirmado
+    try {
+      const { notifyPaymentReceived } = await import('@/lib/admin-notifications')
+      await notifyPaymentReceived({
+        assinanteId: assinante.id,
+        assinanteName: assinante.name,
+        value: Number(payment.value)
+      })
+      logger.info('[WEBHOOK ASAAS] Notificação admin de pagamento criada')
+    } catch (notificationError) {
+      logger.error('[WEBHOOK ASAAS] Erro ao criar notificação admin:', notificationError)
+    }
+
     // Push de boas-vindas para o assinante
     try {
       await sendPushToSubscriber(
@@ -324,7 +337,7 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     logger.error('[WEBHOOK ASAAS] Erro ao buscar cliente no Asaas:', error)
     return
   }
-  
+
   if (!asaasCustomer) {
     logger.error('[WEBHOOK ASAAS] Cliente não encontrado no Asaas:', payment.customer)
     return
@@ -341,15 +354,15 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
   }
 
   // Buscar plano por ID ou slug
-  const plan = await prisma.plan.findFirst({ 
-    where: { 
+  const plan = await prisma.plan.findFirst({
+    where: {
       OR: [
         { id: planId },
         { slug: planId }
       ]
-    } 
+    }
   })
-  
+
   if (!plan) {
     logger.error('[WEBHOOK ASAAS] Plano não encontrado:', planId)
     return
@@ -385,7 +398,7 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     const now = new Date()
     const planEndDate = new Date(now)
     planEndDate.setMonth(planEndDate.getMonth() + 1)
-    
+
     const nextBillingDate = new Date(now)
     nextBillingDate.setMonth(nextBillingDate.getMonth() + 1)
 
@@ -424,7 +437,7 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     const now = new Date()
     const planEndDate = new Date(now)
     planEndDate.setMonth(planEndDate.getMonth() + 1)
-    
+
     const nextBillingDate = new Date(now)
     nextBillingDate.setMonth(nextBillingDate.getMonth() + 1)
 
@@ -447,7 +460,7 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     } else {
       // Criar assinante para usuário existente
       const qrCode = generateQRCode()
-      
+
       novoAssinante = await prisma.assinante.create({
         data: {
           userId: user.id,
@@ -505,7 +518,7 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
       assinanteId: novoAssinante.id,
       tipo: 'INFO',
       titulo: isNewUser ? '🎉 Bem-vindo ao UNICA!' : '✅ Pagamento Confirmado',
-      mensagem: isNewUser 
+      mensagem: isNewUser
         ? `Sua assinatura do plano ${plan.name} foi ativada com sucesso!`
         : `Seu pagamento do plano ${plan.name} foi confirmado!`,
       dados: {
@@ -533,7 +546,7 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     await sendPushToSubscriber(
       novoAssinante.id,
       isNewUser ? '🎉 Bem-vindo ao UNICA!' : '✅ Pagamento Confirmado',
-      isNewUser 
+      isNewUser
         ? `Seu plano ${plan.name} está ativo. Aproveite seus benefícios!`
         : `Seu pagamento do plano ${plan.name} foi confirmado!`,
       '/app/beneficios',
@@ -564,16 +577,16 @@ async function handlePaymentOverdue(payment: AsaasPaymentData) {
   // Fallback: buscar pela transação
   if (!assinante) {
     const existingTransaction = await prisma.transaction.findFirst({
-      where: { 
+      where: {
         metadata: {
           path: ['asaasPaymentId'],
           equals: payment.id
         }
       },
-      include: { 
+      include: {
         assinante: {
           include: { user: true, plan: true }
-        } 
+        }
       }
     })
     assinante = existingTransaction?.assinante || null
@@ -607,6 +620,19 @@ async function handlePaymentOverdue(payment: AsaasPaymentData) {
       logger.info('[WEBHOOK ASAAS] Push de vencimento enviado para admins')
     } catch (pushError) {
       logger.error('[WEBHOOK ASAAS] Erro ao enviar push de vencimento:', pushError)
+    }
+
+    // Notificação admin - Pagamento falhou
+    try {
+      const { notifyPaymentFailed } = await import('@/lib/admin-notifications')
+      await notifyPaymentFailed({
+        assinanteId: assinante.id,
+        assinanteName: assinante.name,
+        reason: 'Pagamento vencido'
+      })
+      logger.info('[WEBHOOK ASAAS] Notificação admin de falha criada')
+    } catch (notificationError) {
+      logger.error('[WEBHOOK ASAAS] Erro ao criar notificação admin:', notificationError)
     }
 
     // Push para assinante
@@ -767,7 +793,7 @@ async function handlePaymentRefunded(payment: AsaasPaymentData) {
 
   // Buscar e atualizar transação também
   const existingTransaction = await prisma.transaction.findFirst({
-    where: { 
+    where: {
       metadata: {
         path: ['asaasPaymentId'],
         equals: payment.id
@@ -822,7 +848,7 @@ async function handleSubscriptionCancelled(subscription: AsaasSubscriptionData) 
   // Buscar assinante pela referência externa
   const externalRef = subscription.externalReference || ''
   logger.info('[WEBHOOK ASAAS] Referência:', externalRef)
-  
+
   // Por enquanto, apenas log - o cancelamento efetivo pode ser feito 
   // quando o último pagamento vencer
 }
@@ -849,8 +875,8 @@ function generateQRCode(): string {
 }
 
 async function sendWelcomeNotifications(
-  customer: { name: string; email: string; phone?: string; mobilePhone?: string }, 
-  plan: { name: string }, 
+  customer: { name: string; email: string; phone?: string; mobilePhone?: string },
+  plan: { name: string },
   tempPassword: string,
   isNewUser: boolean = false
 ) {
@@ -960,7 +986,7 @@ async function sendWelcomeNotifications(
               text: message
             })
           })
-          
+
           logger.info('[WEBHOOK ASAAS] WhatsApp de boas-vindas enviado')
         }
       }
@@ -1003,7 +1029,7 @@ async function sendRenewalNotifications(customer: { name: string; phone?: string
               text: message
             })
           })
-          
+
           logger.info('[WEBHOOK ASAAS] WhatsApp de renovação enviado')
         }
       }
@@ -1015,8 +1041,8 @@ async function sendRenewalNotifications(customer: { name: string; phone?: string
 
 // GET - Apenas para teste
 export async function GET() {
-  return NextResponse.json({ 
-    status: 'ok', 
+  return NextResponse.json({
+    status: 'ok',
     message: 'Webhook Asaas ativo',
     timestamp: new Date().toISOString()
   })
