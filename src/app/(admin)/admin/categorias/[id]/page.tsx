@@ -39,7 +39,6 @@ export default function EditarCategoriaPage() {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        icon: '',
         banner: '',
         isActive: true,
     })
@@ -57,7 +56,6 @@ export default function EditarCategoriaPage() {
                 setFormData({
                     name: data.name || '',
                     description: data.description || '',
-                    icon: data.icon || '',
                     banner: data.banner || '',
                     isActive: data.isActive ?? true,
                 })
@@ -186,20 +184,7 @@ export default function EditarCategoriaPage() {
                                     />
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="icon">Ícone (Emoji)</Label>
-                                    <Input
-                                        id="icon"
-                                        name="icon"
-                                        value={formData.icon}
-                                        onChange={handleChange}
-                                        placeholder="🍔"
-                                        maxLength={4}
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        Cole um emoji para representar a categoria
-                                    </p>
-                                </div>
+
 
                                 <div className="space-y-2">
                                     <Label>Banner *</Label>
@@ -264,13 +249,21 @@ export default function EditarCategoriaPage() {
 
                                     {/* Card Preview */}
                                     <div className="flex items-center gap-3 p-3 border rounded-lg">
-                                        <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                            {formData.icon ? (
-                                                <span className="text-2xl">{formData.icon}</span>
-                                            ) : (
+                                        {formData.banner ? (
+                                            <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                                                <Image
+                                                    src={formData.banner}
+                                                    alt={formData.name}
+                                                    fill
+                                                    className="object-cover"
+                                                    unoptimized
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
                                                 <FolderOpen className="h-6 w-6 text-purple-600" />
-                                            )}
-                                        </div>
+                                            </div>
+                                        )}
                                         <div className="flex-1 min-w-0">
                                             <p className="font-medium truncate">{formData.name || 'Nome da categoria'}</p>
                                             <p className="text-sm text-muted-foreground line-clamp-1">
