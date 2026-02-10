@@ -4,7 +4,6 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import {
-  Bell,
   ChevronDown,
   User,
   Settings,
@@ -12,11 +11,11 @@ import {
   Menu
 } from 'lucide-react'
 import { useSidebar } from '@/contexts/sidebar-context'
+import { NotificationDropdown } from './notification-dropdown'
 
 export function AdminHeader() {
   const { data: session } = useSession()
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showNotifications, setShowNotifications] = useState(false)
   const { toggleMobile } = useSidebar()
 
   return (
@@ -36,32 +35,7 @@ export function AdminHeader() {
       {/* Right Side */}
       <div className="flex items-center gap-2">
         {/* Notifications */}
-        <div className="relative">
-          <button
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all relative"
-            aria-label="Abrir notificações"
-          >
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-          </button>
-
-          {showNotifications && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-              <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
-                <div className="p-4 border-b border-slate-100">
-                  <h3 className="font-semibold text-slate-900">Notificações</h3>
-                </div>
-                <div className="max-h-80 overflow-y-auto">
-                  <div className="p-4 text-center text-sm text-slate-500">
-                    Nenhuma notificação nova
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        <NotificationDropdown />
 
         {/* User Menu */}
         <div className="relative">
