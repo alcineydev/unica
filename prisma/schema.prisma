@@ -759,3 +759,56 @@ enum EmailCampaignStatus {
   FAILED
 }
 
+
+// ============================================
+// ADMIN NOTIFICATIONS (Sistema - Sininho)
+// ============================================
+
+model AdminNotification {
+  id          String                   @id @default(cuid())
+  
+  // Tipo de notificação
+  type        AdminNotificationType
+  
+  // Conteúdo
+  title       String
+  message     String
+  data        Json?                    // Dados extras (assinanteId, parceiroId, etc)
+  
+  // Link de ação
+  actionUrl   String?
+  
+  // Estado
+  isRead      Boolean                  @default(false)
+  readAt      DateTime?
+  
+  // Prioridade
+  priority    NotificationPriority     @default(NORMAL)
+  
+  // Timestamps
+  createdAt   DateTime                 @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([type])
+  @@map("admin_notifications")
+}
+
+enum AdminNotificationType {
+  NEW_SUBSCRIBER      // Novo assinante cadastrado
+  NEW_PARTNER         // Novo parceiro cadastrado
+  TRANSACTION         // Nova transação/uso de benefício
+  EXPIRING_SOON       // Assinatura vence em 7 dias
+  EXPIRING_TODAY      // Assinatura vence hoje
+  EXPIRED             // Assinatura expirou
+  PAYMENT_RECEIVED    // Pagamento confirmado
+  PAYMENT_FAILED      // Pagamento falhou
+  SYSTEM              // Notificação do sistema
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}

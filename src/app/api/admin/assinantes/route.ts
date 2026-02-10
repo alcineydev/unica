@@ -185,6 +185,23 @@ export async function POST(request: NextRequest) {
             // Não falha a criação se o email falhar
         }
 
+        // Criar notificação admin
+        try {
+            const { notifyNewSubscriber } = await import('@/lib/admin-notifications')
+            const assinante = result.assinante as typeof result.assinante & {
+                plan: { name: string } | null
+            }
+
+            await notifyNewSubscriber({
+                id: assinante.id,
+                name: assinante.name,
+                planName: assinante.plan?.name
+            })
+        } catch (notificationError) {
+            console.error('[ASSINANTE POST] Erro ao criar notificação:', notificationError)
+            // Não falha a criação se a notificação falhar
+        }
+
         return NextResponse.json({
             success: true,
             message: 'Assinante criado com sucesso',
