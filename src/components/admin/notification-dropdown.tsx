@@ -303,7 +303,7 @@ export function NotificationDropdown() {
                         asChild
                         onClick={() => setOpen(false)}
                     >
-                        <Link href="/admin/notificacoes">
+                        <Link href="/admin/notificacoes-sistema">
                             Ver todas as notificações
                             <ArrowRight className="h-4 w-4 ml-2" />
                         </Link>
