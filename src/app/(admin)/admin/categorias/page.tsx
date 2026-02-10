@@ -71,6 +71,12 @@ export default function CategoriasPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [selectAll, setSelectAll] = useState(false)
 
+  // Função para verificar se é URL válida
+  const isValidImageUrl = (url?: string) => {
+    if (!url) return false
+    return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')
+  }
+
   // Carregar categorias
   const fetchData = useCallback(async () => {
     try {
@@ -348,17 +354,17 @@ export default function CategoriasPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        {category.banner ? (
+                        {isValidImageUrl(category.banner) ? (
                           <Image
                             src={category.banner}
                             alt={category.name}
-                            width={80}
-                            height={20}
-                            className="rounded object-cover"
+                            width={40}
+                            height={40}
+                            className="rounded-lg object-cover"
                           />
                         ) : (
-                          <div className="w-20 h-5 rounded bg-purple-100 flex items-center justify-center">
-                            <FolderOpen className="h-3 w-3 text-purple-600" />
+                          <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                            <FolderOpen className="h-5 w-5 text-purple-600" />
                           </div>
                         )}
                         <div>
@@ -467,17 +473,17 @@ export default function CategoriasPage() {
                     onClick={(e) => e.stopPropagation()}
                   />
 
-                  {category.banner ? (
+                  {isValidImageUrl(category.banner) ? (
                     <Image
                       src={category.banner}
                       alt={category.name}
-                      width={120}
-                      height={30}
-                      className="rounded object-cover flex-shrink-0"
+                      width={48}
+                      height={48}
+                      className="rounded-lg object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-30 h-8 rounded bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <FolderOpen className="h-5 w-5 text-purple-600" />
+                    <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <FolderOpen className="h-6 w-6 text-purple-600" />
                     </div>
                   )}
 

@@ -36,6 +36,12 @@ export default function EditarCategoriaPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
 
+    // Função para verificar se é URL válida
+    const isValidImageUrl = (url?: string) => {
+        if (!url) return false
+        return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')
+    }
+
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -249,7 +255,7 @@ export default function EditarCategoriaPage() {
 
                                     {/* Card Preview */}
                                     <div className="flex items-center gap-3 p-3 border rounded-lg">
-                                        {formData.banner ? (
+                                        {isValidImageUrl(formData.banner) ? (
                                             <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
                                                 <Image
                                                     src={formData.banner}
