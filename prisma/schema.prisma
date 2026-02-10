@@ -19,6 +19,7 @@ model City {
   assinantes    Assinante[]
   notifications Notification[]
   parceiros     Parceiro[]
+  emailCampaigns EmailCampaign[]
 
   @@index([state])
   @@index([isActive])
@@ -49,6 +50,7 @@ model User {
   adminPushNotifications AdminPushNotification[]
   passwordResetTokens    PasswordResetToken[]
   termsConsents          TermsConsent[]
+  emailCampaigns         EmailCampaign[]
 
   @@index([role])
   @@index([isActive])
@@ -123,6 +125,7 @@ model Plan {
   assinantes    Assinante[]
   notifications Notification[]
   planBenefits  PlanBenefit[]
+  emailCampaigns EmailCampaign[]
 
   @@index([isActive])
   @@index([price])
@@ -457,12 +460,13 @@ enum IntegrationType {
 }
 
 enum TargetType {
+  INDIVIDUAL
   ALL_ASSINANTES
   PLANO_ESPECIFICO
+  CIDADE_ESPECIFICA
   ALL_PARCEIROS
   PARCEIROS_CIDADE
   TODOS
-  INDIVIDUAL
 }
 
 enum NotificationStatus {
@@ -707,3 +711,51 @@ model TermsConsent {
   @@unique([userId, legalPageId])
   @@map("terms_consents")
 }
+
+// ============================================
+// EMAIL CAMPAIGNS (Marketing)
+// ============================================
+
+model EmailCampaign {
+  id              String              @id @default(cuid())
+
+  // Conteúdo
+  subject         String
+  htmlContent     String              @db.Text
+  textContent     String?             @db.Text
+
+  // Destinatários (mesmo padrão do WhatsApp)
+  targetType      TargetType
+  targetPlanId    String?
+  targetPlan      Plan?               @relation(fields: [targetPlanId], references: [id])
+  targetCityId    String?
+  targetCity      City?               @relation(fields: [targetCityId], references: [id])
+  individualEmail String?
+
+  // Métricas
+  sentCount       Int                 @default(0)
+  failedCount     Int                 @default(0)
+
+  // Status
+  status          EmailCampaignStatus @default(DRAFT)
+  sentAt          DateTime?
+
+  // Audit
+  sentBy          String
+  sentByUser      User                @relation(fields: [sentBy], references: [id])
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_campaigns")
+}
+
+enum EmailCampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+  PARTIAL
+  FAILED
+}
+

@@ -1,0 +1,16 @@
+enum EmailCampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+  PARTIAL
+  FAILED
+}
+
+enum TargetType {
+  INDIVIDUAL
+  ALL_ASSINANTES
+  PLANO_ESPECIFICO
+  CIDADE_ESPECIFICA
+  ALL_PARCEIROS
+  TODOS
+}

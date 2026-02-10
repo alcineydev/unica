@@ -75,7 +75,7 @@ const navigation: NavItem[] = [
     children: [
       { label: 'WhatsApp', href: '/admin/notificacoes' },
       { label: 'Push', href: '/admin/notificacoes-push' },
-      { label: 'Email', href: '#', disabled: true, badge: 'Em breve' },
+      { label: 'Email', href: '/admin/automacoes/email' },
     ]
   },
   {
