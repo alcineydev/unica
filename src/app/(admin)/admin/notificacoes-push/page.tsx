@@ -8,6 +8,22 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import {
   Bell,
   Send,
@@ -18,11 +34,18 @@ import {
   CheckCircle,
   XCircle,
   Smartphone,
-  Shield
+  Shield,
+  Search,
+  X,
+  Filter,
+  Trash2,
+  Building2
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { BulkActionsToolbar, type BulkAction } from '@/components/admin/bulk-actions'
+import { cn } from '@/lib/utils'
 
 interface Notification {
   id: string
@@ -54,6 +77,14 @@ export default function NotificacoesPushPage() {
   const [message, setMessage] = useState('')
   const [link, setLink] = useState('')
   const [targetType, setTargetType] = useState('ALL')
+
+  // Estados de filtro
+  const [search, setSearch] = useState('')
+  const [targetFilter, setTargetFilter] = useState('all')
+
+  // Estados de seleção
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectAll, setSelectAll] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -142,6 +173,83 @@ export default function NotificacoesPushPage() {
       return ''
     }
   }
+
+  // Constantes de tipos de destinatário
+  const TARGET_TYPES = [
+    { value: 'ALL', label: 'Todos', icon: Globe },
+    { value: 'ASSINANTES', label: 'Assinantes', icon: Users },
+    { value: 'PARCEIROS', label: 'Parceiros', icon: Building2 },
+    { value: 'ADMINS', label: 'Administradores', icon: Shield },
+  ]
+
+  // Filtrar histórico
+  const filteredHistory = notifications.filter(notification => {
+    const matchesSearch = search === '' ||
+      notification.title?.toLowerCase().includes(search.toLowerCase()) ||
+      notification.message?.toLowerCase().includes(search.toLowerCase())
+
+    const matchesTarget = targetFilter === 'all' || notification.targetType === targetFilter
+
+    return matchesSearch && matchesTarget
+  })
+
+  // Funções de seleção
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    if (selectAll) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(filteredHistory.map(n => n.id))
+    }
+    setSelectAll(!selectAll)
+  }
+
+  // Limpar seleção quando filtros mudam
+  useEffect(() => {
+    setSelectedIds([])
+    setSelectAll(false)
+  }, [search, targetFilter])
+
+  // Função de bulk action
+  const handleBulkAction = async (action: string) => {
+    try {
+      const response = await fetch('/api/admin/push/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ids: selectedIds })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro na operação')
+      }
+
+      toast.success(data.message)
+      setSelectedIds([])
+      setSelectAll(false)
+      fetchData()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro na operação')
+    }
+  }
+
+  // Ações em lote
+  const bulkActions: BulkAction[] = [
+    {
+      id: 'delete',
+      label: 'Excluir',
+      icon: <Trash2 className="h-4 w-4" />,
+      variant: 'destructive',
+      requiresConfirmation: true,
+      onClick: async () => { await handleBulkAction('delete') }
+    }
+  ]
 
   if (isLoading) {
     return (
@@ -322,55 +430,238 @@ export default function NotificacoesPushPage() {
         </CardContent>
       </Card>
 
-      {/* Historico */}
+      {/* Histórico */}
       <Card>
         <CardHeader>
-          <CardTitle>Historico de Envios</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Smartphone className="h-5 w-5" />
+            Histórico de Notificações Push
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {notifications.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              Nenhuma notificacao enviada ainda
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {notifications.map((notif) => (
-                <div
-                  key={notif.id}
-                  className="flex items-start justify-between p-3 border rounded-lg"
+          {/* Filtros */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            {/* Busca */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por título ou mensagem..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+              {search && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setSearch('')}
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium truncate">{notif.title}</h4>
-                      <Badge variant="outline" className="flex-shrink-0">
-                        {getTargetIcon(notif.targetType)}
-                        <span className="ml-1">{getTargetLabel(notif.targetType)}</span>
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground truncate mt-1">
-                      {notif.message}
-                    </p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <CheckCircle className="h-3 w-3 text-green-500" />
-                        {notif.sentCount} enviados
-                      </span>
-                      {notif.failedCount > 0 && (
-                        <span className="flex items-center gap-1">
-                          <XCircle className="h-3 w-3 text-red-500" />
-                          {notif.failedCount} falhas
-                        </span>
-                      )}
-                      <span>•</span>
-                      <span>{formatDate(notif.createdAt)}</span>
-                      <span>•</span>
-                      <span>{notif.createdBy}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
-          )}
+
+            {/* Filtro de Destinatário */}
+            <Select value={targetFilter} onValueChange={setTargetFilter}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Destinatário" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {TARGET_TYPES.map((target) => (
+                  <SelectItem key={target.value} value={target.value}>
+                    {target.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Resumo de filtros */}
+          <div className="flex items-center justify-between mb-4 pb-4 border-b">
+            <div className="flex items-center gap-2">
+              {(targetFilter !== 'all' || search) && (
+                <>
+                  <Badge variant="secondary">
+                    <Filter className="h-3 w-3 mr-1" />
+                    Filtros ativos
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearch('')
+                      setTargetFilter('all')
+                    }}
+                  >
+                    Limpar
+                  </Button>
+                </>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {filteredHistory.length} notificação(ões)
+            </p>
+          </div>
+
+          {/* Toolbar de Ações em Lote */}
+          <BulkActionsToolbar
+            selectedIds={selectedIds}
+            actions={bulkActions}
+            itemType="notificação push"
+            onClearSelection={() => { setSelectedIds([]); setSelectAll(false) }}
+          />
+
+          {/* Tabela Desktop */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectAll && filteredHistory.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>Notificação</TableHead>
+                  <TableHead>Destinatário</TableHead>
+                  <TableHead className="text-center">Sucesso</TableHead>
+                  <TableHead className="text-center">Falhas</TableHead>
+                  <TableHead>Data</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredHistory.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <Smartphone className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">Nenhuma notificação encontrada</p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredHistory.map((notification) => {
+                    const targetConfig = TARGET_TYPES.find(t => t.value === notification.targetType)
+                    const TargetIcon = targetConfig?.icon || Users
+
+                    return (
+                      <TableRow
+                        key={notification.id}
+                        className={cn(selectedIds.includes(notification.id) && 'bg-blue-50/50')}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.includes(notification.id)}
+                            onCheckedChange={() => toggleSelect(notification.id)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{notification.title}</p>
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {notification.message}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="gap-1">
+                            <TargetIcon className="h-3 w-3" />
+                            {targetConfig?.label || notification.targetType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="text-green-600 font-medium">
+                            {notification.sentCount || 0}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={notification.failedCount > 0 ? 'text-red-600 font-medium' : 'text-muted-foreground'}>
+                            {notification.failedCount || 0}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {notification.createdAt
+                            ? format(new Date(notification.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                            : '-'
+                          }
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Cards Mobile */}
+          <div className="md:hidden space-y-3">
+            {filteredHistory.length === 0 ? (
+              <div className="text-center py-8">
+                <Smartphone className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">Nenhuma notificação encontrada</p>
+              </div>
+            ) : (
+              filteredHistory.map((notification) => {
+                const targetConfig = TARGET_TYPES.find(t => t.value === notification.targetType)
+                const TargetIcon = targetConfig?.icon || Users
+
+                return (
+                  <Card
+                    key={notification.id}
+                    className={cn(
+                      "cursor-pointer transition-all",
+                      selectedIds.includes(notification.id) && "ring-2 ring-blue-500 bg-blue-50/50"
+                    )}
+                    onClick={() => toggleSelect(notification.id)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          checked={selectedIds.includes(notification.id)}
+                          onCheckedChange={() => toggleSelect(notification.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-1"
+                        />
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-medium truncate">{notification.title}</h3>
+                            <Badge variant="outline" className="gap-1 ml-2 flex-shrink-0">
+                              <TargetIcon className="h-3 w-3" />
+                              {targetConfig?.label || notification.targetType}
+                            </Badge>
+                          </div>
+
+                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                            {notification.message}
+                          </p>
+
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="flex items-center gap-1 text-green-600">
+                              <CheckCircle className="h-4 w-4" />
+                              {notification.sentCount || 0}
+                            </span>
+                            {notification.failedCount > 0 && (
+                              <span className="flex items-center gap-1 text-red-600">
+                                <XCircle className="h-4 w-4" />
+                                {notification.failedCount}
+                              </span>
+                            )}
+                            <span className="text-muted-foreground ml-auto">
+                              {notification.createdAt
+                                ? format(new Date(notification.createdAt), "dd/MM HH:mm", { locale: ptBR })
+                                : '-'
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

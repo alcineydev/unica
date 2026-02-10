@@ -14,7 +14,8 @@ import {
   LogOut,
   X,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  Zap
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
@@ -69,8 +70,8 @@ const navigation: NavItem[] = [
     ]
   },
   {
-    label: 'Notificações',
-    icon: Bell,
+    label: 'Automações',
+    icon: Zap,
     children: [
       { label: 'WhatsApp', href: '/admin/notificacoes' },
       { label: 'Push', href: '/admin/notificacoes-push' },

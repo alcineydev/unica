@@ -5,6 +5,15 @@ import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,11 +39,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { BulkActionsToolbar, type BulkAction } from '@/components/admin/bulk-actions'
 import { toast } from 'sonner'
-import { 
-  Plus, 
-  Loader2, 
-  Send, 
+import {
+  Plus,
+  Loader2,
+  Send,
   Trash2,
   MessageCircle,
   Bell,
@@ -45,7 +55,11 @@ import {
   Phone,
   MoreHorizontal,
   Users,
-  Calendar
+  Calendar,
+  Search,
+  X,
+  Filter,
+  RefreshCw
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -99,6 +113,15 @@ export default function NotificacoesPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('todas')
+
+  // Estados de filtro
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [targetFilter, setTargetFilter] = useState('all')
+
+  // Estados de seleção
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectAll, setSelectAll] = useState(false)
 
   useEffect(() => {
     loadNotifications()
@@ -155,17 +178,101 @@ export default function NotificacoesPage() {
     }
   }
 
-  function getFilteredNotifications() {
-    switch (activeTab) {
-      case 'enviadas':
-        return notifications.filter(n => n.status === 'SENT' || n.status === 'PARTIAL')
-      case 'rascunhos':
-        return notifications.filter(n => n.status === 'DRAFT')
-      case 'agendadas':
-        return notifications.filter(n => n.status === 'SCHEDULED')
-      default:
-        return notifications
+  // Funções de seleção
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    const filtered = getFilteredNotifications()
+    if (selectAll) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(filtered.map(n => n.id))
     }
+    setSelectAll(!selectAll)
+  }
+
+  // Limpar seleção quando filtros mudam
+  useEffect(() => {
+    setSelectedIds([])
+    setSelectAll(false)
+  }, [search, statusFilter, targetFilter, activeTab])
+
+  // Função de bulk action
+  const handleBulkAction = async (action: string) => {
+    try {
+      const response = await fetch('/api/admin/notificacoes/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ids: selectedIds })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro na operação')
+      }
+
+      toast.success(data.message)
+      setSelectedIds([])
+      setSelectAll(false)
+      loadNotifications()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro na operação')
+    }
+  }
+
+  // Ações em lote
+  const bulkActions: BulkAction[] = [
+    {
+      id: 'resend',
+      label: 'Preparar Reenvio',
+      icon: <RefreshCw className="h-4 w-4" />,
+      variant: 'warning',
+      onClick: async () => { await handleBulkAction('resend') }
+    },
+    {
+      id: 'cancel',
+      label: 'Cancelar Agendamento',
+      icon: <XCircle className="h-4 w-4" />,
+      variant: 'default',
+      onClick: async () => { await handleBulkAction('cancel') }
+    },
+    {
+      id: 'delete',
+      label: 'Excluir',
+      icon: <Trash2 className="h-4 w-4" />,
+      variant: 'destructive',
+      requiresConfirmation: true,
+      onClick: async () => { await handleBulkAction('delete') }
+    }
+  ]
+
+  function getFilteredNotifications() {
+    return notifications.filter(notification => {
+      // Filtro de busca
+      const matchesSearch = search === '' ||
+        notification.title?.toLowerCase().includes(search.toLowerCase()) ||
+        notification.message?.toLowerCase().includes(search.toLowerCase())
+
+      // Filtro de status
+      const matchesStatus = statusFilter === 'all' || notification.status === statusFilter
+
+      // Filtro de destinatário
+      const matchesTarget = targetFilter === 'all' || notification.targetType === targetFilter
+
+      // Filtro da tab atual
+      const matchesTab =
+        activeTab === 'todas' ||
+        (activeTab === 'enviadas' && (notification.status === 'SENT' || notification.status === 'PARTIAL')) ||
+        (activeTab === 'rascunhos' && notification.status === 'DRAFT') ||
+        (activeTab === 'agendadas' && notification.status === 'SCHEDULED')
+
+      return matchesSearch && matchesStatus && matchesTarget && matchesTab
+    })
   }
 
   function getTargetLabel(notification: Notification) {
@@ -176,7 +283,7 @@ export default function NotificacoesPage() {
       }
       return num
     }
-    
+
     let label = TARGET_TYPE_LABELS[notification.targetType] || notification.targetType
     if (notification.targetPlan) {
       label += ` - ${notification.targetPlan.name}`
@@ -194,8 +301,8 @@ export default function NotificacoesPage() {
       {/* Header responsivo */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold">Notificações</h1>
-          <p className="text-sm text-muted-foreground">Envie notificações para assinantes e parceiros</p>
+          <h1 className="text-xl md:text-2xl font-bold">WhatsApp</h1>
+          <p className="text-sm text-muted-foreground">Envie notificações via WhatsApp para assinantes e parceiros</p>
         </div>
         <Link href="/admin/notificacoes/nova">
           <Button className="w-full sm:w-auto">
@@ -208,29 +315,29 @@ export default function NotificacoesPage() {
       {/* Tabs responsivas */}
       <div className="overflow-x-auto pb-2">
         <div className="flex gap-2 min-w-max">
-          <Button 
-            variant={activeTab === 'todas' ? 'default' : 'outline'} 
+          <Button
+            variant={activeTab === 'todas' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setActiveTab('todas')}
           >
             Todas
           </Button>
-          <Button 
-            variant={activeTab === 'enviadas' ? 'default' : 'outline'} 
+          <Button
+            variant={activeTab === 'enviadas' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setActiveTab('enviadas')}
           >
             Enviadas
           </Button>
-          <Button 
-            variant={activeTab === 'rascunhos' ? 'default' : 'outline'} 
+          <Button
+            variant={activeTab === 'rascunhos' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setActiveTab('rascunhos')}
           >
             Rascunhos
           </Button>
-          <Button 
-            variant={activeTab === 'agendadas' ? 'default' : 'outline'} 
+          <Button
+            variant={activeTab === 'agendadas' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setActiveTab('agendadas')}
           >
@@ -238,6 +345,102 @@ export default function NotificacoesPage() {
           </Button>
         </div>
       </div>
+
+      {/* Filtros Avançados */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Busca */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por título ou mensagem..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+              {search && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setSearch('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Filtro de Status */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="DRAFT">Rascunho</SelectItem>
+                <SelectItem value="SCHEDULED">Agendada</SelectItem>
+                <SelectItem value="SENDING">Enviando</SelectItem>
+                <SelectItem value="SENT">Enviada</SelectItem>
+                <SelectItem value="PARTIAL">Parcial</SelectItem>
+                <SelectItem value="FAILED">Falhou</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Filtro de Destinatário */}
+            <Select value={targetFilter} onValueChange={setTargetFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Destinatário" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+                <SelectItem value="ALL_ASSINANTES">Todos Assinantes</SelectItem>
+                <SelectItem value="PLANO_ESPECIFICO">Plano Específico</SelectItem>
+                <SelectItem value="ALL_PARCEIROS">Todos Parceiros</SelectItem>
+                <SelectItem value="PARCEIROS_CIDADE">Parceiros Cidade</SelectItem>
+                <SelectItem value="TODOS">Todos (Assinantes + Parceiros)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Resumo */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="flex items-center gap-2">
+              {(statusFilter !== 'all' || targetFilter !== 'all' || search) && (
+                <>
+                  <Badge variant="secondary">
+                    <Filter className="h-3 w-3 mr-1" />
+                    Filtros ativos
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearch('')
+                      setStatusFilter('all')
+                      setTargetFilter('all')
+                    }}
+                  >
+                    Limpar
+                  </Button>
+                </>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {filteredNotifications.length} notificação(ões)
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Toolbar de Ações em Lote */}
+      <BulkActionsToolbar
+        selectedIds={selectedIds}
+        actions={bulkActions}
+        itemType="notificação"
+        onClearSelection={() => { setSelectedIds([]); setSelectAll(false) }}
+      />
 
       {/* Listagem */}
       {loading ? (
@@ -265,20 +468,32 @@ export default function NotificacoesPage() {
           {/* Mobile: Cards */}
           <div className="lg:hidden space-y-3">
             {filteredNotifications.map((notification) => (
-              <Card key={notification.id}>
+              <Card
+                key={notification.id}
+                className={cn(
+                  "transition-all",
+                  selectedIds.includes(notification.id) && "ring-2 ring-blue-500 bg-blue-50/50"
+                )}
+              >
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    {/* Checkbox */}
+                    <Checkbox
+                      checked={selectedIds.includes(notification.id)}
+                      onCheckedChange={() => toggleSelect(notification.id)}
+                      className="mt-1"
+                    />
                     <div className="flex-1 min-w-0">
                       {/* Header do card */}
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <Badge 
-                          variant="outline" 
+                        <Badge
+                          variant="outline"
                           className="bg-green-50 text-green-700 border-green-200"
                         >
-                          <MessageCircle className="h-3 w-3 mr-1" /> 
+                          <MessageCircle className="h-3 w-3 mr-1" />
                           WhatsApp
                         </Badge>
-                        <Badge 
+                        <Badge
                           variant={STATUS_CONFIG[notification.status]?.variant || 'secondary'}
                           className={cn(
                             "flex items-center gap-1",
@@ -292,7 +507,7 @@ export default function NotificacoesPage() {
 
                       {/* Título */}
                       <p className="font-semibold mb-1">{notification.title}</p>
-                      
+
                       {/* Preview da mensagem */}
                       {notification.message && (
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
@@ -349,7 +564,7 @@ export default function NotificacoesPage() {
                         )}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-red-600"
                               onSelect={(e) => e.preventDefault()}
                             >
@@ -388,6 +603,12 @@ export default function NotificacoesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectAll && filteredNotifications.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Título</TableHead>
                   <TableHead>Canal</TableHead>
                   <TableHead>Destinatários</TableHead>
@@ -399,7 +620,18 @@ export default function NotificacoesPage() {
               </TableHeader>
               <TableBody>
                 {filteredNotifications.map((notification) => (
-                  <TableRow key={notification.id}>
+                  <TableRow
+                    key={notification.id}
+                    className={cn(
+                      selectedIds.includes(notification.id) && "bg-blue-50/50"
+                    )}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.includes(notification.id)}
+                        onCheckedChange={() => toggleSelect(notification.id)}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div>
                         <p className="font-medium">{notification.title}</p>
@@ -411,8 +643,8 @@ export default function NotificacoesPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className="bg-green-50 text-green-700 border-green-200"
                       >
                         <MessageCircle className="h-3 w-3 mr-1" />
@@ -428,7 +660,7 @@ export default function NotificacoesPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge 
+                      <Badge
                         variant={STATUS_CONFIG[notification.status]?.variant || 'secondary'}
                         className={cn(
                           "flex items-center gap-1 w-fit",
@@ -448,17 +680,17 @@ export default function NotificacoesPage() {
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">
-                        {notification.sentAt 
+                        {notification.sentAt
                           ? new Date(notification.sentAt).toLocaleDateString('pt-BR', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric'
-                            })
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                          })
                           : new Date(notification.createdAt).toLocaleDateString('pt-BR', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric'
-                            })
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                          })
                         }
                       </span>
                     </TableCell>
