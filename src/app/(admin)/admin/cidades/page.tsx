@@ -1,27 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { toast } from 'sonner'
-import {
-  Plus,
-  MapPin,
-  Pencil,
-  Trash2,
-  Loader2,
-  Search,
-  MoreHorizontal,
-  Power,
-  PowerOff,
-} from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
+import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -30,14 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,312 +28,375 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Skeleton } from '@/components/ui/skeleton'
-import { BRAZILIAN_STATES } from '@/constants'
-
-// Schema de validação
-const citySchema = z.object({
-  name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
-  state: z.string().length(2, 'Selecione um estado'),
-})
-
-type CityFormData = z.infer<typeof citySchema>
+  Plus,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Loader2,
+  MapPin,
+  Search,
+  X,
+  CheckCircle,
+  XCircle,
+  Filter,
+  Users,
+  Building2,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { BulkActionsToolbar, BulkAction } from '@/components/admin/bulk-actions/bulk-actions-toolbar'
 
 interface City {
   id: string
   name: string
   state: string
   isActive: boolean
-  createdAt: string
-  _count: {
-    parceiros: number
+  _count?: {
     assinantes: number
+    parceiros: number
   }
 }
 
 export default function CidadesPage() {
   const [cities, setCities] = useState<City[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedCity, setSelectedCity] = useState<City | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [stateFilter, setStateFilter] = useState('all')
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: { errors },
-  } = useForm<CityFormData>({
-    resolver: zodResolver(citySchema),
-  })
+  // Estados de seleção
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectAll, setSelectAll] = useState(false)
 
-  // Buscar cidades
-  const fetchCities = useCallback(async () => {
+  // Carregar cidades
+  const fetchData = useCallback(async () => {
     try {
+      setLoading(true)
       const response = await fetch('/api/admin/cities?includeInactive=true')
-      const result = await response.json()
-      
+
       if (response.ok) {
-        setCities(result.data)
-      } else {
-        toast.error(result.error || 'Erro ao carregar cidades')
+        const result = await response.json()
+        setCities(Array.isArray(result) ? result : result.data || [])
       }
-    } catch {
+    } catch (error) {
+      console.error('Erro ao carregar cidades:', error)
       toast.error('Erro ao carregar cidades')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchCities()
-  }, [fetchCities])
+    fetchData()
+  }, [fetchData])
 
-  // Abrir modal para criar
-  function handleCreate() {
-    setSelectedCity(null)
-    reset({ name: '', state: '' })
-    setIsDialogOpen(true)
+  // Obter estados únicos das cidades carregadas
+  const uniqueStates = [...new Set(cities.map(c => c.state))].sort()
+
+  // Filtrar cidades
+  const filteredCities = cities.filter(city => {
+    // Filtro de busca
+    const matchesSearch = search === '' ||
+      city.name.toLowerCase().includes(search.toLowerCase()) ||
+      city.state.toLowerCase().includes(search.toLowerCase())
+
+    // Filtro de status
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'active' && city.isActive) ||
+      (statusFilter === 'inactive' && !city.isActive)
+
+    // Filtro de estado
+    const matchesState = stateFilter === 'all' || city.state === stateFilter
+
+    return matchesSearch && matchesStatus && matchesState
+  })
+
+  // Handlers de seleção
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
   }
 
-  // Abrir modal para editar
-  function handleEdit(city: City) {
-    setSelectedCity(city)
-    reset({ name: city.name, state: city.state })
-    setIsDialogOpen(true)
+  const toggleSelectAll = () => {
+    if (selectAll) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(filteredCities.map(c => c.id))
+    }
+    setSelectAll(!selectAll)
   }
 
-  // Abrir confirmação de exclusão
-  function handleDeleteClick(city: City) {
-    setSelectedCity(city)
-    setIsDeleteDialogOpen(true)
-  }
+  // Limpar seleção quando filtros mudam
+  useEffect(() => {
+    setSelectedIds([])
+    setSelectAll(false)
+  }, [search, statusFilter, stateFilter])
 
-  // Salvar cidade (criar ou atualizar)
-  async function onSubmit(data: CityFormData) {
-    setIsSubmitting(true)
-
+  // Ações em lote
+  const handleBulkAction = async (action: string) => {
     try {
-      const url = selectedCity 
-        ? `/api/admin/cities/${selectedCity.id}` 
-        : '/api/admin/cities'
-      
-      const method = selectedCity ? 'PATCH' : 'POST'
-
-      const response = await fetch(url, {
-        method,
+      const response = await fetch('/api/admin/cities/bulk', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ action, ids: selectedIds })
       })
 
-      const result = await response.json()
+      const data = await response.json()
 
-      if (response.ok) {
-        toast.success(selectedCity ? 'Cidade atualizada!' : 'Cidade criada!')
-        setIsDialogOpen(false)
-        fetchCities()
-      } else {
-        toast.error(result.error || 'Erro ao salvar cidade')
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro na operação')
       }
-    } catch {
-      toast.error('Erro ao salvar cidade')
-    } finally {
-      setIsSubmitting(false)
+
+      toast.success(data.message)
+      setSelectedIds([])
+      setSelectAll(false)
+      fetchData()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro na operação')
     }
   }
 
-  // Excluir cidade
-  async function handleDelete() {
-    if (!selectedCity) return
-
-    setIsSubmitting(true)
+  // Excluir individual
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta cidade?')) return
 
     try {
-      const response = await fetch(`/api/admin/cities/${selectedCity.id}`, {
-        method: 'DELETE',
+      const response = await fetch(`/api/admin/cities/${id}`, {
+        method: 'DELETE'
       })
 
-      const result = await response.json()
-
-      if (response.ok) {
-        toast.success('Cidade excluída!')
-        setIsDeleteDialogOpen(false)
-        fetchCities()
-      } else {
-        toast.error(result.error || 'Erro ao excluir cidade')
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erro ao excluir')
       }
-    } catch {
-      toast.error('Erro ao excluir cidade')
-    } finally {
-      setIsSubmitting(false)
+
+      toast.success('Cidade excluída com sucesso')
+      fetchData()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao excluir')
     }
   }
 
-  // Alternar status (ativar/desativar)
-  async function handleToggleStatus(city: City) {
-    try {
-      const response = await fetch(`/api/admin/cities/${city.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !city.isActive }),
-      })
-
-      const result = await response.json()
-
-      if (response.ok) {
-        toast.success(city.isActive ? 'Cidade desativada!' : 'Cidade ativada!')
-        fetchCities()
-      } else {
-        toast.error(result.error || 'Erro ao alterar status')
-      }
-    } catch {
-      toast.error('Erro ao alterar status')
+  // Definir ações em lote
+  const bulkActions: BulkAction[] = [
+    {
+      id: 'activate',
+      label: 'Ativar',
+      icon: <CheckCircle className="h-4 w-4" />,
+      variant: 'success',
+      onClick: async () => { await handleBulkAction('activate') }
+    },
+    {
+      id: 'deactivate',
+      label: 'Desativar',
+      icon: <XCircle className="h-4 w-4" />,
+      variant: 'warning',
+      onClick: async () => { await handleBulkAction('deactivate') }
+    },
+    {
+      id: 'delete',
+      label: 'Excluir',
+      icon: <Trash2 className="h-4 w-4" />,
+      variant: 'destructive',
+      requiresConfirmation: true,
+      onClick: async () => { await handleBulkAction('delete') }
     }
-  }
+  ]
 
-  // Filtrar cidades pela busca
-  const filteredCities = cities.filter(city =>
-    city.name.toLowerCase().includes(search.toLowerCase()) ||
-    city.state.toLowerCase().includes(search.toLowerCase())
-  )
+  // Contar filtros ativos
+  const activeFiltersCount = [
+    statusFilter !== 'all',
+    stateFilter !== 'all',
+    search !== ''
+  ].filter(Boolean).length
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header responsivo */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold">Cidades</h1>
-          <p className="text-sm text-muted-foreground">Gerencie as cidades onde o Unica está disponível</p>
+          <h1 className="text-2xl font-bold">Cidades</h1>
+          <p className="text-muted-foreground">Gerencie as cidades de atuação</p>
         </div>
-        <Button onClick={handleCreate} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Cidade
+        <Button asChild>
+          <Link href="/admin/cidades/novo">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Cidade
+          </Link>
         </Button>
       </div>
 
-      {/* Filtros responsivos */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Buscar cidade..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
-      </div>
+      {/* Toolbar de Ações em Lote */}
+      <BulkActionsToolbar
+        selectedIds={selectedIds}
+        actions={bulkActions}
+        itemType="cidade"
+        onClearSelection={() => { setSelectedIds([]); setSelectAll(false) }}
+      />
 
-      {/* Listagem */}
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : filteredCities.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">
-              {search ? 'Nenhuma cidade encontrada' : 'Nenhuma cidade cadastrada'}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {/* Mobile: Cards */}
-          <div className="lg:hidden space-y-3">
-            {filteredCities.map((city) => (
-              <Card key={city.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-muted">
-                        <MapPin className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{city.name}</p>
-                          <Badge variant={city.isActive ? "default" : "secondary"} className={city.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
-                            {city.isActive ? 'Ativa' : 'Inativa'}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{city.state}</p>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          <span>{city._count.parceiros} parceiros</span>
-                          <span>{city._count.assinantes} assinantes</span>
-                        </div>
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(city)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleToggleStatus(city)}>
-                          {city.isActive ? (
-                            <>
-                              <PowerOff className="mr-2 h-4 w-4" />
-                              Desativar
-                            </>
-                          ) : (
-                            <>
-                              <Power className="mr-2 h-4 w-4" />
-                              Ativar
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDeleteClick(city)} className="text-red-600">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+      {/* Filtros */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Busca */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome ou estado..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+              {search && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setSearch('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Filtro de Estado */}
+            <Select value={stateFilter} onValueChange={setStateFilter}>
+              <SelectTrigger className="w-full md:w-[150px]">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os estados</SelectItem>
+                {uniqueStates.map((state) => (
+                  <SelectItem key={state} value={state}>
+                    {state}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Filtro de Status */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="active">Ativas</SelectItem>
+                <SelectItem value="inactive">Inativas</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Desktop: Table */}
-          <div className="hidden lg:block rounded-lg border overflow-hidden">
-            <Table>
-              <TableHeader>
+          {/* Resumo de filtros */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="flex items-center gap-2">
+              {activeFiltersCount > 0 && (
+                <>
+                  <Badge variant="secondary">
+                    <Filter className="h-3 w-3 mr-1" />
+                    {activeFiltersCount} filtro(s)
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearch('')
+                      setStatusFilter('all')
+                      setStateFilter('all')
+                    }}
+                  >
+                    Limpar filtros
+                  </Button>
+                </>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {filteredCities.length} de {cities.length} cidade(s)
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabela Desktop */}
+      <div className="hidden md:block">
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectAll && filteredCities.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Selecionar todas"
+                  />
+                </TableHead>
+                <TableHead>Cidade</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead className="text-center">Assinantes</TableHead>
+                <TableHead className="text-center">Parceiros</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="w-12"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredCities.length === 0 ? (
                 <TableRow>
-                  <TableHead>Cidade</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-center">Parceiros</TableHead>
-                  <TableHead className="text-center">Assinantes</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="w-[70px]"></TableHead>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground">Nenhuma cidade encontrada</p>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCities.map((city) => (
-                  <TableRow key={city.id}>
-                    <TableCell className="font-medium">{city.name}</TableCell>
-                    <TableCell>{city.state}</TableCell>
-                    <TableCell className="text-center">{city._count.parceiros}</TableCell>
-                    <TableCell className="text-center">{city._count.assinantes}</TableCell>
+              ) : (
+                filteredCities.map((city) => (
+                  <TableRow
+                    key={city.id}
+                    className={selectedIds.includes(city.id) ? 'bg-blue-50' : ''}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.includes(city.id)}
+                        onCheckedChange={() => toggleSelect(city.id)}
+                        aria-label={`Selecionar ${city.name}`}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <MapPin className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <span className="font-medium">{city.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{city.state}</Badge>
+                    </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={city.isActive ? 'default' : 'secondary'} className={city.isActive ? "bg-green-100 text-green-700 border-0" : ""}>
+                      <div className="flex items-center justify-center gap-1">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span>{city._count?.assinantes || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span>{city._count?.parceiros || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge
+                        variant={city.isActive ? 'default' : 'secondary'}
+                        className={city.isActive ? 'bg-green-100 text-green-800' : ''}
+                      >
                         {city.isActive ? 'Ativa' : 'Inativa'}
                       </Badge>
                     </TableCell>
@@ -369,143 +408,145 @@ export default function CidadesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(city)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleToggleStatus(city)}>
-                            {city.isActive ? (
-                              <>
-                                <PowerOff className="mr-2 h-4 w-4" />
-                                Desativar
-                              </>
-                            ) : (
-                              <>
-                                <Power className="mr-2 h-4 w-4" />
-                                Ativar
-                              </>
-                            )}
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/cidades/${city.id}`}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Editar
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDeleteClick(city)}
+                            onClick={() => handleDelete(city.id)}
+                            className="text-red-600"
+                            disabled={(city._count?.assinantes || 0) > 0 || (city._count?.parceiros || 0) > 0}
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <Trash2 className="h-4 w-4 mr-2" />
                             Excluir
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </>
-      )}
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
 
-      {/* Dialog Criar/Editar */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {selectedCity ? 'Editar Cidade' : 'Nova Cidade'}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedCity 
-                ? 'Altere os dados da cidade' 
-                : 'Preencha os dados para cadastrar uma nova cidade'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome da Cidade</Label>
-              <Input
-                id="name"
-                placeholder="Ex: Sinop"
-                {...register('name')}
+      {/* Cards Mobile */}
+      <div className="md:hidden space-y-4">
+        {/* Card de Seleção */}
+        <Card
+          className={`cursor-pointer transition-colors ${selectAll ? 'bg-blue-50 border-blue-200' : ''}`}
+          onClick={toggleSelectAll}
+        >
+          <CardContent className="py-3">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={selectAll && filteredCities.length > 0}
+                onCheckedChange={toggleSelectAll}
               />
-              {errors.name && (
-                <p className="text-sm text-destructive">{errors.name.message}</p>
+              <span className="text-sm font-medium">
+                {selectAll ? 'Desmarcar todas' : 'Selecionar todas'}
+              </span>
+              {selectedIds.length > 0 && (
+                <Badge variant="secondary" className="ml-auto">
+                  {selectedIds.length} selecionada(s)
+                </Badge>
               )}
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="state">Estado</Label>
-              <Select
-                defaultValue={selectedCity?.state}
-                onValueChange={(value) => setValue('state', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BRAZILIAN_STATES.map((state) => (
-                    <SelectItem key={state.value} value={state.value}>
-                      {state.label} ({state.value})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.state && (
-                <p className="text-sm text-destructive">{errors.state.message}</p>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  'Salvar'
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Confirmar Exclusão */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir a cidade <strong>{selectedCity?.name}</strong>?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isSubmitting}
+        {filteredCities.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+              <p className="text-muted-foreground">Nenhuma cidade encontrada</p>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredCities.map((city) => (
+            <Card
+              key={city.id}
+              className={`cursor-pointer transition-colors ${selectedIds.includes(city.id) ? 'bg-blue-50 border-blue-200' : ''
+                }`}
+              onClick={() => toggleSelect(city.id)}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Excluindo...
-                </>
-              ) : (
-                'Excluir'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <CardContent className="py-4">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    checked={selectedIds.includes(city.id)}
+                    onCheckedChange={() => toggleSelect(city.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+
+                  <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="h-6 w-6 text-blue-600" />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-medium truncate">{city.name}</h3>
+                      <Badge
+                        variant={city.isActive ? 'default' : 'secondary'}
+                        className={city.isActive ? 'bg-green-100 text-green-800' : ''}
+                      >
+                        {city.isActive ? 'Ativa' : 'Inativa'}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <Badge variant="outline">{city.state}</Badge>
+                      <span className="flex items-center gap-1">
+                        <Users className="h-4 w-4" />
+                        {city._count?.assinantes || 0}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Building2 className="h-4 w-4" />
+                        {city._count?.parceiros || 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/cidades/${city.id}`}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Editar
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(city.id)
+                        }}
+                        className="text-red-600"
+                        disabled={(city._count?.assinantes || 0) > 0 || (city._count?.parceiros || 0) > 0}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
     </div>
   )
 }
