@@ -46,10 +46,11 @@ const navigation: NavItem[] = [
     label: 'Parceiros',
     icon: Building2,
     children: [
+      { label: '+ Novo Parceiro', href: '/admin/parceiros/novo' },
       { label: 'Todos os Parceiros', href: '/admin/parceiros' },
       { label: 'Categorias', href: '/admin/categorias' },
       { label: 'Cidades', href: '/admin/cidades' },
-      { label: '+ Novo Parceiro', href: '/admin/parceiros/novo' },
+      { label: 'Interessados', href: '/admin/interesses' },
     ]
   },
   {
