@@ -46,6 +46,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { AsaasConfig } from '@/components/admin/asaas-config'
+import { PageLoading } from '@/components/admin/loading-spinner'
 
 interface Integration {
   id: string
@@ -187,7 +188,7 @@ export default function IntegracoesPage() {
   async function connectInstance(instanceId: string) {
     setLoadingQr(true)
     setQrDialogOpen(true)
-    
+
     try {
       const response = await fetch(`/api/admin/whatsapp/qrcode/${instanceId}`)
       const data = await response.json()
@@ -238,7 +239,7 @@ export default function IntegracoesPage() {
         await fetch(`/api/admin/whatsapp/instances/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             status: data.status,
             phoneNumber: data.phoneNumber,
             profileName: data.profileName,
@@ -257,7 +258,7 @@ export default function IntegracoesPage() {
 
   async function saveIntegration(type: string, name: string, config: Record<string, string>) {
     setSaving(type)
-    
+
     try {
       const response = await fetch('/api/admin/integrations', {
         method: 'POST',
@@ -282,7 +283,7 @@ export default function IntegracoesPage() {
 
   async function testIntegration(type: string, config: Record<string, string>) {
     setTesting(type)
-    
+
     try {
       const response = await fetch('/api/admin/integrations', {
         method: 'POST',
@@ -324,11 +325,7 @@ export default function IntegracoesPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <PageLoading text="Carregando integrações..." />
   }
 
   return (
@@ -428,9 +425,9 @@ export default function IntegracoesPage() {
                       <div className="flex flex-col items-center gap-4">
                         <div className="bg-white p-4 rounded-lg">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img 
-                            src={qrCodeData.qrCode} 
-                            alt="QR Code WhatsApp" 
+                          <img
+                            src={qrCodeData.qrCode}
+                            alt="QR Code WhatsApp"
                             className="w-64 h-64"
                           />
                         </div>
@@ -470,14 +467,14 @@ export default function IntegracoesPage() {
                         {getStatusBadge(instance.status)}
                       </div>
                       <p className="text-xs text-muted-foreground">ID: {instance.instanceId}</p>
-                      
+
                       {instance.status === 'connected' && (
                         <div className="flex items-center gap-3 p-2 bg-muted rounded">
                           {instance.profilePic && (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img 
-                              src={instance.profilePic} 
-                              alt="Profile" 
+                            <img
+                              src={instance.profilePic}
+                              alt="Profile"
                               className="w-8 h-8 rounded-full"
                             />
                           )}
@@ -490,9 +487,9 @@ export default function IntegracoesPage() {
 
                       <div className="flex gap-2">
                         {instance.status === 'connected' ? (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="flex-1"
                             onClick={() => disconnectInstance(instance.instanceId)}
                           >
@@ -500,9 +497,9 @@ export default function IntegracoesPage() {
                             Desconectar
                           </Button>
                         ) : (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="flex-1"
                             onClick={() => connectInstance(instance.instanceId)}
                           >
@@ -510,9 +507,9 @@ export default function IntegracoesPage() {
                             Conectar
                           </Button>
                         )}
-                        
-                        <Button 
-                          variant="ghost" 
+
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={() => refreshStatus(instance.id, instance.instanceId)}
                           disabled={refreshingStatus === instance.id}

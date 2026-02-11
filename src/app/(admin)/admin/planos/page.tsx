@@ -48,6 +48,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { BulkActionsToolbar, BulkAction } from '@/components/admin/bulk-actions/bulk-actions-toolbar'
+import { PageLoading } from '@/components/admin/loading-spinner'
 
 interface PlanBenefit {
   benefit: {

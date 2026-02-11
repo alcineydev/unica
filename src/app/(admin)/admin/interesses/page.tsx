@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { 
+import {
   Handshake,
   Search,
   Loader2,
@@ -45,6 +45,7 @@ import {
   UserCheck
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { PageLoading } from '@/components/admin/loading-spinner'
 
 interface Interesse {
   id: string
@@ -78,7 +79,7 @@ export default function InteressesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  
+
   // Modal states
   const [selectedInteresse, setSelectedInteresse] = useState<Interesse | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -94,10 +95,10 @@ export default function InteressesPage() {
     try {
       const params = new URLSearchParams()
       if (statusFilter !== 'all') params.append('status', statusFilter)
-      
+
       const response = await fetch(`/api/admin/interesses?${params}`)
       const data = await response.json()
-      
+
       if (data.interesses) {
         setInteresses(data.interesses)
         setStats(data.stats)
@@ -134,7 +135,7 @@ export default function InteressesPage() {
 
   const saveObservacoes = async () => {
     if (!selectedInteresse) return
-    
+
     setIsUpdating(true)
     try {
       const response = await fetch('/api/admin/interesses', {
@@ -159,7 +160,7 @@ export default function InteressesPage() {
 
   const deleteInteresse = async () => {
     if (!selectedInteresse) return
-    
+
     setIsUpdating(true)
     try {
       const response = await fetch(`/api/admin/interesses?id=${selectedInteresse.id}`, {
@@ -212,11 +213,7 @@ export default function InteressesPage() {
   )
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
+    return <PageLoading text="Carregando interessados..." />
   }
 
   return (
@@ -247,7 +244,7 @@ export default function InteressesPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -261,7 +258,7 @@ export default function InteressesPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -275,7 +272,7 @@ export default function InteressesPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -336,7 +333,7 @@ export default function InteressesPage() {
           {filteredInteresses.map((interesse) => {
             const statusInfo = statusConfig[interesse.status] || statusConfig.PENDENTE
             const StatusIcon = statusInfo.icon
-            
+
             return (
               <Card key={interesse.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
@@ -353,7 +350,7 @@ export default function InteressesPage() {
                           {statusInfo.label}
                         </Badge>
                       </div>
-                      
+
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Mail className="h-3.5 w-3.5" />
@@ -372,7 +369,7 @@ export default function InteressesPage() {
                           {formatDate(interesse.createdAt)}
                         </span>
                       </div>
-                      
+
                       {interesse.observacoes && (
                         <p className="text-sm bg-muted p-2 rounded">
                           <MessageSquare className="h-3 w-3 inline mr-1" />
@@ -449,7 +446,7 @@ export default function InteressesPage() {
               {selectedInteresse?.nomeEmpresa}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedInteresse && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">

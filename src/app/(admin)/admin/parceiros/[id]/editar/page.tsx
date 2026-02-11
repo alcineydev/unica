@@ -50,6 +50,7 @@ import { PartnerRecentReviews } from '@/components/admin/partner-recent-reviews'
 import { CreateCategoryModal } from '@/components/admin/create-category-modal'
 import { CreateCityModal } from '@/components/admin/create-city-modal'
 import { PartnerActivityLogs } from '@/components/admin/partner-activity-logs'
+import { PageLoading } from '@/components/admin/loading-spinner'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { GalleryUpload } from '@/components/ui/gallery-upload'
 
