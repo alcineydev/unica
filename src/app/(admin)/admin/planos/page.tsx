@@ -44,6 +44,7 @@ import {
   Users,
   Filter,
   Gift,
+  ExternalLink,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { BulkActionsToolbar, BulkAction } from '@/components/admin/bulk-actions/bulk-actions-toolbar'
@@ -452,6 +453,26 @@ export default function PlanosPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              const checkoutUrl = `${window.location.origin}/checkout/${plan.slug || plan.id}`
+                              navigator.clipboard.writeText(checkoutUrl)
+                              toast.success('Link copiado!')
+                            }}
+                          >
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copiar Link
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              const checkoutUrl = `${window.location.origin}/checkout/${plan.slug || plan.id}`
+                              window.open(checkoutUrl, '_blank')
+                            }}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Abrir Checkout
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem asChild>
                             <Link href={`/admin/planos/${plan.id}`}>
                               <Pencil className="h-4 w-4 mr-2" />
