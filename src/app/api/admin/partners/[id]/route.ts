@@ -1,294 +1,391 @@
-import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { updatePartnerSchema } from '@/lib/validations/partner'
+import prisma from '@/lib/prisma'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
-// GET - Buscar parceiro por ID
-export async function GET(request: Request, { params }: RouteParams) {
+// Helper: Calcular timeline de transações dos últimos 6 meses
+function calculateTransactionTimeline(transactions: Array<{ createdAt: Date; amount: any }>) {
+  const months: Record<string, { count: number; amount: number }> = {}
+  const now = new Date()
+
+  // Inicializar últimos 6 meses com 0
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const key = date.toISOString().slice(0, 7) // YYYY-MM
+    months[key] = { count: 0, amount: 0 }
+  }
+
+  // Contar transações por mês
+  transactions.forEach(t => {
+    const key = t.createdAt.toISOString().slice(0, 7)
+    if (months[key] !== undefined) {
+      months[key].count++
+      months[key].amount += Number(t.amount) || 0
+    }
+  })
+
+  // Converter para array
+  return Object.entries(months).map(([month, data]) => ({
+    month,
+    label: new Date(month + '-01').toLocaleDateString('pt-BR', { month: 'short' }),
+    count: data.count,
+    amount: data.amount
+  }))
+}
+
+// Helper: Calcular distribuição por status de transações
+function calculateStatusDistribution(transactions: Array<{ status: string }>) {
+  const distribution: Record<string, number> = {}
+
+  transactions.forEach(t => {
+    distribution[t.status] = (distribution[t.status] || 0) + 1
+  })
+
+  return Object.entries(distribution).map(([status, count]) => ({ status, count }))
+}
+
+// GET - Buscar parceiro com dados completos
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth()
-    
-    if (!session || !['ADMIN', 'DEVELOPER'].includes(session.user.role)) {
-      return NextResponse.json(
-        { error: 'Não autorizado' },
-        { status: 401 }
-      )
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
     const { id } = await params
 
-    const partner = await prisma.parceiro.findUnique({
+    // Buscar parceiro com todas as relações
+    const parceiro = await prisma.parceiro.findUnique({
       where: { id },
       include: {
         user: {
           select: {
+            id: true,
             email: true,
             isActive: true,
-            createdAt: true,
-          },
+            createdAt: true
+          }
         },
         city: true,
         categoryRef: true,
         benefitAccess: {
           include: {
-            benefit: true,
-          },
+            benefit: true
+          }
         },
         _count: {
           select: {
             transactions: true,
             benefitAccess: true,
-          },
-        },
-      },
+            avaliacoes: true
+          }
+        }
+      }
     })
 
-    if (!partner) {
-      return NextResponse.json(
-        { error: 'Parceiro não encontrado' },
-        { status: 404 }
-      )
+    if (!parceiro) {
+      return NextResponse.json({ error: 'Parceiro não encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json({ data: partner })
+    // Buscar todos os benefícios ativos (para seleção)
+    const allBenefits = await prisma.benefit.findMany({
+      where: { isActive: true },
+      orderBy: [
+        { category: 'asc' },
+        { name: 'asc' }
+      ]
+    })
+
+    // Buscar todas as categorias ativas
+    const allCategories = await prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' }
+    })
+
+    // Buscar todas as cidades ativas
+    const allCities = await prisma.city.findMany({
+      where: { isActive: true },
+      orderBy: [
+        { state: 'asc' },
+        { name: 'asc' }
+      ]
+    })
+
+    // Buscar transações do parceiro
+    const transactions = await prisma.transaction.findMany({
+      where: { parceiroId: id },
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        status: true,
+        description: true,
+        createdAt: true,
+        assinante: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    // Buscar avaliações do parceiro
+    const avaliacoes = await prisma.avaliacao.findMany({
+      where: { parceiroId: id },
+      select: {
+        id: true,
+        nota: true,
+        comentario: true,
+        resposta: true,
+        publicada: true,
+        createdAt: true,
+        assinante: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    // Calcular estatísticas
+    const transacoesCompleted = transactions.filter(t => t.status === 'COMPLETED')
+    const receitaTotal = transacoesCompleted.reduce((sum, t) => sum + Number(t.amount || 0), 0)
+
+    const avaliacoesPublicadas = avaliacoes.filter(a => a.publicada)
+    const mediaAvaliacao = avaliacoesPublicadas.length > 0
+      ? avaliacoesPublicadas.reduce((sum, a) => sum + a.nota, 0) / avaliacoesPublicadas.length
+      : 0
+
+    // Transações do mês atual
+    const inicioMes = new Date()
+    inicioMes.setDate(1)
+    inicioMes.setHours(0, 0, 0, 0)
+    const transacoesEsteMes = transactions.filter(t => t.createdAt >= inicioMes).length
+
+    const stats = {
+      totalTransacoes: transactions.length,
+      transacoesCompleted: transacoesCompleted.length,
+      transacoesEsteMes,
+      receitaTotal,
+      receitaEsteMes: transacoesCompleted
+        .filter(t => t.createdAt >= inicioMes)
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0),
+      mediaAvaliacao: Math.round(mediaAvaliacao * 10) / 10,
+      totalAvaliacoes: avaliacoes.length,
+      avaliacoesPublicadas: avaliacoesPublicadas.length,
+      timeline: calculateTransactionTimeline(transactions),
+      statusDistribution: calculateStatusDistribution(transactions)
+    }
+
+    // Últimas 5 transações
+    const recentTransactions = transactions.slice(0, 5)
+
+    // Últimas 3 avaliações
+    const recentAvaliacoes = avaliacoes.slice(0, 3)
+
+    return NextResponse.json({
+      ...parceiro,
+      allBenefits,
+      allCategories,
+      allCities,
+      stats,
+      recentTransactions,
+      recentAvaliacoes
+    })
   } catch (error) {
-    console.error('Erro ao buscar parceiro:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    console.error('[PARTNER GET]', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
 // PATCH - Atualizar parceiro
-export async function PATCH(request: Request, { params }: RouteParams) {
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth()
-    
-    if (!session || !['ADMIN', 'DEVELOPER'].includes(session.user.role)) {
-      return NextResponse.json(
-        { error: 'Não autorizado' },
-        { status: 401 }
-      )
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true }
+    })
+
+    if (!user || !['ADMIN', 'DEVELOPER'].includes(user.role)) {
+      return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
 
     const { id } = await params
     const body = await request.json()
 
-    const validationResult = updatePartnerSchema.safeParse(body)
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { error: 'Dados inválidos', details: validationResult.error.flatten().fieldErrors },
-        { status: 400 }
-      )
-    }
-
-    // Verifica se o parceiro existe
-    const existingPartner = await prisma.parceiro.findUnique({
+    const existing = await prisma.parceiro.findUnique({
       where: { id },
-      include: { user: true },
+      include: { user: true }
     })
 
-    if (!existingPartner) {
-      return NextResponse.json(
-        { error: 'Parceiro não encontrado' },
-        { status: 404 }
-      )
+    if (!existing) {
+      return NextResponse.json({ error: 'Parceiro não encontrado' }, { status: 404 })
     }
 
     const {
-      isActive, whatsapp, phone, cityId, benefitIds,
-      logo, banner, gallery,
-      address, addressNumber, neighborhood, complement, zipCode,
-      website, instagram, facebook,
-      categoryId, isDestaque, bannerDestaque, destaqueOrder,
-      ...rest
-    } = validationResult.data
+      companyName,
+      tradeName,
+      description,
+      categoryId,
+      cityId,
+      logo,
+      banner,
+      gallery,
+      address,
+      addressNumber,
+      neighborhood,
+      complement,
+      zipCode,
+      whatsapp,
+      phone,
+      website,
+      instagram,
+      facebook,
+      isActive,
+      isDestaque,
+      bannerDestaque,
+      destaqueOrder,
+      benefitIds
+    } = body
 
-    // Prepara os dados de atualização
-    const updateData: Record<string, unknown> = { ...rest }
-
-    // Atualiza categoria se fornecida
-    if (categoryId !== undefined) {
-      updateData.categoryId = categoryId || null
+    // Montar objeto de endereço
+    const addressData = {
+      street: address || (existing.address as any)?.street || '',
+      number: addressNumber || (existing.address as any)?.number || '',
+      neighborhood: neighborhood || (existing.address as any)?.neighborhood || '',
+      complement: complement || (existing.address as any)?.complement || '',
+      zipCode: zipCode || (existing.address as any)?.zipCode || ''
     }
 
-    // Atualiza campos de destaque
-    if (isDestaque !== undefined) {
-      updateData.isDestaque = isDestaque
-      updateData.bannerDestaque = isDestaque ? bannerDestaque : null
-      updateData.destaqueOrder = isDestaque ? (destaqueOrder || 0) : 0
+    // Montar objeto de contato
+    const contactData = {
+      whatsapp: whatsapp || (existing.contact as any)?.whatsapp || '',
+      phone: phone || (existing.contact as any)?.phone || '',
+      website: website || (existing.contact as any)?.website || '',
+      instagram: instagram || (existing.contact as any)?.instagram || '',
+      facebook: facebook || (existing.contact as any)?.facebook || ''
     }
 
-    // Atualiza imagens se fornecidas
-    if (logo !== undefined) updateData.logo = logo
-    if (banner !== undefined) updateData.banner = banner
-    if (gallery !== undefined) updateData.gallery = gallery
-
-    // Atualiza cidade se fornecida
-    if (cityId) {
-      const city = await prisma.city.findUnique({ where: { id: cityId } })
-      if (!city) {
-        return NextResponse.json(
-          { error: 'Cidade não encontrada' },
-          { status: 400 }
-        )
-      }
-      updateData.cityId = cityId
-    }
-
-    // Atualiza endereço
-    if (address !== undefined || addressNumber !== undefined || 
-        neighborhood !== undefined || complement !== undefined || zipCode !== undefined) {
-      const currentAddress = existingPartner.address as Record<string, string> || {}
-      updateData.address = {
-        ...currentAddress,
-        ...(address !== undefined && { street: address }),
-        ...(addressNumber !== undefined && { number: addressNumber }),
-        ...(neighborhood !== undefined && { neighborhood }),
-        ...(complement !== undefined && { complement }),
-        ...(zipCode !== undefined && { zipCode }),
-      }
-    }
-
-    // Atualiza contato se fornecido
-    if (whatsapp !== undefined || phone !== undefined || 
-        website !== undefined || instagram !== undefined || facebook !== undefined) {
-      const currentContact = existingPartner.contact as Record<string, string> || {}
-      updateData.contact = {
-        ...currentContact,
-        ...(whatsapp !== undefined && { whatsapp }),
-        ...(phone !== undefined && { phone: phone || '' }),
-        ...(website !== undefined && { website: website || '' }),
-        ...(instagram !== undefined && { instagram: instagram || '' }),
-        ...(facebook !== undefined && { facebook: facebook || '' }),
-      }
-    }
-
-    // Atualiza o parceiro
-    const partner = await prisma.parceiro.update({
+    // Atualizar parceiro
+    const parceiro = await prisma.parceiro.update({
       where: { id },
-      data: updateData,
-      include: {
-        city: true,
-        user: {
-          select: {
-            email: true,
-          },
-        },
-        benefitAccess: {
-          include: {
-            benefit: true,
-          },
-        },
-      },
+      data: {
+        companyName: companyName?.trim() || existing.companyName,
+        tradeName: tradeName?.trim() || existing.tradeName,
+        description: description !== undefined ? description : existing.description,
+        categoryId: categoryId || existing.categoryId,
+        cityId: cityId || existing.cityId,
+        logo: logo !== undefined ? logo : existing.logo,
+        banner: banner !== undefined ? banner : existing.banner,
+        gallery: gallery !== undefined ? gallery : existing.gallery,
+        address: addressData,
+        contact: contactData,
+        isActive: isActive !== undefined ? isActive : existing.isActive,
+        isDestaque: isDestaque !== undefined ? isDestaque : existing.isDestaque,
+        bannerDestaque: bannerDestaque !== undefined ? bannerDestaque : existing.bannerDestaque,
+        destaqueOrder: destaqueOrder !== undefined ? destaqueOrder : existing.destaqueOrder,
+      }
     })
 
-    // Atualiza benefícios se fornecidos
-    if (benefitIds !== undefined) {
-      // Remove todos os benefícios existentes
+    // Atualizar benefícios vinculados (se fornecido)
+    if (benefitIds !== undefined && Array.isArray(benefitIds)) {
+      // Remover todos os benefícios existentes
       await prisma.benefitAccess.deleteMany({
-        where: { parceiroId: id },
+        where: { parceiroId: id }
       })
 
-      // Adiciona os novos benefícios
+      // Adicionar novos benefícios
       if (benefitIds.length > 0) {
         await prisma.benefitAccess.createMany({
           data: benefitIds.map((benefitId: string) => ({
-            benefitId,
             parceiroId: id,
-          })),
-          skipDuplicates: true,
+            benefitId
+          }))
         })
       }
     }
 
-    // Se está alterando status, atualiza também o usuário
-    if (isActive !== undefined) {
+    // Se isActive mudou, atualizar também o User
+    if (isActive !== undefined && existing.user && isActive !== existing.isActive) {
       await prisma.user.update({
-        where: { id: existingPartner.userId },
-        data: { isActive },
-      })
-      
-      await prisma.parceiro.update({
-        where: { id },
-        data: { isActive },
+        where: { id: existing.user.id },
+        data: { isActive }
       })
     }
 
-    return NextResponse.json(
-      { message: 'Parceiro atualizado com sucesso', data: partner }
-    )
+    return NextResponse.json(parceiro)
   } catch (error) {
-    console.error('Erro ao atualizar parceiro:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    console.error('[PARTNER PATCH]', error)
+    return NextResponse.json({ error: 'Erro ao atualizar' }, { status: 500 })
   }
 }
 
 // DELETE - Excluir parceiro
-export async function DELETE(request: Request, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth()
-    
-    if (!session || !['ADMIN', 'DEVELOPER'].includes(session.user.role)) {
-      return NextResponse.json(
-        { error: 'Não autorizado' },
-        { status: 401 }
-      )
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true }
+    })
+
+    if (!user || !['ADMIN', 'DEVELOPER'].includes(user.role)) {
+      return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
 
     const { id } = await params
 
-    // Verifica se o parceiro existe
-    const partner = await prisma.parceiro.findUnique({
+    const parceiro = await prisma.parceiro.findUnique({
       where: { id },
       include: {
-        _count: {
-          select: {
-            transactions: true,
-          },
-        },
-      },
+        _count: { select: { transactions: true } }
+      }
     })
 
-    if (!partner) {
-      return NextResponse.json(
-        { error: 'Parceiro não encontrado' },
-        { status: 404 }
-      )
+    if (!parceiro) {
+      return NextResponse.json({ error: 'Parceiro não encontrado' }, { status: 404 })
     }
 
-    // Não permite excluir parceiro com transações
-    if (partner._count.transactions > 0) {
-      return NextResponse.json(
-        { 
-          error: 'Não é possível excluir este parceiro pois existem transações vinculadas. Desative o parceiro ao invés de excluir.' 
-        },
-        { status: 400 }
-      )
+    if (parceiro._count.transactions > 0) {
+      return NextResponse.json({
+        error: `Não é possível excluir: ${parceiro._count.transactions} transação(ões) vinculada(s)`
+      }, { status: 400 })
     }
 
-    // Remove o parceiro e o usuário (cascade)
-    await prisma.user.delete({
-      where: { id: partner.userId },
+    // Remover benefícios vinculados
+    await prisma.benefitAccess.deleteMany({
+      where: { parceiroId: id }
     })
 
-    return NextResponse.json(
-      { message: 'Parceiro excluído com sucesso' }
-    )
+    // Remover avaliações
+    await prisma.avaliacao.deleteMany({
+      where: { parceiroId: id }
+    })
+
+    // Excluir user (cascade remove o parceiro)
+    if (parceiro.userId) {
+      await prisma.user.delete({ where: { id: parceiro.userId } })
+    }
+
+    return NextResponse.json({ message: 'Parceiro excluído com sucesso' })
   } catch (error) {
-    console.error('Erro ao excluir parceiro:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    console.error('[PARTNER DELETE]', error)
+    return NextResponse.json({ error: 'Erro ao excluir' }, { status: 500 })
   }
 }
-
