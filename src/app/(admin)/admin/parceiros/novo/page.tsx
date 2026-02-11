@@ -15,9 +15,11 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { GalleryUpload } from '@/components/ui/gallery-upload'
-import { ArrowLeft, Save, Loader2, Star } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Star, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { CreateCategoryModal } from '@/components/admin/create-category-modal'
+import { CreateCityModal } from '@/components/admin/create-city-modal'
 const partnerSchema = z.object({
   companyName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   tradeName: z.string().optional(),
@@ -78,6 +80,10 @@ export default function NovoParceiroPage() {
   const [bannerDestaque, setBannerDestaque] = useState<string | null>(null)
   const [destaqueOrder, setDestaqueOrder] = useState(1)
 
+  // Estados dos modais
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [showCityModal, setShowCityModal] = useState(false)
+
   const {
     register,
     handleSubmit,
@@ -133,6 +139,17 @@ export default function NovoParceiroPage() {
     fetchCities()
     fetchCategories()
   }, [fetchBenefits, fetchCities, fetchCategories])
+
+  // Callbacks dos modais
+  const handleCategoryCreated = (newCategory: { id: string; name: string; slug: string }) => {
+    setCategories(prev => [...prev, { ...newCategory, isActive: true }].sort((a, b) => a.name.localeCompare(b.name)))
+    setValue('categoryId', newCategory.id)
+  }
+
+  const handleCityCreated = (newCity: { id: string; name: string; state: string }) => {
+    setCities(prev => [...prev, newCity].sort((a, b) => a.name.localeCompare(b.name)))
+    setValue('cityId', newCity.id)
+  }
 
   const formatCNPJ = (value: string) => {
     const numbers = value.replace(/\D/g, '').slice(0, 14)
@@ -233,7 +250,7 @@ export default function NovoParceiroPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        
+
         {/* Card de Imagens */}
         <Card>
           <CardHeader>
@@ -241,7 +258,7 @@ export default function NovoParceiroPage() {
             <CardDescription>Logo, banner e galeria do parceiro</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            
+
             <div className="space-y-2">
               <Label>Banner (1200x300 recomendado)</Label>
               <ImageUpload
@@ -286,7 +303,7 @@ export default function NovoParceiroPage() {
             <CardDescription>Informações principais do parceiro</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-            
+
             <div className="space-y-2">
               <Label htmlFor="companyName">Razão Social *</Label>
               <Input id="companyName" {...register('companyName')} placeholder="Nome da empresa" />
@@ -300,9 +317,9 @@ export default function NovoParceiroPage() {
 
             <div className="space-y-2">
               <Label htmlFor="cnpj">CNPJ *</Label>
-              <Input 
-                id="cnpj" 
-                {...register('cnpj')} 
+              <Input
+                id="cnpj"
+                {...register('cnpj')}
                 placeholder="00.000.000/0000-00"
                 onChange={(e) => setValue('cnpj', formatCNPJ(e.target.value))}
               />
@@ -311,28 +328,39 @@ export default function NovoParceiroPage() {
 
             <div className="space-y-2">
               <Label htmlFor="categoryId">Categoria *</Label>
-              <Select
-                value={watch('categoryId') || 'none'}
-                onValueChange={(value) => setValue('categoryId', value === 'none' ? '' : value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Selecione...</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={watch('categoryId') || 'none'}
+                  onValueChange={(value) => setValue('categoryId', value === 'none' ? '' : value)}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Selecione...</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowCategoryModal(true)}
+                  className="h-10 w-10 flex-shrink-0"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
               {errors.categoryId && <p className="text-xs text-destructive">{errors.categoryId.message}</p>}
             </div>
 
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="description">Descrição</Label>
-              <Textarea 
-                id="description" 
-                {...register('description')} 
+              <Textarea
+                id="description"
+                {...register('description')}
                 placeholder="Descreva o parceiro..."
                 rows={3}
               />
@@ -348,7 +376,7 @@ export default function NovoParceiroPage() {
             <CardDescription>Email e senha para o parceiro acessar o sistema</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email de acesso *</Label>
               <Input id="email" type="email" {...register('email')} placeholder="email@empresa.com" />
@@ -374,9 +402,9 @@ export default function NovoParceiroPage() {
 
             <div className="space-y-2">
               <Label htmlFor="whatsapp">WhatsApp *</Label>
-              <Input 
-                id="whatsapp" 
-                {...register('whatsapp')} 
+              <Input
+                id="whatsapp"
+                {...register('whatsapp')}
                 placeholder="(00) 00000-0000"
                 onChange={(e) => setValue('whatsapp', formatPhone(e.target.value))}
               />
@@ -385,9 +413,9 @@ export default function NovoParceiroPage() {
 
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone</Label>
-              <Input 
-                id="phone" 
-                {...register('phone')} 
+              <Input
+                id="phone"
+                {...register('phone')}
                 placeholder="(00) 0000-0000"
                 onChange={(e) => setValue('phone', formatPhone(e.target.value))}
               />
@@ -426,20 +454,31 @@ export default function NovoParceiroPage() {
 
             <div className="space-y-2">
               <Label htmlFor="cityId">Cidade *</Label>
-              <Select 
-                value={watch('cityId') || 'none'} 
-                onValueChange={(value) => setValue('cityId', value === 'none' ? '' : value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a cidade" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Selecione...</SelectItem>
-                  {cities.map((city) => (
-                    <SelectItem key={city.id} value={city.id}>{city.name} - {city.state}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={watch('cityId') || 'none'}
+                  onValueChange={(value) => setValue('cityId', value === 'none' ? '' : value)}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecione a cidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Selecione...</SelectItem>
+                    {cities.map((city) => (
+                      <SelectItem key={city.id} value={city.id}>{city.name} - {city.state}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowCityModal(true)}
+                  className="h-10 w-10 flex-shrink-0"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
               {errors.cityId && <p className="text-xs text-destructive">{errors.cityId.message}</p>}
             </div>
 
@@ -588,6 +627,18 @@ export default function NovoParceiroPage() {
             )}
           </Button>
         </div>
+
+        {/* Modais de Criação */}
+        <CreateCategoryModal
+          open={showCategoryModal}
+          onOpenChange={setShowCategoryModal}
+          onSuccess={handleCategoryCreated}
+        />
+        <CreateCityModal
+          open={showCityModal}
+          onOpenChange={setShowCityModal}
+          onSuccess={handleCityCreated}
+        />
 
       </form>
     </div>

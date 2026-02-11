@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -434,12 +434,6 @@ export default function EditarParceiroPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/parceiro/${partner.id}`} target="_blank">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Ver Página
-            </Link>
-          </Button>
           <Button onClick={handleSave} disabled={saving} className="bg-green-600 hover:bg-green-700">
             {saving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -466,10 +460,14 @@ export default function EditarParceiroPage() {
         {/* Coluna Principal (2/3) */}
         <div className="lg:col-span-2">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsList className="grid w-full grid-cols-5 mb-6">
               <TabsTrigger value="informacoes" className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Informações</span>
+              </TabsTrigger>
+              <TabsTrigger value="imagens" className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">Imagens</span>
               </TabsTrigger>
               <TabsTrigger value="beneficios" className="flex items-center gap-2">
                 <Gift className="h-4 w-4" />
@@ -487,45 +485,6 @@ export default function EditarParceiroPage() {
 
             {/* Tab: Informações */}
             <TabsContent value="informacoes" className="space-y-6">
-              {/* Imagens */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ImageIcon className="h-5 w-5" />
-                    Imagens
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <Label>Banner (1200x300 recomendado)</Label>
-                    <ImageUpload
-                      value={banner}
-                      onChange={setBanner}
-                      aspectRatio="banner"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label>Logo (quadrado)</Label>
-                      <ImageUpload
-                        value={logo}
-                        onChange={setLogo}
-                        aspectRatio="square"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Galeria (até 10 fotos)</Label>
-                      <GalleryUpload
-                        value={gallery}
-                        onChange={setGallery}
-                        maxImages={10}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Dados da Empresa */}
               <Card>
                 <CardHeader>
@@ -723,6 +682,86 @@ export default function EditarParceiroPage() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Tab: Imagens */}
+            <TabsContent value="imagens" className="space-y-6">
+              {/* Banner Principal */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5" />
+                    Banner Principal
+                  </CardTitle>
+                  <CardDescription>
+                    Imagem de capa exibida no perfil do parceiro (1200x300 recomendado)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ImageUpload
+                    value={banner}
+                    onChange={setBanner}
+                    aspectRatio="banner"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Logo */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Logo da Empresa</CardTitle>
+                  <CardDescription>
+                    Logo quadrado para identificação do parceiro
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="max-w-xs">
+                    <ImageUpload
+                      value={logo}
+                      onChange={setLogo}
+                      aspectRatio="square"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Galeria */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Galeria de Fotos</CardTitle>
+                  <CardDescription>
+                    Adicione até 10 fotos do estabelecimento, produtos ou serviços
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <GalleryUpload
+                    value={gallery}
+                    onChange={setGallery}
+                    maxImages={10}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Banner de Destaque (condicional) */}
+              {isDestaque && (
+                <Card className="border-yellow-200 bg-yellow-50/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-yellow-700">
+                      ⭐ Banner de Destaque
+                    </CardTitle>
+                    <CardDescription>
+                      Imagem especial para o carrossel da home (1200x600 recomendado)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ImageUpload
+                      value={bannerDestaque}
+                      onChange={setBannerDestaque}
+                      aspectRatio="banner"
+                    />
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             {/* Tab: Benefícios */}
