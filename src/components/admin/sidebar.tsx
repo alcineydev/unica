@@ -57,6 +57,7 @@ const navigation: NavItem[] = [
     label: 'Assinantes',
     icon: Users,
     children: [
+      { label: '+ Novo Assinante', href: '/admin/assinantes/novo' },
       { label: 'Todos os Assinantes', href: '/admin/assinantes' },
       { label: 'Relatórios', href: '/admin/relatorios' },
     ]
@@ -65,9 +66,9 @@ const navigation: NavItem[] = [
     label: 'Planos',
     icon: CreditCard,
     children: [
+      { label: '+ Novo Plano', href: '/admin/planos/novo' },
       { label: 'Gerenciar Planos', href: '/admin/planos' },
       { label: 'Benefícios', href: '/admin/beneficios' },
-      { label: '+ Novo Plano', href: '/admin/planos/novo' },
     ]
   },
   {
@@ -86,6 +87,7 @@ const navigation: NavItem[] = [
       { label: 'Meu Perfil', href: '/admin/configuracoes' },
       { label: 'Integrações', href: '/admin/integracoes' },
       { label: 'Páginas', href: '/admin/configuracoes/paginas' },
+      { label: 'Notificações Admin', href: '/admin/notificacoes-sistema' },
       { label: 'Cron Vencimentos', href: '/admin/cron' },
       { label: 'Diagnóstico Push', href: '/admin/diagnostics/push' },
     ]

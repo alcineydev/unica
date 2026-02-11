@@ -10,12 +10,12 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Calendar,
-  Loader2,
   UserPlus,
   Gift,
   DollarSign,
   Activity
 } from 'lucide-react'
+import { PageLoading } from '@/components/admin/loading-spinner'
 
 interface DashboardStats {
   totalAssinantes: number
@@ -140,14 +140,7 @@ export default function AdminDashboard() {
   const maxAssinaturas = Math.max(...chartData.map(d => d.assinaturas), 1)
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-brand-600 mx-auto mb-4" />
-          <p className="text-slate-500">Carregando dashboard...</p>
-        </div>
-      </div>
-    )
+    return <PageLoading text="Carregando dashboard..." />
   }
 
   return (
@@ -180,11 +173,10 @@ export default function AdminDashboard() {
                     ) : stat.trend === 'down' ? (
                       <ArrowDownRight className="w-4 h-4 text-red-500" />
                     ) : null}
-                    <span className={`text-sm font-medium ${
-                      stat.trend === 'up' ? 'text-success-600' :
-                      stat.trend === 'down' ? 'text-red-600' :
-                      'text-slate-500'
-                    }`}>
+                    <span className={`text-sm font-medium ${stat.trend === 'up' ? 'text-success-600' :
+                        stat.trend === 'down' ? 'text-red-600' :
+                          'text-slate-500'
+                      }`}>
                       {stat.change}
                     </span>
                   </div>
@@ -280,15 +272,14 @@ export default function AdminDashboard() {
                       {activity.email}
                     </p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    activity.status === 'ACTIVE'
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${activity.status === 'ACTIVE'
                       ? 'bg-success-100 text-success-700'
                       : activity.status === 'PENDING'
-                      ? 'bg-warning-100 text-warning-700'
-                      : 'bg-slate-100 text-slate-600'
-                  }`}>
+                        ? 'bg-warning-100 text-warning-700'
+                        : 'bg-slate-100 text-slate-600'
+                    }`}>
                     {activity.status === 'ACTIVE' ? 'Ativo' :
-                     activity.status === 'PENDING' ? 'Pendente' : activity.status}
+                      activity.status === 'PENDING' ? 'Pendente' : activity.status}
                   </span>
                 </div>
               ))

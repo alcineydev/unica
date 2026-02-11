@@ -40,6 +40,7 @@ import {
 import { toast } from 'sonner'
 import { AdvancedFilters, FilterConfig } from '@/components/admin/filters'
 import { BulkActionsToolbar, BulkAction } from '@/components/admin/bulk-actions'
+import { PageLoading } from '@/components/admin/loading-spinner'
 
 // Tipos
 interface City {
@@ -318,11 +319,7 @@ export default function ParceirosPage() {
     .map(p => ({ id: p.id, name: p.tradeName || p.companyName }))
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    )
+    return <PageLoading text="Carregando parceiros..." />
   }
 
   return (

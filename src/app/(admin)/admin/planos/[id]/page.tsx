@@ -30,6 +30,7 @@ import { ptBR } from 'date-fns/locale'
 import { PlanStatsCards } from '@/components/admin/plan-stats-cards'
 import { PlanBenefitsSelector } from '@/components/admin/plan-benefits-selector'
 import { PlanTimelineChart } from '@/components/admin/plan-timeline-chart'
+import { PageLoading } from '@/components/admin/loading-spinner'
 
 interface Benefit {
     id: string
@@ -220,11 +221,7 @@ export default function EditarPlanoPage() {
     }
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            </div>
-        )
+        return <PageLoading text="Carregando plano..." />
     }
 
     if (!plan) {
