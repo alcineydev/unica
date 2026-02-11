@@ -22,11 +22,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { 
-  Plus, 
-  MoreHorizontal, 
-  Pencil, 
-  Trash2, 
+import {
+  Plus,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
   Eye,
   Building2,
   MapPin,
@@ -161,22 +161,22 @@ export default function ParceirosPage() {
     return parceiros.filter(parceiro => {
       // Busca
       const searchLower = search.toLowerCase()
-      const matchesSearch = !search || 
+      const matchesSearch = !search ||
         parceiro.companyName?.toLowerCase().includes(searchLower) ||
         parceiro.tradeName?.toLowerCase().includes(searchLower) ||
         parceiro.cnpj?.includes(search)
 
       // Status
-      const matchesStatus = filterValues.status === 'all' || 
+      const matchesStatus = filterValues.status === 'all' ||
         (filterValues.status === 'active' && parceiro.isActive) ||
         (filterValues.status === 'inactive' && !parceiro.isActive)
 
       // Categoria
-      const matchesCategory = filterValues.category === 'all' || 
+      const matchesCategory = filterValues.category === 'all' ||
         parceiro.category === filterValues.category
 
       // Cidade
-      const matchesCity = filterValues.city === 'all' || 
+      const matchesCity = filterValues.city === 'all' ||
         parceiro.city?.id === filterValues.city
 
       return matchesSearch && matchesStatus && matchesCategory && matchesCity
@@ -216,10 +216,10 @@ export default function ParceirosPage() {
     }
   }
 
-  const isAllSelected = filteredParceiros.length > 0 && 
+  const isAllSelected = filteredParceiros.length > 0 &&
     selectedIds.length === filteredParceiros.length
 
-  const isIndeterminate = selectedIds.length > 0 && 
+  const isIndeterminate = selectedIds.length > 0 &&
     selectedIds.length < filteredParceiros.length
 
   // Ações em lote
@@ -373,7 +373,7 @@ export default function ParceirosPage() {
             <Store className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="font-semibold text-lg mb-2">Nenhum parceiro encontrado</h3>
             <p className="text-muted-foreground mb-4">
-              {parceiros.length === 0 
+              {parceiros.length === 0
                 ? 'Comece adicionando seu primeiro parceiro.'
                 : 'Tente ajustar os filtros para encontrar o que procura.'}
             </p>
@@ -416,7 +416,7 @@ export default function ParceirosPage() {
               </TableHeader>
               <TableBody>
                 {filteredParceiros.map((parceiro) => (
-                  <TableRow 
+                  <TableRow
                     key={parceiro.id}
                     className={selectedIds.includes(parceiro.id) ? 'bg-blue-50' : ''}
                   >
@@ -490,12 +490,7 @@ export default function ParceirosPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/parceiros/${parceiro.id}`}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Visualizar
-                            </Link>
-                          </DropdownMenuItem>
+
                           <DropdownMenuItem asChild>
                             <Link href={`/admin/parceiros/${parceiro.id}/editar`}>
                               <Pencil className="h-4 w-4 mr-2" />
@@ -556,7 +551,7 @@ export default function ParceirosPage() {
           </Card>
 
           {filteredParceiros.map((parceiro) => (
-            <Card 
+            <Card
               key={parceiro.id}
               className={selectedIds.includes(parceiro.id) ? 'border-blue-500 bg-blue-50' : ''}
             >
@@ -567,7 +562,7 @@ export default function ParceirosPage() {
                     onCheckedChange={(checked) => handleSelectItem(parceiro.id, checked === true)}
                     className="mt-1"
                   />
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3">
@@ -589,7 +584,7 @@ export default function ParceirosPage() {
                           <p className="text-sm text-muted-foreground">{parceiro.cnpj}</p>
                         </div>
                       </div>
-                      
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -597,12 +592,7 @@ export default function ParceirosPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/parceiros/${parceiro.id}`}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Visualizar
-                            </Link>
-                          </DropdownMenuItem>
+
                           <DropdownMenuItem asChild>
                             <Link href={`/admin/parceiros/${parceiro.id}/editar`}>
                               <Pencil className="h-4 w-4 mr-2" />

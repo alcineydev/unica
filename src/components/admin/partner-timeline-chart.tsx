@@ -1,7 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TrendingUp } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { TrendingUp, Calendar } from 'lucide-react'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 
 interface TimelineData {
     month: string
@@ -13,9 +22,16 @@ interface TimelineData {
 interface PartnerTimelineChartProps {
     data: TimelineData[]
     type?: 'count' | 'amount'
+    onPeriodChange?: (period: string) => void
 }
 
-export function PartnerTimelineChart({ data, type = 'count' }: PartnerTimelineChartProps) {
+export function PartnerTimelineChart({
+    data,
+    type = 'count',
+    onPeriodChange
+}: PartnerTimelineChartProps) {
+    const [period, setPeriod] = useState('6')
+
     const values = type === 'count'
         ? data.map(d => d.count)
         : data.map(d => d.amount)
@@ -32,17 +48,38 @@ export function PartnerTimelineChart({ data, type = 'count' }: PartnerTimelineCh
         return value.toString()
     }
 
+    const handlePeriodChange = (newPeriod: string) => {
+        setPeriod(newPeriod)
+        onPeriodChange?.(newPeriod)
+    }
+
+    // Filtrar dados baseado no período
+    const filteredData = data.slice(-parseInt(period))
+
     return (
         <Card>
             <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                    <TrendingUp className="h-5 w-5" />
-                    {type === 'count' ? 'Transações' : 'Receita'} (6 meses)
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <TrendingUp className="h-5 w-5" />
+                        {type === 'count' ? 'Transações' : 'Receita'}
+                    </CardTitle>
+                    <Select value={period} onValueChange={handlePeriodChange}>
+                        <SelectTrigger className="w-[130px] h-8 text-xs">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="3">3 meses</SelectItem>
+                            <SelectItem value="6">6 meses</SelectItem>
+                            <SelectItem value="12">12 meses</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="flex items-end justify-between gap-2 h-24">
-                    {data.map((item, index) => {
+                    {filteredData.map((item, index) => {
                         const value = type === 'count' ? item.count : item.amount
                         const height = maxValue > 0 ? (value / maxValue) * 100 : 0
 
@@ -66,6 +103,17 @@ export function PartnerTimelineChart({ data, type = 'count' }: PartnerTimelineCh
                             </div>
                         )
                     })}
+                </div>
+
+                {/* Total no período */}
+                <div className="mt-4 pt-3 border-t flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total no período:</span>
+                    <span className="font-semibold">
+                        {type === 'count'
+                            ? filteredData.reduce((sum, d) => sum + d.count, 0)
+                            : `R$ ${filteredData.reduce((sum, d) => sum + d.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                        }
+                    </span>
                 </div>
             </CardContent>
         </Card>

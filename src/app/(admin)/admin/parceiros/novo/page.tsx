@@ -1,647 +1,374 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import Link from 'next/link'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Switch } from '@/components/ui/switch'
-import { ImageUpload } from '@/components/ui/image-upload'
-import { GalleryUpload } from '@/components/ui/gallery-upload'
-import { ArrowLeft, Save, Loader2, Star, Plus } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  ArrowLeft,
+  Loader2,
+  Building2,
+  Plus,
+  Eye,
+  EyeOff,
+  UserPlus,
+} from 'lucide-react'
 import { toast } from 'sonner'
-import Link from 'next/link'
 import { CreateCategoryModal } from '@/components/admin/create-category-modal'
-import { CreateCityModal } from '@/components/admin/create-city-modal'
-const partnerSchema = z.object({
-  companyName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  tradeName: z.string().optional(),
-  cnpj: z.string().min(14, 'CNPJ inválido'),
-  email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
-  phone: z.string().optional(),
-  whatsapp: z.string().min(10, 'WhatsApp inválido'),
-  description: z.string().optional(),
-  categoryId: z.string().min(1, 'Selecione uma categoria'),
-  cityId: z.string().min(1, 'Selecione uma cidade'),
-  address: z.string().optional(),
-  addressNumber: z.string().optional(),
-  neighborhood: z.string().optional(),
-  complement: z.string().optional(),
-  zipCode: z.string().optional(),
-  website: z.string().optional(),
-  instagram: z.string().optional(),
-  facebook: z.string().optional(),
-})
-
-type PartnerFormData = z.infer<typeof partnerSchema>
-
-interface Benefit {
-  id: string
-  name: string
-  type: 'DESCONTO' | 'CASHBACK' | 'PONTOS' | 'ACESSO_EXCLUSIVO'
-  value: Record<string, unknown>
-  isActive: boolean
-}
-
-interface City {
-  id: string
-  name: string
-  state: string
-}
 
 interface Category {
   id: string
   name: string
   slug: string
-  isActive: boolean
 }
 
 export default function NovoParceiroPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [benefits, setBenefits] = useState<Benefit[]>([])
-  const [cities, setCities] = useState<City[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [selectedBenefits, setSelectedBenefits] = useState<string[]>([])
-  const [logo, setLogo] = useState<string | null>(null)
-  const [banner, setBanner] = useState<string | null>(null)
-  const [gallery, setGallery] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [loadingCategories, setLoadingCategories] = useState(true)
 
-  // Estados para destaque
-  const [isDestaque, setIsDestaque] = useState(false)
-  const [bannerDestaque, setBannerDestaque] = useState<string | null>(null)
-  const [destaqueOrder, setDestaqueOrder] = useState(1)
-
-  // Estados dos modais
-  const [showCategoryModal, setShowCategoryModal] = useState(false)
-  const [showCityModal, setShowCityModal] = useState(false)
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors }
-  } = useForm<PartnerFormData>({
-    resolver: zodResolver(partnerSchema),
-    defaultValues: {
-      categoryId: '',
-      cityId: ''
-    }
+  // Estados do formulário
+  const [formData, setFormData] = useState({
+    tradeName: '',
+    document: '',
+    categoryId: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
   })
 
-  const fetchBenefits = useCallback(async () => {
-    try {
-      const response = await fetch('/api/admin/benefits')
-      const data = await response.json()
-      if (data.data) {
-        setBenefits(data.data.filter((b: Benefit) => b.isActive))
-      }
-    } catch (error) {
-      console.error('Erro ao buscar benefícios:', error)
-    }
-  }, [])
+  // Estados auxiliares
+  const [categories, setCategories] = useState<Category[]>([])
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
 
-  const fetchCities = useCallback(async () => {
-    try {
-      const response = await fetch('/api/admin/cities')
-      const data = await response.json()
-      if (data.data) {
-        setCities(data.data)
-      }
-    } catch (error) {
-      console.error('Erro ao buscar cidades:', error)
-    }
-  }, [])
-
-  const fetchCategories = useCallback(async () => {
-    try {
-      const response = await fetch('/api/admin/categories')
-      const data = await response.json()
-      if (data.data) {
-        setCategories(data.data.filter((c: Category) => c.isActive))
-      }
-    } catch (error) {
-      console.error('Erro ao buscar categorias:', error)
-    }
-  }, [])
-
+  // Carregar categorias
   useEffect(() => {
-    fetchBenefits()
-    fetchCities()
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/admin/categories')
+        if (response.ok) {
+          const data = await response.json()
+          setCategories(data.data || data || [])
+        }
+      } catch (error) {
+        console.error('Erro ao carregar categorias:', error)
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
     fetchCategories()
-  }, [fetchBenefits, fetchCities, fetchCategories])
+  }, [])
 
-  // Callbacks dos modais
-  const handleCategoryCreated = (newCategory: { id: string; name: string; slug: string }) => {
-    setCategories(prev => [...prev, { ...newCategory, isActive: true }].sort((a, b) => a.name.localeCompare(b.name)))
-    setValue('categoryId', newCategory.id)
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleCityCreated = (newCity: { id: string; name: string; state: string }) => {
-    setCities(prev => [...prev, newCity].sort((a, b) => a.name.localeCompare(b.name)))
-    setValue('cityId', newCity.id)
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const formatCNPJ = (value: string) => {
-    const numbers = value.replace(/\D/g, '').slice(0, 14)
-    return numbers
-      .replace(/^(\d{2})(\d)/, '$1.$2')
-      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-      .replace(/\.(\d{3})(\d)/, '.$1/$2')
-      .replace(/(\d{4})(\d)/, '$1-$2')
-  }
+  // Formatar CNPJ/CPF
+  const formatDocument = (value: string) => {
+    const numbers = value.replace(/\D/g, '')
 
-  const formatPhone = (value: string) => {
-    const numbers = value.replace(/\D/g, '').slice(0, 11)
-    if (numbers.length <= 10) {
+    if (numbers.length <= 11) {
+      // CPF: 000.000.000-00
       return numbers
-        .replace(/^(\d{2})(\d)/, '($1) $2')
-        .replace(/(\d{4})(\d)/, '$1-$2')
-    }
-    return numbers
-      .replace(/^(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d)/, '$1-$2')
-  }
-
-  const getBenefitLabel = (benefit: Benefit): string => {
-    const value = benefit.value as Record<string, number>
-    switch (benefit.type) {
-      case 'DESCONTO':
-        return `${value.percentage}% de desconto`
-      case 'CASHBACK':
-        return `${value.percentage}% de cashback`
-      case 'PONTOS':
-        return `${value.monthlyPoints} pontos/mês`
-      case 'ACESSO_EXCLUSIVO':
-        return 'Acesso exclusivo'
-      default:
-        return 'Benefício'
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+    } else {
+      // CNPJ: 00.000.000/0000-00
+      return numbers
+        .replace(/(\d{2})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1/$2')
+        .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
     }
   }
 
-  const onSubmit = async (data: PartnerFormData) => {
-    // Validação adicional para destaque
-    if (isDestaque && !bannerDestaque) {
-      toast.error('Banner de destaque é obrigatório quando o parceiro está em destaque')
+  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatDocument(e.target.value)
+    setFormData(prev => ({ ...prev, document: formatted }))
+  }
+
+  const handleCategoryCreated = (newCategory: Category) => {
+    setCategories(prev => [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)))
+    setFormData(prev => ({ ...prev, categoryId: newCategory.id }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // Validações
+    if (!formData.tradeName.trim()) {
+      toast.error('Nome Fantasia é obrigatório')
       return
     }
 
-    setIsLoading(true)
+    if (!formData.document.trim()) {
+      toast.error('CNPJ ou CPF é obrigatório')
+      return
+    }
 
+    if (!formData.categoryId) {
+      toast.error('Categoria é obrigatória')
+      return
+    }
+
+    if (!formData.email.trim()) {
+      toast.error('Email é obrigatório')
+      return
+    }
+
+    if (!formData.password) {
+      toast.error('Senha é obrigatória')
+      return
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('Senha deve ter no mínimo 6 caracteres')
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('As senhas não coincidem')
+      return
+    }
+
+    setLoading(true)
     try {
-      const payload = {
-        ...data,
-        logo,
-        banner,
-        gallery,
-        benefitIds: selectedBenefits,
-        cnpj: data.cnpj.replace(/\D/g, ''),
-        phone: data.phone?.replace(/\D/g, '') || '',
-        whatsapp: data.whatsapp.replace(/\D/g, ''),
-        // Campos de destaque
-        isDestaque,
-        bannerDestaque: isDestaque ? bannerDestaque : null,
-        destaqueOrder: isDestaque ? destaqueOrder : 0,
-      }
+      const documentNumbers = formData.document.replace(/\D/g, '')
 
       const response = await fetch('/api/admin/partners', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          tradeName: formData.tradeName.trim(),
+          companyName: formData.tradeName.trim(), // Usar tradeName como companyName inicialmente
+          cnpj: documentNumbers,
+          categoryId: formData.categoryId,
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+        })
       })
 
-      const result = await response.json()
-
-      if (response.ok) {
-        toast.success('Parceiro criado com sucesso!')
-        router.push('/admin/parceiros')
-      } else {
-        toast.error(result.error || 'Erro ao criar parceiro')
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erro ao criar parceiro')
       }
+
+      const newPartner = await response.json()
+
+      toast.success('Parceiro criado com sucesso! Complete os dados.')
+
+      // Redirecionar para página de edição
+      router.push(`/admin/parceiros/${newPartner.id || newPartner.data?.id}/editar`)
     } catch (error) {
-      console.error('Erro:', error)
-      toast.error('Erro ao criar parceiro')
+      toast.error(error instanceof Error ? error.message : 'Erro ao criar parceiro')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/parceiros">
-          <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/admin/parceiros">
             <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
+          </Link>
+        </Button>
         <div>
           <h1 className="text-2xl font-bold">Novo Parceiro</h1>
-          <p className="text-muted-foreground">Cadastre uma nova empresa parceira</p>
+          <p className="text-muted-foreground text-sm">
+            Cadastre os dados básicos. Após criar, complete as informações.
+          </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-
-        {/* Card de Imagens */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Imagens</CardTitle>
-            <CardDescription>Logo, banner e galeria do parceiro</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-
-            <div className="space-y-2">
-              <Label>Banner (1200x300 recomendado)</Label>
-              <ImageUpload
-                value={banner}
-                onChange={setBanner}
-                folder="parceiros/banners"
-                aspectRatio="banner"
-                placeholder="Clique para adicionar banner"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Logo (formato quadrado)</Label>
-              <div className="w-32">
-                <ImageUpload
-                  value={logo}
-                  onChange={setLogo}
-                  folder="parceiros/logos"
-                  aspectRatio="square"
-                  placeholder="Logo"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Galeria de Fotos (opcional)</Label>
-              <GalleryUpload
-                value={gallery}
-                onChange={setGallery}
-                folder="parceiros/gallery"
-                maxImages={10}
-              />
-            </div>
-
-          </CardContent>
-        </Card>
-
-        {/* Card Dados da Empresa */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Dados da Empresa</CardTitle>
-            <CardDescription>Informações principais do parceiro</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Razão Social *</Label>
-              <Input id="companyName" {...register('companyName')} placeholder="Nome da empresa" />
-              {errors.companyName && <p className="text-xs text-destructive">{errors.companyName.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tradeName">Nome Fantasia</Label>
-              <Input id="tradeName" {...register('tradeName')} placeholder="Nome fantasia" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ *</Label>
-              <Input
-                id="cnpj"
-                {...register('cnpj')}
-                placeholder="00.000.000/0000-00"
-                onChange={(e) => setValue('cnpj', formatCNPJ(e.target.value))}
-              />
-              {errors.cnpj && <p className="text-xs text-destructive">{errors.cnpj.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="categoryId">Categoria *</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={watch('categoryId') || 'none'}
-                  onValueChange={(value) => setValue('categoryId', value === 'none' ? '' : value)}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Selecione a categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Selecione...</SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowCategoryModal(true)}
-                  className="h-10 w-10 flex-shrink-0"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              {errors.categoryId && <p className="text-xs text-destructive">{errors.categoryId.message}</p>}
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                {...register('description')}
-                placeholder="Descreva o parceiro..."
-                rows={3}
-              />
-            </div>
-
-          </CardContent>
-        </Card>
-
-        {/* Card Acesso */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Dados de Acesso</CardTitle>
-            <CardDescription>Email e senha para o parceiro acessar o sistema</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email de acesso *</Label>
-              <Input id="email" type="email" {...register('email')} placeholder="email@empresa.com" />
-              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha *</Label>
-              <Input id="password" type="password" {...register('password')} placeholder="••••••••" />
-              {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
-            </div>
-
-          </CardContent>
-        </Card>
-
-        {/* Card Contato */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Contato</CardTitle>
-            <CardDescription>Informações de contato do parceiro</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp">WhatsApp *</Label>
-              <Input
-                id="whatsapp"
-                {...register('whatsapp')}
-                placeholder="(00) 00000-0000"
-                onChange={(e) => setValue('whatsapp', formatPhone(e.target.value))}
-              />
-              {errors.whatsapp && <p className="text-xs text-destructive">{errors.whatsapp.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
-              <Input
-                id="phone"
-                {...register('phone')}
-                placeholder="(00) 0000-0000"
-                onChange={(e) => setValue('phone', formatPhone(e.target.value))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
-              <Input id="website" {...register('website')} placeholder="https://www.empresa.com" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="instagram">Instagram</Label>
-              <Input id="instagram" {...register('instagram')} placeholder="@empresa" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="facebook">Facebook</Label>
-              <Input id="facebook" {...register('facebook')} placeholder="facebook.com/empresa" />
-            </div>
-
-          </CardContent>
-        </Card>
-
-        {/* Card Endereço */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Endereço</CardTitle>
-            <CardDescription>Localização do parceiro</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-
-            <div className="space-y-2">
-              <Label htmlFor="zipCode">CEP</Label>
-              <Input id="zipCode" {...register('zipCode')} placeholder="00000-000" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cityId">Cidade *</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={watch('cityId') || 'none'}
-                  onValueChange={(value) => setValue('cityId', value === 'none' ? '' : value)}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Selecione a cidade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Selecione...</SelectItem>
-                    {cities.map((city) => (
-                      <SelectItem key={city.id} value={city.id}>{city.name} - {city.state}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowCityModal(true)}
-                  className="h-10 w-10 flex-shrink-0"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              {errors.cityId && <p className="text-xs text-destructive">{errors.cityId.message}</p>}
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="address">Endereço</Label>
-              <Input id="address" {...register('address')} placeholder="Rua, Avenida..." />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="addressNumber">Número</Label>
-              <Input id="addressNumber" {...register('addressNumber')} placeholder="123" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="neighborhood">Bairro</Label>
-              <Input id="neighborhood" {...register('neighborhood')} placeholder="Bairro" />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="complement">Complemento</Label>
-              <Input id="complement" {...register('complement')} placeholder="Sala, Bloco..." />
-            </div>
-
-          </CardContent>
-        </Card>
-
-        {/* Card Benefícios */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Benefícios Oferecidos</CardTitle>
-            <CardDescription>Selecione os benefícios que este parceiro vai oferecer aos assinantes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {benefits.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Nenhum benefício cadastrado. <Link href="/admin/beneficios" className="text-primary underline">Cadastre benefícios primeiro.</Link>
-              </p>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {benefits.map((benefit) => (
-                  <label
-                    key={benefit.id}
-                    htmlFor={`benefit-${benefit.id}`}
-                    className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      id={`benefit-${benefit.id}`}
-                      checked={selectedBenefits.includes(benefit.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedBenefits(prev => [...prev, benefit.id])
-                        } else {
-                          setSelectedBenefits(prev => prev.filter(id => id !== benefit.id))
-                        }
-                      }}
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium">{benefit.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {getBenefitLabel(benefit)}
-                      </p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Card Destaque */}
+      {/* Formulário */}
+      <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-yellow-500" />
-              Destaque na Home
+              <Building2 className="h-5 w-5" />
+              Dados do Parceiro
             </CardTitle>
             <CardDescription>
-              Parceiros em destaque aparecem no carrossel principal do app
+              Preencha apenas os dados essenciais. Após criar, você poderá adicionar imagens, endereço, benefícios e mais.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Exibir como destaque</Label>
-                <p className="text-sm text-muted-foreground">
-                  Ativar para mostrar no carrossel da home
-                </p>
-              </div>
-              <Switch
-                checked={isDestaque}
-                onCheckedChange={setIsDestaque}
+          <CardContent className="space-y-6">
+            {/* Nome Fantasia */}
+            <div className="space-y-2">
+              <Label htmlFor="tradeName">Nome Fantasia *</Label>
+              <Input
+                id="tradeName"
+                name="tradeName"
+                value={formData.tradeName}
+                onChange={handleChange}
+                placeholder="Nome da empresa"
+                className="h-11"
+                autoFocus
               />
             </div>
 
-            {isDestaque && (
-              <div className="space-y-4 pt-4 border-t">
-                <div className="space-y-2">
-                  <Label>Banner do Destaque *</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Tamanho recomendado: 1200 x 600 pixels
-                  </p>
-                  <ImageUpload
-                    value={bannerDestaque}
-                    onChange={setBannerDestaque}
-                    folder="parceiros/destaques"
-                    aspectRatio="video"
-                    placeholder="Clique para fazer upload do banner de destaque"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="destaqueOrder">Ordem no carrossel</Label>
-                  <Input
-                    id="destaqueOrder"
-                    type="number"
-                    min={1}
-                    value={destaqueOrder}
-                    onChange={(e) => setDestaqueOrder(parseInt(e.target.value) || 1)}
-                    className="w-32"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Menor número aparece primeiro
-                  </p>
+            {/* CNPJ/CPF e Categoria */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="document">CNPJ ou CPF *</Label>
+                <Input
+                  id="document"
+                  name="document"
+                  value={formData.document}
+                  onChange={handleDocumentChange}
+                  placeholder="00.000.000/0000-00"
+                  className="h-11"
+                  maxLength={18}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Categoria *</Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={formData.categoryId}
+                    onValueChange={(value) => handleSelectChange('categoryId', value)}
+                    disabled={loadingCategories}
+                  >
+                    <SelectTrigger className="flex-1 h-11">
+                      <SelectValue placeholder={loadingCategories ? 'Carregando...' : 'Selecione...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowCategoryModal(true)}
+                    className="h-11 w-11 flex-shrink-0"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Separador */}
+            <div className="border-t pt-6">
+              <h3 className="font-medium mb-4 flex items-center gap-2">
+                <UserPlus className="h-4 w-4" />
+                Dados de Acesso
+              </h3>
+
+              {/* Email */}
+              <div className="space-y-2 mb-4">
+                <Label htmlFor="email">Email de Acesso *</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="parceiro@email.com"
+                  className="h-11"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Este email será usado para login no app do parceiro
+                </p>
+              </div>
+
+              {/* Senhas */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha *</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Mínimo 6 caracteres"
+                      className="h-11 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirmar Senha *</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Repita a senha"
+                      className="h-11 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Botões de Ação */}
-        <div className="flex justify-end gap-3">
-          <Link href="/admin/parceiros">
-            <Button type="button" variant="outline">Cancelar</Button>
-          </Link>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Salvando...
-              </>
+        {/* Botões */}
+        <div className="flex justify-end gap-3 mt-6">
+          <Button type="button" variant="outline" asChild>
+            <Link href="/admin/parceiros">Cancelar</Link>
+          </Button>
+          <Button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700">
+            {loading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Salvar Parceiro
-              </>
+              <UserPlus className="h-4 w-4 mr-2" />
             )}
+            Criar Parceiro
           </Button>
         </div>
-
-        {/* Modais de Criação */}
-        <CreateCategoryModal
-          open={showCategoryModal}
-          onOpenChange={setShowCategoryModal}
-          onSuccess={handleCategoryCreated}
-        />
-        <CreateCityModal
-          open={showCityModal}
-          onOpenChange={setShowCityModal}
-          onSuccess={handleCityCreated}
-        />
-
       </form>
+
+      {/* Modal de Categoria */}
+      <CreateCategoryModal
+        open={showCategoryModal}
+        onOpenChange={setShowCategoryModal}
+        onSuccess={handleCategoryCreated}
+      />
     </div>
   )
 }
-

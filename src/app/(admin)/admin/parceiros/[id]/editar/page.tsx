@@ -35,6 +35,7 @@ import {
   Calendar,
   Users,
   FolderOpen,
+  ScrollText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -48,6 +49,7 @@ import { PartnerRecentTransactions } from '@/components/admin/partner-recent-tra
 import { PartnerRecentReviews } from '@/components/admin/partner-recent-reviews'
 import { CreateCategoryModal } from '@/components/admin/create-category-modal'
 import { CreateCityModal } from '@/components/admin/create-city-modal'
+import { PartnerActivityLogs } from '@/components/admin/partner-activity-logs'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { GalleryUpload } from '@/components/ui/gallery-upload'
 
@@ -283,6 +285,40 @@ export default function EditarParceiroPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  // Buscar endereço por CEP
+  const handleCepBlur = async () => {
+    const cep = formData.zipCode.replace(/\D/g, '')
+
+    if (cep.length !== 8) return
+
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      const data = await response.json()
+
+      if (!data.erro) {
+        setFormData(prev => ({
+          ...prev,
+          address: data.logradouro || prev.address,
+          neighborhood: data.bairro || prev.neighborhood,
+        }))
+
+        // Tentar encontrar cidade correspondente
+        const cityName = data.localidade?.toLowerCase()
+        const state = data.uf
+        const matchingCity = cities.find(
+          c => c.name.toLowerCase() === cityName && c.state === state
+        )
+        if (matchingCity) {
+          setFormData(prev => ({ ...prev, cityId: matchingCity.id }))
+        }
+
+        toast.success('Endereço encontrado!')
+      }
+    } catch (error) {
+      console.error('Erro ao buscar CEP:', error)
+    }
+  }
+
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
@@ -460,7 +496,7 @@ export default function EditarParceiroPage() {
         {/* Coluna Principal (2/3) */}
         <div className="lg:col-span-2">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5 mb-6">
+            <TabsList className="grid w-full grid-cols-6 mb-6">
               <TabsTrigger value="informacoes" className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Informações</span>
@@ -480,6 +516,10 @@ export default function EditarParceiroPage() {
               <TabsTrigger value="avaliacoes" className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
                 <span className="hidden sm:inline">Avaliações</span>
+              </TabsTrigger>
+              <TabsTrigger value="logs" className="flex items-center gap-2">
+                <ScrollText className="h-4 w-4" />
+                <span className="hidden sm:inline">Logs</span>
               </TabsTrigger>
             </TabsList>
 
@@ -630,9 +670,13 @@ export default function EditarParceiroPage() {
                         name="zipCode"
                         value={formData.zipCode}
                         onChange={handleChange}
+                        onBlur={handleCepBlur}
                         placeholder="00000-000"
                         className="h-11"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Digite o CEP para preencher o endereço automaticamente
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="address">Endereço</Label>
@@ -795,6 +839,11 @@ export default function EditarParceiroPage() {
               <PartnerRecentReviews
                 reviews={partner.recentAvaliacoes || []}
               />
+            </TabsContent>
+
+            {/* Tab: Logs */}
+            <TabsContent value="logs">
+              <PartnerActivityLogs partnerId={id} />
             </TabsContent>
           </Tabs>
         </div>
