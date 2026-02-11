@@ -839,7 +839,7 @@ export default function EditarParceiroPage() {
                     <ImageUpload
                       value={bannerDestaque}
                       onChange={setBannerDestaque}
-                      aspectRatio="wide"
+                      aspectRatio="banner"
                     />
                   </div>
                   <div className="space-y-2">

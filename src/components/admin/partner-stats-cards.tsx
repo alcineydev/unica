@@ -12,7 +12,7 @@ interface PartnerStatsCardsProps {
     receitaEsteMes: number
     mediaAvaliacao: number
     totalAvaliacoes: number
-    ultimoAcesso: string | null
+    ultimoAcesso?: string | null
 }
 
 export function PartnerStatsCards({
