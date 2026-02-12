@@ -50,7 +50,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       )
     }
 
-    return NextResponse.json({ data: benefit })
+    return NextResponse.json(benefit)
   } catch (error) {
     console.error('Erro ao buscar benefício:', error)
     return NextResponse.json(
@@ -60,8 +60,8 @@ export async function GET(request: Request, { params }: RouteParams) {
   }
 }
 
-// PATCH - Atualizar benefício
-export async function PATCH(request: Request, { params }: RouteParams) {
+// PUT - Atualizar benefício
+export async function PUT(request: Request, { params }: RouteParams) {
   try {
     const session = await auth()
     
