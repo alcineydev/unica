@@ -1,17 +1,40 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useEffect, useCallback } from 'react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import {
+  Users,
+  Plus,
+  RefreshCw,
+  Search,
+  Edit,
+  Trash2,
+  Power,
+  PowerOff,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Shield,
+  Phone,
+  Calendar,
+  KeyRound,
+} from 'lucide-react'
+import { PageLoading, PageHeader, FilterBar } from '@/components/developer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   AlertDialog,
@@ -23,52 +46,74 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Plus, Trash2, Power, PowerOff, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
 interface Admin {
   id: string
-  name: string
-  phone: string
-  permissions: Record<string, boolean>
+  email: string
+  phone: string | null
+  isActive: boolean
   createdAt: string
-  user: {
-    id: string
-    email: string
-    isActive: boolean
-    createdAt: string
-  }
+  updatedAt: string
+  name: string | null
+  adminId: string | null
 }
 
 export default function AdminsPage() {
+  // Estados principais
   const [admins, setAdmins] = useState<Admin[]>([])
   const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [search, setSearch] = useState('')
+
+  // Estados dos modais
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [toggleDialogOpen, setToggleDialogOpen] = useState(false)
+
+  // Admin selecionado para ações
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null)
-  
-  const [formData, setFormData] = useState({
+
+  // Estados do formulário de criar
+  const [createForm, setCreateForm] = useState({
+    name: '',
     email: '',
+    phone: '',
     password: '',
+  })
+  const [showCreatePassword, setShowCreatePassword] = useState(false)
+  const [creating, setCreating] = useState(false)
+
+  // Estados do formulário de editar
+  const [editForm, setEditForm] = useState({
     name: '',
     phone: '',
+    password: '',
   })
+  const [showEditPassword, setShowEditPassword] = useState(false)
+  const [editing, setEditing] = useState(false)
 
-  useEffect(() => {
-    loadAdmins()
-  }, [])
+  // Estados do formulário de alterar email
+  const [emailForm, setEmailForm] = useState({
+    newEmail: '',
+    code: '',
+  })
+  const [emailStep, setEmailStep] = useState<'request' | 'verify'>('request')
+  const [sendingCode, setSendingCode] = useState(false)
+  const [verifyingCode, setVerifyingCode] = useState(false)
 
-  async function loadAdmins() {
+  // Estados de ações
+  const [deleting, setDeleting] = useState(false)
+  const [toggling, setToggling] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+
+  // Buscar admins
+  const fetchAdmins = useCallback(async () => {
     try {
+      setRefreshing(true)
       const response = await fetch('/api/developer/admins')
       if (response.ok) {
         const data = await response.json()
@@ -79,287 +124,446 @@ export default function AdminsPage() {
       toast.error('Erro ao carregar administradores')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
-  }
+  }, [])
 
-  async function handleCreateAdmin(e: React.FormEvent) {
-    e.preventDefault()
+  useEffect(() => {
+    fetchAdmins()
+  }, [fetchAdmins])
+
+  // Filtrar admins
+  const filteredAdmins = admins.filter((admin) => {
+    const searchLower = search.toLowerCase()
+    return (
+      admin.name?.toLowerCase().includes(searchLower) ||
+      admin.email.toLowerCase().includes(searchLower) ||
+      admin.phone?.toLowerCase().includes(searchLower)
+    )
+  })
+
+  // Criar admin
+  const handleCreate = async () => {
+    if (!createForm.name || !createForm.email || !createForm.password) {
+      toast.error('Preencha todos os campos obrigatórios')
+      return
+    }
+
+    if (createForm.password.length < 6) {
+      toast.error('A senha deve ter no mínimo 6 caracteres')
+      return
+    }
+
     setCreating(true)
-
     try {
       const response = await fetch('/api/developer/admins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(createForm),
       })
 
       if (response.ok) {
         toast.success('Administrador criado com sucesso!')
-        setDialogOpen(false)
-        setFormData({ email: '', password: '', name: '', phone: '' })
-        loadAdmins()
+        setCreateDialogOpen(false)
+        setCreateForm({ name: '', email: '', phone: '', password: '' })
+        fetchAdmins()
       } else {
         const data = await response.json()
         toast.error(data.error || 'Erro ao criar administrador')
       }
     } catch (error) {
-      console.error('Erro ao criar admin:', error)
       toast.error('Erro ao criar administrador')
     } finally {
       setCreating(false)
     }
   }
 
-  async function handleToggleStatus(admin: Admin) {
+  // Editar admin
+  const handleEdit = async () => {
+    if (!selectedAdmin) return
+
+    setEditing(true)
     try {
-      const response = await fetch(`/api/developer/admins/${admin.id}`, {
+      const updateData: Record<string, string> = {}
+      if (editForm.name) updateData.name = editForm.name
+      if (editForm.phone !== undefined) updateData.phone = editForm.phone
+      if (editForm.password && editForm.password.length >= 6) {
+        updateData.password = editForm.password
+      }
+
+      const response = await fetch(`/api/developer/admins/${selectedAdmin.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !admin.user.isActive }),
+        body: JSON.stringify(updateData),
+      })
+
+      if (response.ok) {
+        toast.success('Administrador atualizado com sucesso!')
+        setEditDialogOpen(false)
+        setSelectedAdmin(null)
+        setEditForm({ name: '', phone: '', password: '' })
+        fetchAdmins()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Erro ao atualizar administrador')
+      }
+    } catch (error) {
+      toast.error('Erro ao atualizar administrador')
+    } finally {
+      setEditing(false)
+    }
+  }
+
+  // Abrir modal de edição
+  const openEditDialog = (admin: Admin) => {
+    setSelectedAdmin(admin)
+    setEditForm({
+      name: admin.name || '',
+      phone: admin.phone || '',
+      password: '',
+    })
+    setShowEditPassword(false)
+    setEditDialogOpen(true)
+  }
+
+  // Abrir modal de alteração de email
+  const openEmailDialog = (admin: Admin) => {
+    setSelectedAdmin(admin)
+    setEmailForm({ newEmail: '', code: '' })
+    setEmailStep('request')
+    setEmailDialogOpen(true)
+  }
+
+  // Enviar código de verificação
+  const handleSendCode = async () => {
+    if (!selectedAdmin || !emailForm.newEmail) {
+      toast.error('Digite o novo email')
+      return
+    }
+
+    setSendingCode(true)
+    try {
+      const response = await fetch('/api/developer/admins/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminId: selectedAdmin.id,
+          newEmail: emailForm.newEmail,
+        }),
+      })
+
+      if (response.ok) {
+        toast.success('Código enviado para o email atual!')
+        setEmailStep('verify')
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Erro ao enviar código')
+      }
+    } catch (error) {
+      toast.error('Erro ao enviar código')
+    } finally {
+      setSendingCode(false)
+    }
+  }
+
+  // Verificar código
+  const handleVerifyCode = async () => {
+    if (!selectedAdmin || !emailForm.code) {
+      toast.error('Digite o código de verificação')
+      return
+    }
+
+    setVerifyingCode(true)
+    try {
+      const response = await fetch('/api/developer/admins/verify-email', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminId: selectedAdmin.id,
+          code: emailForm.code,
+        }),
+      })
+
+      if (response.ok) {
+        toast.success('Email alterado com sucesso!')
+        setEmailDialogOpen(false)
+        setSelectedAdmin(null)
+        setEmailForm({ newEmail: '', code: '' })
+        fetchAdmins()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Código inválido')
+      }
+    } catch (error) {
+      toast.error('Erro ao verificar código')
+    } finally {
+      setVerifyingCode(false)
+    }
+  }
+
+  // Ativar/Desativar admin
+  const handleToggle = async () => {
+    if (!selectedAdmin) return
+
+    setToggling(true)
+    try {
+      const response = await fetch(`/api/developer/admins/${selectedAdmin.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !selectedAdmin.isActive }),
       })
 
       if (response.ok) {
         toast.success(
-          admin.user.isActive
-            ? 'Administrador desativado'
-            : 'Administrador ativado'
+          selectedAdmin.isActive
+            ? 'Administrador desativado!'
+            : 'Administrador ativado!'
         )
-        loadAdmins()
+        setToggleDialogOpen(false)
+        setSelectedAdmin(null)
+        fetchAdmins()
       } else {
-        toast.error('Erro ao alterar status')
+        const data = await response.json()
+        toast.error(data.error || 'Erro ao alterar status')
       }
     } catch (error) {
-      console.error('Erro ao alterar status:', error)
       toast.error('Erro ao alterar status')
+    } finally {
+      setToggling(false)
     }
   }
 
-  async function handleDeleteAdmin() {
+  // Excluir admin
+  const handleDelete = async () => {
     if (!selectedAdmin) return
 
+    if (deleteConfirmText !== 'EXCLUIR') {
+      toast.error('Digite EXCLUIR para confirmar')
+      return
+    }
+
+    setDeleting(true)
     try {
       const response = await fetch(`/api/developer/admins/${selectedAdmin.id}`, {
         method: 'DELETE',
       })
 
       if (response.ok) {
-        toast.success('Administrador removido com sucesso!')
+        toast.success('Administrador excluído com sucesso!')
         setDeleteDialogOpen(false)
         setSelectedAdmin(null)
-        loadAdmins()
+        setDeleteConfirmText('')
+        fetchAdmins()
       } else {
-        toast.error('Erro ao remover administrador')
+        const data = await response.json()
+        toast.error(data.error || 'Erro ao excluir administrador')
       }
     } catch (error) {
-      console.error('Erro ao deletar admin:', error)
-      toast.error('Erro ao remover administrador')
+      toast.error('Erro ao excluir administrador')
+    } finally {
+      setDeleting(false)
     }
+  }
+
+  if (loading) {
+    return <PageLoading text="Carregando administradores..." />
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Administradores</h1>
-          <p className="text-zinc-400 mt-1">
-            Gerencie os administradores do sistema
-          </p>
-        </div>
-
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-red-600 hover:bg-red-700">
+      {/* Header */}
+      <PageHeader
+        title="Administradores"
+        description="Gerencie os administradores do sistema"
+        icon={<Users className="h-6 w-6" />}
+        badge={{ text: `${admins.length} admin${admins.length !== 1 ? 's' : ''}`, variant: 'default' }}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => fetchAdmins()}
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+              className="border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            >
+              <RefreshCw className={cn('h-4 w-4 mr-2', refreshing && 'animate-spin')} />
+              Atualizar
+            </Button>
+            <Button
+              onClick={() => {
+                setCreateForm({ name: '', email: '', phone: '', password: '' })
+                setShowCreatePassword(false)
+                setCreateDialogOpen(true)
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Novo Admin
             </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-zinc-900 border-zinc-700">
-            <DialogHeader>
-              <DialogTitle className="text-white">Criar Administrador</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateAdmin} className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-zinc-300">Nome</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Nome completo"
-                  className="bg-zinc-800 border-zinc-700 text-white"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-zinc-300">Email</Label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="email@exemplo.com"
-                  className="bg-zinc-800 border-zinc-700 text-white"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-zinc-300">Senha</Label>
-                <Input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Mínimo 6 caracteres"
-                  className="bg-zinc-800 border-zinc-700 text-white"
-                  required
-                  minLength={6}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-zinc-300">Telefone</Label>
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="(00) 00000-0000"
-                  className="bg-zinc-800 border-zinc-700 text-white"
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                  className="border-zinc-700 text-zinc-300"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={creating}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Criar Admin
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </div>
+        }
+      />
 
-      <Card className="bg-zinc-800 border-zinc-700">
-        <CardHeader>
-          <CardTitle className="text-white">Lista de Administradores</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
-            </div>
-          ) : admins.length === 0 ? (
-            <div className="text-center py-8 text-zinc-400">
-              Nenhum administrador cadastrado
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-zinc-700">
-                  <TableHead className="text-zinc-400">Nome</TableHead>
-                  <TableHead className="text-zinc-400">Email</TableHead>
-                  <TableHead className="text-zinc-400">Telefone</TableHead>
-                  <TableHead className="text-zinc-400">Status</TableHead>
-                  <TableHead className="text-zinc-400">Criado em</TableHead>
-                  <TableHead className="text-zinc-400 text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {admins.map((admin) => (
-                  <TableRow key={admin.id} className="border-zinc-700">
-                    <TableCell className="text-white font-medium">
-                      {admin.name}
-                    </TableCell>
-                    <TableCell className="text-zinc-300">
-                      {admin.user.email}
-                    </TableCell>
-                    <TableCell className="text-zinc-300">
-                      {admin.phone}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={admin.user.isActive ? 'default' : 'secondary'}
-                        className={
-                          admin.user.isActive
-                            ? 'bg-green-600'
-                            : 'bg-zinc-600'
-                        }
-                      >
-                        {admin.user.isActive ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-zinc-300">
-                      {new Date(admin.createdAt).toLocaleDateString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+      {/* Filtros */}
+      <FilterBar
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: 'Buscar por nome, email ou telefone...',
+        }}
+        totalResults={filteredAdmins.length}
+      />
+
+      {/* Tabela */}
+      <div className="rounded-xl border border-zinc-700 bg-zinc-800/50 overflow-hidden">
+        {filteredAdmins.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Users className="h-12 w-12 text-zinc-600 mb-4" />
+            <p className="text-lg font-medium text-zinc-400">
+              {search ? 'Nenhum administrador encontrado' : 'Nenhum administrador cadastrado'}
+            </p>
+            <p className="text-sm text-zinc-500 mt-1">
+              {search ? 'Tente ajustar a busca' : 'Clique em "Novo Admin" para criar'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-700 bg-zinc-800/80">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    Administrador
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400 hidden md:table-cell">
+                    Contato
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400 hidden lg:table-cell">
+                    Criado em
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-700/50">
+                {filteredAdmins.map((admin) => (
+                  <tr
+                    key={admin.id}
+                    className="bg-zinc-800/30 hover:bg-zinc-700/50 transition-colors"
+                  >
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/20 text-red-400">
+                          <Shield className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-white">
+                            {admin.name || 'Sem nome'}
+                          </p>
+                          <p className="text-sm text-zinc-400">{admin.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 hidden md:table-cell">
+                      <div className="flex items-center gap-2 text-sm text-zinc-400">
+                        <Phone className="h-4 w-4" />
+                        {admin.phone || '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 hidden lg:table-cell">
+                      <div className="flex items-center gap-2 text-sm text-zinc-400">
+                        <Calendar className="h-4 w-4" />
+                        {format(new Date(admin.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      {admin.isActive ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/20 px-2.5 py-1 text-xs font-medium text-green-400 border border-green-500/30">
+                          <CheckCircle className="h-3 w-3" />
+                          Ativo
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/20 px-2.5 py-1 text-xs font-medium text-red-400 border border-red-500/30">
+                          <XCircle className="h-3 w-3" />
+                          Inativo
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Editar */}
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleToggleStatus(admin)}
-                          className="text-zinc-400 hover:text-white"
-                          title={admin.user.isActive ? 'Desativar' : 'Ativar'}
+                          onClick={() => openEditDialog(admin)}
+                          className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-700"
+                          title="Editar"
                         >
-                          {admin.user.isActive ? (
-                            <PowerOff className="h-4 w-4" />
-                          ) : (
-                            <Power className="h-4 w-4" />
-                          )}
+                          <Edit className="h-4 w-4" />
                         </Button>
+
+                        {/* Alterar Email */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEmailDialog(admin)}
+                          className="h-8 w-8 text-zinc-400 hover:text-blue-400 hover:bg-blue-500/20"
+                          title="Alterar Email"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </Button>
+
+                        {/* Ativar/Desativar */}
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => {
                             setSelectedAdmin(admin)
+                            setToggleDialogOpen(true)
+                          }}
+                          className={cn(
+                            'h-8 w-8',
+                            admin.isActive
+                              ? 'text-zinc-400 hover:text-amber-400 hover:bg-amber-500/20'
+                              : 'text-zinc-400 hover:text-green-400 hover:bg-green-500/20'
+                          )}
+                          title={admin.isActive ? 'Desativar' : 'Ativar'}
+                        >
+                          {admin.isActive ? (
+                            <PowerOff className="h-4 w-4" />
+                          ) : (
+                            <Power className="h-4 w-4" />
+                          )}
+                        </Button>
+
+                        {/* Excluir */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedAdmin(admin)
+                            setDeleteConfirmText('')
                             setDeleteDialogOpen(true)
                           }}
-                          className="text-red-400 hover:text-red-300"
+                          className="h-8 w-8 text-zinc-400 hover:text-red-400 hover:bg-red-500/20"
+                          title="Excluir"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-zinc-900 border-zinc-700">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">
-              Remover Administrador
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-zinc-400">
-              Tem certeza que deseja remover o administrador{' '}
-              <strong className="text-white">{selectedAdmin?.name}</strong>?
-              <br />
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-zinc-700 text-zinc-300">
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteAdmin}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* MODALS - Continuação no próximo arquivo devido ao limite de tamanho */}
     </div>
   )
 }
-
