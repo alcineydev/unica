@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, description, type, value, category, isActive } = validationResult.data
+    const { name, description, type, value, isActive } = validationResult.data
 
     // Valida a configuração específica do tipo
     const configValidation = validateBenefitConfig(type, value as Record<string, unknown>)
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
         description,
         type,
         value: value as object,
-        category: category || null,
+        category: null,
         isActive,
       },
     })

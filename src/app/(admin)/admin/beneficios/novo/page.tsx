@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -41,21 +41,14 @@ const benefitTypes = [
   { value: 'ACESSO_EXCLUSIVO', label: 'Acesso Exclusivo', icon: Lock, description: 'Acesso a áreas ou serviços exclusivos' },
 ]
 
-interface Category {
-  id: string
-  name: string
-}
-
 export default function NovoBeneficioPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [categories, setCategories] = useState<Category[]>([])
   
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     type: 'DESCONTO',
-    category: '',
     isActive: true,
     // Value fields (dinâmico baseado no tipo)
     discountType: 'percentage', // percentage | fixed
@@ -64,22 +57,6 @@ export default function NovoBeneficioPage() {
     pointsMultiplier: '',
     accessDescription: '',
   })
-
-  // Carregar categorias
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch('/api/admin/categories')
-        if (response.ok) {
-          const data = await response.json()
-          setCategories(data.data || data || [])
-        }
-      } catch (error) {
-        console.error('Erro ao carregar categorias:', error)
-      }
-    }
-    fetchCategories()
-  }, [])
 
   // Montar objeto value baseado no tipo
   const buildValueObject = () => {
@@ -129,7 +106,6 @@ export default function NovoBeneficioPage() {
           name: formData.name.trim(),
           description: formData.description.trim(),
           type: formData.type,
-          category: formData.category || null,
           value: buildValueObject(),
           isActive: formData.isActive,
         }),
@@ -213,27 +189,6 @@ export default function NovoBeneficioPage() {
                   rows={3}
                   disabled={loading}
                 />
-              </div>
-
-              {/* Categoria */}
-              <div className="space-y-2">
-                <Label htmlFor="category">Categoria</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                  disabled={loading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Status */}

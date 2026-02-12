@@ -1,42 +1,55 @@
 import { z } from 'zod'
 
-// Schema base para configuração de benefício por tipo
+// Schema para DESCONTO
 const descontoConfigSchema = z.object({
-  percentage: z.number().min(1).max(100),
-  category: z.string().optional(),
+  type: z.enum(['percentage', 'fixed']),
+  value: z.number().min(0),
 })
 
+// Schema para CASHBACK
 const cashbackConfigSchema = z.object({
-  percentage: z.number().min(0.1).max(100),
+  percentage: z.number().min(0).max(100),
 })
 
+// Schema para PONTOS
 const pontosConfigSchema = z.object({
-  monthlyPoints: z.number().min(1),
+  multiplier: z.number().min(1),
 })
 
+// Schema para ACESSO_EXCLUSIVO
 const acessoExclusivoConfigSchema = z.object({
-  tier: z.string().optional(),
-  partnerIds: z.array(z.string()).optional(),
+  description: z.string().optional(),
 })
 
 // Schema de criação de benefício
 export const createBenefitSchema = z.object({
-  name: z
-    .string()
-    .min(3, 'Nome deve ter no mínimo 3 caracteres')
-    .max(100, 'Nome deve ter no máximo 100 caracteres'),
-  description: z
-    .string()
-    .min(10, 'Descrição deve ter no mínimo 10 caracteres')
-    .max(500, 'Descrição deve ter no máximo 500 caracteres'),
+  name: z.string().min(1, 'Nome é obrigatório'),
+  description: z.string().min(1, 'Descrição é obrigatória'),
   type: z.enum(['DESCONTO', 'CASHBACK', 'PONTOS', 'ACESSO_EXCLUSIVO']),
-  value: z.record(z.string(), z.unknown()), // Validação dinâmica baseada no tipo
-  category: z.string().optional().nullable(),
+  value: z.union([
+    descontoConfigSchema,
+    cashbackConfigSchema,
+    pontosConfigSchema,
+    acessoExclusivoConfigSchema,
+    z.object({}).passthrough(), // Aceita objeto vazio ou outros
+  ]),
   isActive: z.boolean().default(true),
 })
 
-// Schema de atualização (todos os campos opcionais)
-export const updateBenefitSchema = createBenefitSchema.partial()
+// Schema de atualização (todos opcionais)
+export const updateBenefitSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().min(1).optional(),
+  type: z.enum(['DESCONTO', 'CASHBACK', 'PONTOS', 'ACESSO_EXCLUSIVO']).optional(),
+  value: z.union([
+    descontoConfigSchema,
+    cashbackConfigSchema,
+    pontosConfigSchema,
+    acessoExclusivoConfigSchema,
+    z.object({}).passthrough(),
+  ]).optional(),
+  isActive: z.boolean().optional(),
+})
 
 export type CreateBenefitInput = z.infer<typeof createBenefitSchema>
 export type UpdateBenefitInput = z.infer<typeof updateBenefitSchema>

@@ -52,11 +52,6 @@ const benefitTypes = [
   { value: 'ACESSO_EXCLUSIVO', label: 'Acesso Exclusivo', icon: Lock, description: 'Acesso a áreas ou serviços exclusivos' },
 ]
 
-interface Category {
-  id: string
-  name: string
-}
-
 interface Benefit {
   id: string
   name: string
@@ -74,14 +69,12 @@ export default function EditarBeneficioPage({ params }: { params: Promise<{ id: 
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [categories, setCategories] = useState<Category[]>([])
   const [notFound, setNotFound] = useState(false)
   
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     type: 'DESCONTO',
-    category: '',
     isActive: true,
     discountType: 'percentage',
     discountValue: '',
@@ -90,17 +83,10 @@ export default function EditarBeneficioPage({ params }: { params: Promise<{ id: 
     accessDescription: '',
   })
 
-  // Carregar benefício e categorias
+  // Carregar benefício
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Carregar categorias
-        const catResponse = await fetch('/api/admin/categories')
-        if (catResponse.ok) {
-          const catData = await catResponse.json()
-          setCategories(catData.data || catData || [])
-        }
-
         // Carregar benefício
         const response = await fetch(`/api/admin/benefits/${id}`)
         if (!response.ok) {
@@ -118,7 +104,6 @@ export default function EditarBeneficioPage({ params }: { params: Promise<{ id: 
           name: benefit.name,
           description: benefit.description,
           type: benefit.type,
-          category: benefit.category || '',
           isActive: benefit.isActive,
           discountType: (benefit.value as { type?: string })?.type || 'percentage',
           discountValue: String((benefit.value as { value?: number })?.value || ''),
@@ -182,7 +167,6 @@ export default function EditarBeneficioPage({ params }: { params: Promise<{ id: 
           name: formData.name.trim(),
           description: formData.description.trim(),
           type: formData.type,
-          category: formData.category || null,
           value: buildValueObject(),
           isActive: formData.isActive,
         }),
@@ -319,26 +303,6 @@ export default function EditarBeneficioPage({ params }: { params: Promise<{ id: 
                   rows={3}
                   disabled={saving}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Categoria</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                  disabled={saving}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="flex items-center justify-between rounded-lg border p-4">
