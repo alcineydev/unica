@@ -41,14 +41,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, banner } = body
+    const { name, slug: customSlug, icon, description, banner, isActive } = body
 
-    if (!name || !banner) {
-      return NextResponse.json({ error: 'Nome e banner são obrigatórios' }, { status: 400 })
+    // Validação apenas do nome (obrigatório)
+    if (!name) {
+      return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
     }
 
-    // Gerar slug a partir do nome
-    const slug = name
+    // Gerar slug a partir do nome ou usar customizado
+    const slug = customSlug || name
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
@@ -67,14 +68,18 @@ export async function POST(request: Request) {
     })
     const nextOrder = (maxOrder._max.displayOrder || 0) + 1
 
+    // Usar placeholder se banner não fornecido
+    const finalBanner = banner || '/images/category-placeholder.svg'
+
     const category = await prisma.category.create({
       data: {
         name,
         slug,
-        banner,
-        icon: 'Store',
+        icon: icon || 'Store',
+        banner: finalBanner,
+        description: description || null,
         displayOrder: nextOrder,
-        isActive: true
+        isActive: isActive !== false,
       }
     })
 
