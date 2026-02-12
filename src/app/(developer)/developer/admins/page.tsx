@@ -563,7 +563,384 @@ export default function AdminsPage() {
         )}
       </div>
 
-      {/* MODALS - Continuação no próximo arquivo devido ao limite de tamanho */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* MODAL: Criar Admin */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="bg-zinc-900 border-zinc-700 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-red-400" />
+              Novo Administrador
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Preencha os dados para criar um novo administrador.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Nome *</Label>
+              <Input
+                value={createForm.name}
+                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                placeholder="Nome do administrador"
+                className="bg-zinc-800 border-zinc-700 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Email *</Label>
+              <Input
+                type="email"
+                value={createForm.email}
+                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                placeholder="email@exemplo.com"
+                className="bg-zinc-800 border-zinc-700 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Telefone</Label>
+              <Input
+                value={createForm.phone}
+                onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+                placeholder="(00) 00000-0000"
+                className="bg-zinc-800 border-zinc-700 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Senha *</Label>
+              <div className="relative">
+                <Input
+                  type={showCreatePassword ? 'text' : 'password'}
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                  placeholder="Mínimo 6 caracteres"
+                  className="bg-zinc-800 border-zinc-700 text-white pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCreatePassword(!showCreatePassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                >
+                  {showCreatePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCreateDialogOpen(false)}
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={creating}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {creating ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Criar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* MODAL: Editar Admin */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="bg-zinc-900 border-zinc-700 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-blue-400" />
+              Editar Administrador
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Altere os dados do administrador. Deixe a senha em branco para não alterá-la.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Nome</Label>
+              <Input
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="Nome do administrador"
+                className="bg-zinc-800 border-zinc-700 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Telefone</Label>
+              <Input
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                placeholder="(00) 00000-0000"
+                className="bg-zinc-800 border-zinc-700 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-300">Nova Senha (opcional)</Label>
+              <div className="relative">
+                <Input
+                  type={showEditPassword ? 'text' : 'password'}
+                  value={editForm.password}
+                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  placeholder="Deixe em branco para não alterar"
+                  className="bg-zinc-800 border-zinc-700 text-white pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowEditPassword(!showEditPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                >
+                  {showEditPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+              <p className="text-xs text-blue-400">
+                💡 Para alterar o email, use o botão de email na tabela.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditDialogOpen(false)}
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleEdit}
+              disabled={editing}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {editing ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4 mr-2" />
+              )}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* MODAL: Alterar Email */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="bg-zinc-900 border-zinc-700 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-cyan-400" />
+              Alterar Email
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              {emailStep === 'request'
+                ? 'Digite o novo email. Um código será enviado para o email atual.'
+                : 'Digite o código de 4 dígitos enviado para o email atual.'
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Info do admin */}
+            <div className="p-3 rounded-lg bg-zinc-800 border border-zinc-700">
+              <p className="text-sm text-zinc-400">Email atual:</p>
+              <p className="font-medium text-white">{selectedAdmin?.email}</p>
+            </div>
+
+            {emailStep === 'request' ? (
+              <div className="space-y-2">
+                <Label className="text-zinc-300">Novo Email</Label>
+                <Input
+                  type="email"
+                  value={emailForm.newEmail}
+                  onChange={(e) => setEmailForm({ ...emailForm, newEmail: e.target.value })}
+                  placeholder="novo@email.com"
+                  className="bg-zinc-800 border-zinc-700 text-white"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-zinc-300">Código de Verificação</Label>
+                <Input
+                  value={emailForm.code}
+                  onChange={(e) => setEmailForm({ ...emailForm, code: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                  placeholder="0000"
+                  className="bg-zinc-800 border-zinc-700 text-white text-center text-2xl tracking-[0.5em] font-mono"
+                  maxLength={4}
+                />
+                <p className="text-xs text-zinc-500 text-center">
+                  O código foi enviado para {selectedAdmin?.email}
+                </p>
+              </div>
+            )}
+
+            {emailStep === 'verify' && (
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                <p className="text-xs text-amber-400">
+                  ⏱️ O código expira em 10 minutos.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEmailDialogOpen(false)}
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            >
+              Cancelar
+            </Button>
+            {emailStep === 'request' ? (
+              <Button
+                onClick={handleSendCode}
+                disabled={sendingCode}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white"
+              >
+                {sendingCode ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <KeyRound className="h-4 w-4 mr-2" />
+                )}
+                Enviar Código
+              </Button>
+            ) : (
+              <Button
+                onClick={handleVerifyCode}
+                disabled={verifyingCode || emailForm.code.length !== 4}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white"
+              >
+                {verifyingCode ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                )}
+                Verificar
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ALERT: Ativar/Desativar */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <AlertDialog open={toggleDialogOpen} onOpenChange={setToggleDialogOpen}>
+        <AlertDialogContent className="bg-zinc-900 border-zinc-700 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {selectedAdmin?.isActive ? (
+                <PowerOff className="h-5 w-5 text-amber-400" />
+              ) : (
+                <Power className="h-5 w-5 text-green-400" />
+              )}
+              {selectedAdmin?.isActive ? 'Desativar' : 'Ativar'} Administrador
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              Tem certeza que deseja {selectedAdmin?.isActive ? 'desativar' : 'ativar'}{' '}
+              <strong className="text-white">{selectedAdmin?.name || selectedAdmin?.email}</strong>?
+              {selectedAdmin?.isActive && (
+                <span className="block mt-2 text-amber-400">
+                  O administrador não conseguirá acessar o sistema.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleToggle}
+              disabled={toggling}
+              className={cn(
+                selectedAdmin?.isActive
+                  ? 'bg-amber-600 hover:bg-amber-700'
+                  : 'bg-green-600 hover:bg-green-700',
+                'text-white'
+              )}
+            >
+              {toggling ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : selectedAdmin?.isActive ? (
+                <PowerOff className="h-4 w-4 mr-2" />
+              ) : (
+                <Power className="h-4 w-4 mr-2" />
+              )}
+              {selectedAdmin?.isActive ? 'Desativar' : 'Ativar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ALERT: Excluir */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-zinc-900 border-zinc-700 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-400">
+              <AlertTriangle className="h-5 w-5" />
+              Excluir Administrador
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400 space-y-3">
+              <span className="block">
+                Tem certeza que deseja excluir{' '}
+                <strong className="text-white">{selectedAdmin?.name || selectedAdmin?.email}</strong>?
+              </span>
+              <span className="block text-red-400">
+                ⚠️ Esta ação não pode ser desfeita. O administrador será removido permanentemente.
+              </span>
+              <div className="pt-2">
+                <Label className="text-zinc-300">Digite EXCLUIR para confirmar:</Label>
+                <Input
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
+                  placeholder="EXCLUIR"
+                  className="mt-2 bg-zinc-800 border-zinc-700 text-white"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting || deleteConfirmText !== 'EXCLUIR'}
+              className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+            >
+              {deleting ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Excluir Permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
