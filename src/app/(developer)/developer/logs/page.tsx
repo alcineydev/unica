@@ -1,9 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useEffect, useCallback } from 'react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import {
+  ScrollText,
+  RefreshCw,
+  Download,
+  Filter,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  Globe,
+} from 'lucide-react'
+import { PageLoading, PageHeader, FilterBar } from '@/components/developer'
+import { Pagination } from '@/components/developer/pagination'
+import { LogBadge, LevelBadge } from '@/components/developer/log-badge'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -11,257 +25,362 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Loader2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
-import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 interface SystemLog {
   id: string
+  level: string
   action: string
-  entity: string
-  entityId: string
-  details: Record<string, unknown>
-  userId: string | null
+  userId?: string
+  details?: Record<string, unknown>
+  ip?: string
+  userAgent?: string
   createdAt: string
 }
 
-interface Pagination {
+interface PaginationData {
   page: number
   limit: number
   total: number
   totalPages: number
 }
 
-const ACTION_COLORS: Record<string, string> = {
-  CREATE_ADMIN: 'bg-green-600',
-  DELETE_ADMIN: 'bg-red-600',
-  ACTIVATE_ADMIN: 'bg-blue-600',
-  DEACTIVATE_ADMIN: 'bg-amber-600',
-  LOGIN: 'bg-purple-600',
-  LOGOUT: 'bg-zinc-600',
-  DEFAULT: 'bg-zinc-600',
-}
+const actionOptions = [
+  { value: 'all', label: 'Todas as Ações' },
+  { value: 'CREATE_ADMIN', label: 'Admin Criado' },
+  { value: 'DELETE_ADMIN', label: 'Admin Removido' },
+  { value: 'ACTIVATE_ADMIN', label: 'Admin Ativado' },
+  { value: 'DEACTIVATE_ADMIN', label: 'Admin Desativado' },
+  { value: 'LOGIN', label: 'Login' },
+  { value: 'LOGOUT', label: 'Logout' },
+  { value: 'LOGIN_FAILED', label: 'Login Falhou' },
+  { value: 'CONFIG_UPDATE', label: 'Config Atualizada' },
+]
+
+const levelOptions = [
+  { value: 'all', label: 'Todos os Níveis' },
+  { value: 'INFO', label: 'Info' },
+  { value: 'WARN', label: 'Aviso' },
+  { value: 'ERROR', label: 'Erro' },
+  { value: 'DEBUG', label: 'Debug' },
+]
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<SystemLog[]>([])
-  const [pagination, setPagination] = useState<Pagination>({
+  const [pagination, setPagination] = useState<PaginationData>({
     page: 1,
-    limit: 50,
+    limit: 20,
     total: 0,
     totalPages: 0,
   })
   const [loading, setLoading] = useState(true)
-  const [actionFilter, setActionFilter] = useState<string>('all')
-  const [entityFilter, setEntityFilter] = useState<string>('all')
+  const [refreshing, setRefreshing] = useState(false)
 
-  useEffect(() => {
-    loadLogs()
-  }, [pagination.page, actionFilter, entityFilter])
+  // Filtros
+  const [search, setSearch] = useState('')
+  const [actionFilter, setActionFilter] = useState('all')
+  const [levelFilter, setLevelFilter] = useState('all')
 
-  async function loadLogs() {
-    setLoading(true)
+  // Expandir detalhes
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  const fetchLogs = useCallback(async (page = 1) => {
     try {
+      setRefreshing(true)
       const params = new URLSearchParams({
-        page: pagination.page.toString(),
+        page: page.toString(),
         limit: pagination.limit.toString(),
-        ...(actionFilter && actionFilter !== 'all' && { action: actionFilter }),
-        ...(entityFilter && entityFilter !== 'all' && { entity: entityFilter }),
       })
+
+      if (actionFilter !== 'all') params.append('action', actionFilter)
+      if (levelFilter !== 'all') params.append('level', levelFilter)
+      if (search) params.append('search', search)
 
       const response = await fetch(`/api/developer/logs?${params}`)
       if (response.ok) {
         const data = await response.json()
-        setLogs(data.logs)
-        setPagination(data.pagination)
+        setLogs(data.logs || [])
+        setPagination(data.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 })
       }
     } catch (error) {
       console.error('Erro ao carregar logs:', error)
-      toast.error('Erro ao carregar logs')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
+  }, [actionFilter, levelFilter, search, pagination.limit])
+
+  useEffect(() => {
+    fetchLogs(1)
+  }, [actionFilter, levelFilter])
+
+  const handleSearch = () => {
+    fetchLogs(1)
   }
 
-  function formatDate(dateString: string) {
-    return new Date(dateString).toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
+  const handlePageChange = (page: number) => {
+    fetchLogs(page)
   }
 
-  function getActionColor(action: string) {
-    return ACTION_COLORS[action] || ACTION_COLORS.DEFAULT
+  const handleRefresh = () => {
+    fetchLogs(pagination.page)
   }
 
-  function formatDetails(details: Record<string, unknown>) {
-    return Object.entries(details)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join(', ')
+  const handleExport = () => {
+    // TODO: Implementar exportação
+    console.log('Exportar logs')
+  }
+
+  const clearFilters = () => {
+    setSearch('')
+    setActionFilter('all')
+    setLevelFilter('all')
+  }
+
+  const hasFilters = search || actionFilter !== 'all' || levelFilter !== 'all'
+
+  if (loading) {
+    return <PageLoading text="Carregando logs..." />
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Logs do Sistema</h1>
-          <p className="text-zinc-400 mt-1">
-            Monitoramento de atividades e eventos do sistema
-          </p>
-        </div>
+      {/* Header */}
+      <PageHeader
+        title="Logs do Sistema"
+        description="Monitore todas as atividades e eventos do sistema"
+        icon={<ScrollText className="h-6 w-6" />}
+        badge={{ text: `${pagination.total} registros`, variant: 'default' }}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleExport}
+              variant="outline"
+              size="sm"
+              className="border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exportar
+            </Button>
+            <Button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+              className="border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            >
+              <RefreshCw className={cn('h-4 w-4 mr-2', refreshing && 'animate-spin')} />
+              Atualizar
+            </Button>
+          </div>
+        }
+      />
 
-        <Button
-          variant="outline"
-          onClick={() => loadLogs()}
-          className="border-zinc-700 text-zinc-300"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Atualizar
-        </Button>
+      {/* Filtros */}
+      <FilterBar
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: 'Buscar por IP, usuário ou detalhes...',
+        }}
+        actions={
+          <Button
+            onClick={handleSearch}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Buscar
+          </Button>
+        }
+        filters={
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={actionFilter} onValueChange={setActionFilter}>
+              <SelectTrigger className="w-[180px] bg-zinc-900 border-zinc-700 text-zinc-300">
+                <Filter className="h-4 w-4 mr-2 text-zinc-500" />
+                <SelectValue placeholder="Ação" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-900 border-zinc-700">
+                {actionOptions.map((option) => (
+                  <SelectItem
+                    key={option.value}
+                    value={option.value}
+                    className="text-zinc-300 focus:bg-zinc-800 focus:text-white"
+                  >
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={levelFilter} onValueChange={setLevelFilter}>
+              <SelectTrigger className="w-[150px] bg-zinc-900 border-zinc-700 text-zinc-300">
+                <SelectValue placeholder="Nível" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-900 border-zinc-700">
+                {levelOptions.map((option) => (
+                  <SelectItem
+                    key={option.value}
+                    value={option.value}
+                    className="text-zinc-300 focus:bg-zinc-800 focus:text-white"
+                  >
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {hasFilters && (
+              <Button
+                onClick={clearFilters}
+                variant="ghost"
+                size="sm"
+                className="text-zinc-400 hover:text-white"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Limpar filtros
+              </Button>
+            )}
+          </div>
+        }
+        totalResults={pagination.total}
+      />
+
+      {/* Tabela de Logs */}
+      <div className="rounded-xl border border-zinc-700 bg-zinc-800/50 overflow-hidden">
+        {logs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <ScrollText className="h-12 w-12 text-zinc-600 mb-4" />
+            <p className="text-lg font-medium text-zinc-400">Nenhum log encontrado</p>
+            <p className="text-sm text-zinc-500 mt-1">
+              {hasFilters ? 'Tente ajustar os filtros' : 'Os logs aparecerão aqui'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-700 bg-zinc-800/80">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    Data/Hora
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    Nível
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    Ação
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400 hidden md:table-cell">
+                    IP
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400 hidden lg:table-cell">
+                    User Agent
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    Detalhes
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-700/50">
+                {logs.map((log) => (
+                  <>
+                    <tr
+                      key={log.id}
+                      onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+                      className="bg-zinc-800/30 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-zinc-500 hidden sm:block" />
+                          <div>
+                            <p className="text-sm font-medium text-zinc-300">
+                              {format(new Date(log.createdAt), 'dd/MM/yyyy', { locale: ptBR })}
+                            </p>
+                            <p className="text-xs text-zinc-500">
+                              {format(new Date(log.createdAt), 'HH:mm:ss', { locale: ptBR })}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <LevelBadge level={log.level} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <LogBadge action={log.action} />
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        <div className="flex items-center gap-2 text-sm text-zinc-400">
+                          <Globe className="h-4 w-4" />
+                          {log.ip || '-'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        <p className="text-sm text-zinc-500 truncate max-w-[200px]">
+                          {log.userAgent || '-'}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-zinc-400 hover:text-white"
+                        >
+                          {expandedId === log.id ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </td>
+                    </tr>
+
+                    {/* Detalhes expandidos */}
+                    {expandedId === log.id && (
+                      <tr key={`${log.id}-details`}>
+                        <td colSpan={6} className="bg-zinc-900/50 px-4 py-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                              <p className="text-xs font-medium text-zinc-500 uppercase mb-1">ID</p>
+                              <p className="text-sm text-zinc-300 font-mono">{log.id}</p>
+                            </div>
+                            {log.userId && (
+                              <div>
+                                <p className="text-xs font-medium text-zinc-500 uppercase mb-1">User ID</p>
+                                <p className="text-sm text-zinc-300 font-mono">{log.userId}</p>
+                              </div>
+                            )}
+                            <div className="md:col-span-2 lg:col-span-2">
+                              <p className="text-xs font-medium text-zinc-500 uppercase mb-1">User Agent</p>
+                              <p className="text-sm text-zinc-300 break-all">{log.userAgent || '-'}</p>
+                            </div>
+                            {log.details && Object.keys(log.details).length > 0 && (
+                              <div className="col-span-full">
+                                <p className="text-xs font-medium text-zinc-500 uppercase mb-1">Detalhes</p>
+                                <pre className="text-xs text-zinc-400 bg-zinc-900 p-3 rounded-lg overflow-x-auto">
+                                  {JSON.stringify(log.details, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Filters */}
-      <Card className="bg-zinc-800 border-zinc-700">
-        <CardContent className="pt-6">
-          <div className="flex gap-4">
-            <div className="w-48">
-              <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
-                  <SelectValue placeholder="Filtrar por ação" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-zinc-700">
-                  <SelectItem value="all">Todas as ações</SelectItem>
-                  <SelectItem value="CREATE_ADMIN">Criar Admin</SelectItem>
-                  <SelectItem value="DELETE_ADMIN">Deletar Admin</SelectItem>
-                  <SelectItem value="ACTIVATE_ADMIN">Ativar Admin</SelectItem>
-                  <SelectItem value="DEACTIVATE_ADMIN">Desativar Admin</SelectItem>
-                  <SelectItem value="LOGIN">Login</SelectItem>
-                  <SelectItem value="LOGOUT">Logout</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-48">
-              <Select value={entityFilter} onValueChange={setEntityFilter}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
-                  <SelectValue placeholder="Filtrar por entidade" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-zinc-700">
-                  <SelectItem value="all">Todas as entidades</SelectItem>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="User">User</SelectItem>
-                  <SelectItem value="Parceiro">Parceiro</SelectItem>
-                  <SelectItem value="Assinante">Assinante</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Logs Table */}
-      <Card className="bg-zinc-800 border-zinc-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center justify-between">
-            <span>Registros</span>
-            <span className="text-sm font-normal text-zinc-400">
-              {pagination.total} logs encontrados
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
-            </div>
-          ) : logs.length === 0 ? (
-            <div className="text-center py-8 text-zinc-400">
-              Nenhum log encontrado
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-zinc-700">
-                    <TableHead className="text-zinc-400">Data/Hora</TableHead>
-                    <TableHead className="text-zinc-400">Ação</TableHead>
-                    <TableHead className="text-zinc-400">Entidade</TableHead>
-                    <TableHead className="text-zinc-400">Detalhes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.map((log) => (
-                    <TableRow key={log.id} className="border-zinc-700">
-                      <TableCell className="text-zinc-300 font-mono text-sm">
-                        {formatDate(log.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getActionColor(log.action)}>
-                          {log.action}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-zinc-300">
-                        {log.entity}
-                        {log.entityId && (
-                          <span className="text-zinc-500 text-xs ml-2">
-                            #{log.entityId.substring(0, 8)}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-zinc-400 text-sm max-w-md truncate">
-                        {formatDetails(log.details as Record<string, unknown>)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-zinc-700">
-                  <p className="text-sm text-zinc-400">
-                    Página {pagination.page} de {pagination.totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setPagination((p) => ({ ...p, page: p.page - 1 }))
-                      }
-                      disabled={pagination.page === 1}
-                      className="border-zinc-700 text-zinc-300"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setPagination((p) => ({ ...p, page: p.page + 1 }))
-                      }
-                      disabled={pagination.page === pagination.totalPages}
-                      className="border-zinc-700 text-zinc-300"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+      {/* Paginação */}
+      {pagination.totalPages > 1 && (
+        <Pagination
+          currentPage={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.total}
+          itemsPerPage={pagination.limit}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   )
 }
-
