@@ -1,23 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { z } from 'zod'
-
-export const runtime = 'nodejs'
-
-const createAdminSchema = z.object({
-  email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
-  name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
-  phone: z.string().min(10, 'Telefone inválido'),
-})
+import { EmailService } from '@/lib/email-service'
 
 // GET - Listar todos os admins
 export async function GET() {
   try {
     const session = await auth()
-    
+
     if (!session || session.user.role !== 'DEVELOPER') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -28,102 +19,119 @@ export async function GET() {
           select: {
             id: true,
             email: true,
+            phone: true,
             isActive: true,
             createdAt: true,
+            updatedAt: true,
           },
         },
       },
       orderBy: { createdAt: 'desc' },
     })
 
-    return NextResponse.json(admins)
+    // Transformar para o formato esperado pela página
+    const transformedAdmins = admins.map(admin => ({
+      id: admin.user.id,           // ID do User (usado nas ações)
+      email: admin.user.email,
+      phone: admin.user.phone || admin.phone,
+      isActive: admin.user.isActive,
+      createdAt: admin.user.createdAt,
+      updatedAt: admin.user.updatedAt,
+      name: admin.name,
+      adminId: admin.id,           // ID do Admin
+    }))
+
+    return NextResponse.json(transformedAdmins)
   } catch (error) {
     console.error('Erro ao listar admins:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
 // POST - Criar novo admin
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const session = await auth()
-    
+
     if (!session || session.user.role !== 'DEVELOPER') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
-    const validatedData = createAdminSchema.parse(body)
+    const { name, email, phone, password } = body
+
+    // Validações
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: 'Nome, email e senha são obrigatórios' }, { status: 400 })
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json({ error: 'Senha deve ter no mínimo 6 caracteres' }, { status: 400 })
+    }
 
     // Verificar se email já existe
     const existingUser = await prisma.user.findUnique({
-      where: { email: validatedData.email },
+      where: { email },
     })
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: 'Email já está em uso' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Este email já está em uso' }, { status: 400 })
     }
 
     // Hash da senha
-    const hashedPassword = await bcrypt.hash(validatedData.password, 12)
+    const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Criar usuário e admin em uma transação
-    const result = await prisma.user.create({
-      data: {
-        email: validatedData.email,
-        password: hashedPassword,
-        role: 'ADMIN',
-        isActive: true,
-        admin: {
-          create: {
-            name: validatedData.name,
-            phone: validatedData.phone,
-            permissions: {
-              cities: true,
-              benefits: true,
-              plans: true,
-              partners: true,
-              subscribers: true,
-              integrations: true,
-              reports: true,
-            },
-          },
+    // Criar User + Admin em transação
+    const result = await prisma.$transaction(async (tx) => {
+      // Criar User
+      const user = await tx.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          phone,
+          role: 'ADMIN',
+          isActive: true,
         },
-      },
-      include: {
-        admin: true,
-      },
+      })
+
+      // Criar Admin
+      const admin = await tx.admin.create({
+        data: {
+          userId: user.id,
+          name,
+          phone,
+        },
+      })
+
+      return { user, admin }
     })
 
-    // Registrar log
+    // Enviar email de boas-vindas
+    await EmailService.sendWelcomeAdmin(email, name, password)
+
+    // Log
     await prisma.systemLog.create({
       data: {
-        level: 'info',
+        level: 'INFO',
         action: 'CREATE_ADMIN',
-        userId: session.user.id!,
-        details: { entity: 'Admin', entityId: result.admin?.id || '', email: validatedData.email, name: validatedData.name },
+        userId: result.user.id,
+        details: { name, email, performedBy: session.user.id },
       },
     })
 
-    return NextResponse.json(result, { status: 201 })
+    // Retornar no formato esperado
+    return NextResponse.json({
+      id: result.user.id,
+      email: result.user.email,
+      phone: result.user.phone,
+      isActive: result.user.isActive,
+      createdAt: result.user.createdAt,
+      updatedAt: result.user.updatedAt,
+      name: result.admin.name,
+      adminId: result.admin.id,
+    })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Dados inválidos', details: error.issues },
-        { status: 400 }
-      )
-    }
     console.error('Erro ao criar admin:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
-
