@@ -10,13 +10,10 @@ import {
   ScrollText,
   Smartphone,
   Palette,
-  FileText,
   Settings,
   ChevronLeft,
   ChevronRight,
   Shield,
-  Activity,
-  Database,
   Code2,
   Menu,
   X,
@@ -39,16 +36,6 @@ const navigation = [
     icon: ScrollText,
   },
   {
-    name: 'Monitoramento',
-    href: '/developer/monitoramento',
-    icon: Activity,
-  },
-  {
-    name: 'Banco de Dados',
-    href: '/developer/database',
-    icon: Database,
-  },
-  {
     name: 'PWA / App',
     href: '/developer/pwa',
     icon: Smartphone,
@@ -57,11 +44,6 @@ const navigation = [
     name: 'Sistema',
     href: '/developer/sistema',
     icon: Palette,
-  },
-  {
-    name: 'Páginas',
-    href: '/developer/paginas',
-    icon: FileText,
   },
   {
     name: 'Configurações',

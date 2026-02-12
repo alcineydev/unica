@@ -1,109 +1,112 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
+import { EmailService } from '@/lib/email-service'
 
-export const runtime = 'nodejs'
-
-// GET - Buscar admin por ID
+// GET - Buscar admin específico
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const session = await auth()
-    
+    const session = await getServerSession(authOptions)
+
     if (!session || session.user.role !== 'DEVELOPER') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const { id } = await params
-
-    const admin = await prisma.admin.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            isActive: true,
-            createdAt: true,
-          },
-        },
+    const admin = await prisma.user.findUnique({
+      where: {
+        id: params.id,
+        role: 'ADMIN',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
       },
     })
 
     if (!admin) {
-      return NextResponse.json({ error: 'Admin não encontrado' }, { status: 404 })
+      return NextResponse.json({ error: 'Administrador não encontrado' }, { status: 404 })
     }
 
     return NextResponse.json(admin)
   } catch (error) {
     console.error('Erro ao buscar admin:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
-// PATCH - Atualizar admin (ativar/desativar)
+// PATCH - Atualizar admin
 export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const session = await auth()
-    
+    const session = await getServerSession(authOptions)
+
     if (!session || session.user.role !== 'DEVELOPER') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const { id } = await params
     const body = await request.json()
+    const { name, phone, password, isActive } = body
 
-    const admin = await prisma.admin.findUnique({
-      where: { id },
-      include: { user: true },
+    // Buscar admin atual
+    const currentAdmin = await prisma.user.findUnique({
+      where: {
+        id: params.id,
+        role: 'ADMIN',
+      },
     })
 
-    if (!admin) {
-      return NextResponse.json({ error: 'Admin não encontrado' }, { status: 404 })
+    if (!currentAdmin) {
+      return NextResponse.json({ error: 'Administrador não encontrado' }, { status: 404 })
     }
 
-    // Atualizar status do usuário
-    if (body.isActive !== undefined) {
-      await prisma.user.update({
-        where: { id: admin.userId },
-        data: { isActive: body.isActive },
-      })
+    // Preparar dados para atualização
+    const updateData: Record<string, unknown> = {}
 
-      // Registrar log
-      await prisma.systemLog.create({
-        data: {
-          level: 'info',
-          action: body.isActive ? 'ACTIVATE_ADMIN' : 'DEACTIVATE_ADMIN',
-          userId: session.user.id!,
-          details: { entity: 'Admin', entityId: id, adminEmail: admin.user.email },
-        },
-      })
+    if (name !== undefined) updateData.name = name
+    if (phone !== undefined) updateData.phone = phone
+    if (typeof isActive === 'boolean') updateData.isActive = isActive
+
+    // Se nova senha foi fornecida
+    if (password && password.length >= 6) {
+      updateData.password = await bcrypt.hash(password, 10)
     }
 
-    // Atualizar dados do admin
-    const updatedAdmin = await prisma.admin.update({
-      where: { id },
-      data: {
-        name: body.name || admin.name,
-        phone: body.phone || admin.phone,
-        permissions: body.permissions || admin.permissions,
+    // Atualizar
+    const updatedAdmin = await prisma.user.update({
+      where: { id: params.id },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            isActive: true,
-            createdAt: true,
-          },
+    })
+
+    // Log
+    await prisma.systemLog.create({
+      data: {
+        level: 'INFO',
+        action: isActive === false ? 'DEACTIVATE_ADMIN' : isActive === true ? 'ACTIVATE_ADMIN' : 'UPDATE_ADMIN',
+        userId: params.id,
+        details: {
+          updatedFields: Object.keys(updateData),
+          performedBy: session.user.id,
         },
       },
     })
@@ -111,59 +114,64 @@ export async function PATCH(
     return NextResponse.json(updatedAdmin)
   } catch (error) {
     console.error('Erro ao atualizar admin:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
 
 // DELETE - Remover admin
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const session = await auth()
-    
+    const session = await getServerSession(authOptions)
+
     if (!session || session.user.role !== 'DEVELOPER') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const { id } = await params
-
-    const admin = await prisma.admin.findUnique({
-      where: { id },
-      include: { user: true },
-    })
-
-    if (!admin) {
-      return NextResponse.json({ error: 'Admin não encontrado' }, { status: 404 })
-    }
-
-    // Deletar admin e usuário
-    await prisma.$transaction([
-      prisma.admin.delete({ where: { id } }),
-      prisma.user.delete({ where: { id: admin.userId } }),
-    ])
-
-    // Registrar log
-    await prisma.systemLog.create({
-      data: {
-        level: 'info',
-        action: 'DELETE_ADMIN',
-        userId: session.user.id!,
-        details: { entity: 'Admin', entityId: id, adminEmail: admin.user.email, adminName: admin.name },
+    // Buscar admin
+    const admin = await prisma.user.findUnique({
+      where: {
+        id: params.id,
+        role: 'ADMIN',
       },
     })
 
-    return NextResponse.json({ message: 'Admin removido com sucesso' })
+    if (!admin) {
+      return NextResponse.json({ error: 'Administrador não encontrado' }, { status: 404 })
+    }
+
+    // Não permitir excluir a si mesmo
+    if (admin.id === session.user.id) {
+      return NextResponse.json({ error: 'Você não pode excluir sua própria conta' }, { status: 400 })
+    }
+
+    // Deletar
+    await prisma.user.delete({
+      where: { id: params.id },
+    })
+
+    // Enviar notificação por email
+    await EmailService.sendAccountDeletionNotice(admin.email, admin.name || 'Administrador')
+
+    // Log
+    await prisma.systemLog.create({
+      data: {
+        level: 'WARN',
+        action: 'DELETE_ADMIN',
+        userId: params.id,
+        details: {
+          deletedEmail: admin.email,
+          deletedName: admin.name,
+          performedBy: session.user.id,
+        },
+      },
+    })
+
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Erro ao deletar admin:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
-
