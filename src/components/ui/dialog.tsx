@@ -65,12 +65,9 @@ function DialogContent({
           "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 p-6 duration-200 sm:max-w-lg",
           className
         )}
-        style={{
-          backgroundColor: 'white',
-          borderColor: 'rgb(226, 232, 240)'
-        }}
         {...props}
       >
+
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
