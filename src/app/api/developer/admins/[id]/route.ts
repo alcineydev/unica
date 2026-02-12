@@ -18,27 +18,33 @@ export async function GET(
 
     const { id } = await params
 
-    const admin = await prisma.user.findUnique({
+    // Buscar User com role ADMIN e incluir dados do Admin
+    const user = await prisma.user.findUnique({
       where: {
         id,
         role: 'ADMIN',
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
+        admin: true,
       },
     })
 
-    if (!admin) {
+    if (!user) {
       return NextResponse.json({ error: 'Administrador não encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json(admin)
+    // Formatar resposta
+    return NextResponse.json({
+      id: user.id,
+      email: user.email,
+      phone: user.phone,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      // Dados do Admin
+      name: user.admin?.name || null,
+      adminId: user.admin?.id || null,
+    })
   } catch (error) {
     console.error('Erro ao buscar admin:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
@@ -62,42 +68,48 @@ export async function PATCH(
     const { name, phone, password, isActive } = body
 
     // Buscar admin atual
-    const currentAdmin = await prisma.user.findUnique({
+    const currentUser = await prisma.user.findUnique({
       where: {
         id,
         role: 'ADMIN',
       },
+      include: {
+        admin: true,
+      },
     })
 
-    if (!currentAdmin) {
+    if (!currentUser) {
       return NextResponse.json({ error: 'Administrador não encontrado' }, { status: 404 })
     }
 
-    // Preparar dados para atualização
-    const updateData: Record<string, unknown> = {}
-
-    if (name !== undefined) updateData.name = name
-    if (phone !== undefined) updateData.phone = phone
-    if (typeof isActive === 'boolean') updateData.isActive = isActive
+    // Preparar dados para atualização do User
+    const userUpdateData: Record<string, unknown> = {}
+    if (phone !== undefined) userUpdateData.phone = phone
+    if (typeof isActive === 'boolean') userUpdateData.isActive = isActive
 
     // Se nova senha foi fornecida
     if (password && password.length >= 6) {
-      updateData.password = await bcrypt.hash(password, 10)
+      userUpdateData.password = await bcrypt.hash(password, 10)
     }
 
-    // Atualizar
-    const updatedAdmin = await prisma.user.update({
+    // Atualizar User
+    const updatedUser = await prisma.user.update({
       where: { id },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      data: userUpdateData,
+    })
+
+    // Atualizar Admin (name) se fornecido
+    if (name !== undefined && currentUser.admin) {
+      await prisma.admin.update({
+        where: { id: currentUser.admin.id },
+        data: { name },
+      })
+    }
+
+    // Buscar dados atualizados
+    const finalUser = await prisma.user.findUnique({
+      where: { id },
+      include: { admin: true },
     })
 
     // Log
@@ -107,13 +119,22 @@ export async function PATCH(
         action: isActive === false ? 'DEACTIVATE_ADMIN' : isActive === true ? 'ACTIVATE_ADMIN' : 'UPDATE_ADMIN',
         userId: id,
         details: {
-          updatedFields: Object.keys(updateData),
+          updatedFields: [...Object.keys(userUpdateData), ...(name !== undefined ? ['name'] : [])],
           performedBy: session.user.id,
         },
       },
     })
 
-    return NextResponse.json(updatedAdmin)
+    return NextResponse.json({
+      id: finalUser?.id,
+      email: finalUser?.email,
+      phone: finalUser?.phone,
+      isActive: finalUser?.isActive,
+      createdAt: finalUser?.createdAt,
+      updatedAt: finalUser?.updatedAt,
+      name: finalUser?.admin?.name || null,
+      adminId: finalUser?.admin?.id || null,
+    })
   } catch (error) {
     console.error('Erro ao atualizar admin:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
@@ -135,29 +156,42 @@ export async function DELETE(
     const { id } = await params
 
     // Buscar admin
-    const admin = await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
         id,
         role: 'ADMIN',
       },
+      include: {
+        admin: true,
+      },
     })
 
-    if (!admin) {
+    if (!user) {
       return NextResponse.json({ error: 'Administrador não encontrado' }, { status: 404 })
     }
 
     // Não permitir excluir a si mesmo
-    if (admin.id === session.user.id) {
+    if (user.id === session.user.id) {
       return NextResponse.json({ error: 'Você não pode excluir sua própria conta' }, { status: 400 })
     }
 
-    // Deletar
+    // Deletar Admin primeiro (se existir)
+    if (user.admin) {
+      await prisma.admin.delete({
+        where: { id: user.admin.id },
+      })
+    }
+
+    // Deletar User
     await prisma.user.delete({
       where: { id },
     })
 
     // Enviar notificação por email
-    await EmailService.sendAccountDeletionNotice(admin.email, admin.name || 'Administrador')
+    await EmailService.sendAccountDeletionNotice(
+      user.email,
+      user.admin?.name || 'Administrador'
+    )
 
     // Log
     await prisma.systemLog.create({
@@ -166,8 +200,8 @@ export async function DELETE(
         action: 'DELETE_ADMIN',
         userId: id,
         details: {
-          deletedEmail: admin.email,
-          deletedName: admin.name,
+          deletedEmail: user.email,
+          deletedName: user.admin?.name,
           performedBy: session.user.id,
         },
       },
