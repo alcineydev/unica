@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { EmailService } from '@/lib/email-service'
@@ -8,18 +7,20 @@ import { EmailService } from '@/lib/email-service'
 // GET - Buscar admin específico
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session || session.user.role !== 'DEVELOPER') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
+    const { id } = await params
+
     const admin = await prisma.user.findUnique({
       where: {
-        id: params.id,
+        id,
         role: 'ADMIN',
       },
       select: {
@@ -47,22 +48,23 @@ export async function GET(
 // PATCH - Atualizar admin
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session || session.user.role !== 'DEVELOPER') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
+    const { id } = await params
     const body = await request.json()
     const { name, phone, password, isActive } = body
 
     // Buscar admin atual
     const currentAdmin = await prisma.user.findUnique({
       where: {
-        id: params.id,
+        id,
         role: 'ADMIN',
       },
     })
@@ -85,7 +87,7 @@ export async function PATCH(
 
     // Atualizar
     const updatedAdmin = await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       select: {
         id: true,
@@ -103,7 +105,7 @@ export async function PATCH(
       data: {
         level: 'INFO',
         action: isActive === false ? 'DEACTIVATE_ADMIN' : isActive === true ? 'ACTIVATE_ADMIN' : 'UPDATE_ADMIN',
-        userId: params.id,
+        userId: id,
         details: {
           updatedFields: Object.keys(updateData),
           performedBy: session.user.id,
@@ -121,19 +123,21 @@ export async function PATCH(
 // DELETE - Remover admin
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session || session.user.role !== 'DEVELOPER') {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
+    const { id } = await params
+
     // Buscar admin
     const admin = await prisma.user.findUnique({
       where: {
-        id: params.id,
+        id,
         role: 'ADMIN',
       },
     })
@@ -149,7 +153,7 @@ export async function DELETE(
 
     // Deletar
     await prisma.user.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     // Enviar notificação por email
@@ -160,7 +164,7 @@ export async function DELETE(
       data: {
         level: 'WARN',
         action: 'DELETE_ADMIN',
-        userId: params.id,
+        userId: id,
         details: {
           deletedEmail: admin.email,
           deletedName: admin.name,

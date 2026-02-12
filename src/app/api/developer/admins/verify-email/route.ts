@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { EmailService } from '@/lib/email-service'
 
@@ -10,7 +9,7 @@ const verificationCodes = new Map<string, { code: string; newEmail: string; expi
 // POST - Enviar código de verificação
 export async function POST(request: Request) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await auth()
 
         if (!session || session.user.role !== 'DEVELOPER') {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -85,7 +84,7 @@ export async function POST(request: Request) {
 // PUT - Verificar código e atualizar email
 export async function PUT(request: Request) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await auth()
 
         if (!session || session.user.role !== 'DEVELOPER') {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
