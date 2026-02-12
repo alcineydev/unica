@@ -21,12 +21,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Dados incompletos' }, { status: 400 })
         }
 
-        // Buscar admin
-        const admin = await prisma.user.findUnique({
+        // Buscar User com Admin incluído
+        const user = await prisma.user.findUnique({
             where: { id: adminId },
+            include: { admin: true },
         })
 
-        if (!admin) {
+        if (!user) {
             return NextResponse.json({ error: 'Administrador não encontrado' }, { status: 404 })
         }
 
@@ -49,12 +50,12 @@ export async function POST(request: Request) {
             expiresAt: new Date(Date.now() + 10 * 60 * 1000),
         })
 
-        // Enviar email
+        // Enviar email - usar user.admin?.name
         const sent = await EmailService.sendEmailChangeVerification(
-            admin.email,
+            user.email,
             newEmail,
             code,
-            admin.name || 'Administrador'
+            user.admin?.name || 'Administrador'
         )
 
         if (!sent) {
@@ -114,9 +115,10 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Código inválido' }, { status: 400 })
         }
 
-        // Buscar admin para pegar nome
-        const admin = await prisma.user.findUnique({
+        // Buscar User com Admin para pegar nome
+        const user = await prisma.user.findUnique({
             where: { id: adminId },
+            include: { admin: true },
         })
 
         // Atualizar email
@@ -128,10 +130,10 @@ export async function PUT(request: Request) {
         // Limpar código
         verificationCodes.delete(adminId)
 
-        // Enviar confirmação para novo email
+        // Enviar confirmação para novo email - usar user?.admin?.name
         await EmailService.sendEmailChangeConfirmation(
             savedData.newEmail,
-            admin?.name || 'Administrador'
+            user?.admin?.name || 'Administrador'
         )
 
         // Log
