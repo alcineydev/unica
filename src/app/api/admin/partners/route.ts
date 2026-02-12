@@ -121,15 +121,33 @@ export async function POST(request: Request) {
       )
     }
 
-    // Verifica se cidade existe
-    const city = await prisma.city.findUnique({
-      where: { id: cityId },
-    })
-    if (!city) {
-      return NextResponse.json(
-        { error: 'Cidade não encontrada' },
-        { status: 400 }
-      )
+    // Resolver cityId (usar padrão se não fornecido)
+    let finalCityId = cityId
+
+    if (!finalCityId) {
+      const defaultCity = await prisma.city.findFirst({
+        orderBy: { name: 'asc' }
+      })
+      
+      if (!defaultCity) {
+        return NextResponse.json(
+          { error: 'Nenhuma cidade cadastrada. Configure cidades primeiro em Configurações > Cidades.' },
+          { status: 400 }
+        )
+      }
+      
+      finalCityId = defaultCity.id
+    } else {
+      // Verifica se cidade existe
+      const city = await prisma.city.findUnique({
+        where: { id: finalCityId },
+      })
+      if (!city) {
+        return NextResponse.json(
+          { error: 'Cidade não encontrada' },
+          { status: 400 }
+        )
+      }
     }
 
     // Hash da senha
@@ -147,13 +165,13 @@ export async function POST(request: Request) {
             companyName,
             tradeName: tradeName || null,
             cnpj,
-            category,
+            category: category || 'Geral',
             categoryId: categoryId || null,
             description: description || null,
             logo: logo || null,
             banner: banner || null,
             gallery: gallery || [],
-            cityId,
+            cityId: finalCityId,
             balance: 0,
             address: {
               street: address || '',
@@ -163,7 +181,7 @@ export async function POST(request: Request) {
               zipCode: zipCode || '',
             },
             contact: {
-              whatsapp,
+              whatsapp: whatsapp || '',
               phone: phone || '',
               email,
               website: website || '',

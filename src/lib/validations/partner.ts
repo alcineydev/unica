@@ -10,7 +10,7 @@ export const createPartnerSchema = z.object({
   companyName: z.string().min(3, 'Razão social deve ter no mínimo 3 caracteres'),
   tradeName: z.string().optional(),
   cnpj: z.string().length(14, 'CNPJ deve ter 14 dígitos'),
-  category: z.string().min(1, 'Selecione uma categoria'),
+  category: z.string().optional().default('Geral'),
   categoryId: z.string().optional().nullable(),
   description: z.string().optional(),
 
@@ -20,7 +20,7 @@ export const createPartnerSchema = z.object({
   gallery: z.array(z.string()).optional(),
 
   // Localização
-  cityId: z.string().min(1, 'Selecione uma cidade'),
+  cityId: z.string().optional(),
 
   // Endereço detalhado
   address: z.string().optional(),
@@ -30,7 +30,7 @@ export const createPartnerSchema = z.object({
   zipCode: z.string().optional(),
 
   // Contato
-  whatsapp: z.string().min(10, 'WhatsApp inválido'),
+  whatsapp: z.string().optional().default(''),
   phone: z.string().optional(),
   website: z.string().optional(),
   instagram: z.string().optional(),
