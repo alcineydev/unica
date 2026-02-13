@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth, hashPassword } from '@/lib/auth'
 import { createPartnerSchema } from '@/lib/validations/partner'
+import { getEmailService } from '@/services/email'
+import { sendPushToAdmins } from '@/lib/push-notifications'
 
 // GET - Listar todos os parceiros
 export async function GET(request: Request) {
@@ -228,6 +230,34 @@ export async function POST(request: Request) {
         })),
         skipDuplicates: true,
       })
+    }
+
+    // === ENVIAR EMAIL DE BOAS-VINDAS AO PARCEIRO ===
+    try {
+      const emailService = getEmailService()
+      if (emailService) {
+        await emailService.sendPartnerWelcomeEmail(email, {
+          partnerName: tradeName || companyName,
+          tradeName: tradeName || companyName,
+          email,
+          password,
+        })
+        console.log('[PARTNER POST] Email de boas-vindas enviado para:', email)
+      }
+    } catch (emailError) {
+      console.warn('[PARTNER POST] Não foi possível enviar email:', emailError)
+    }
+
+    // === PUSH NOTIFICATION PARA ADMINS ===
+    try {
+      await sendPushToAdmins(
+        '🤝 Novo Parceiro Cadastrado',
+        `${tradeName || companyName} foi cadastrado como parceiro`,
+        '/admin/parceiros',
+        'NEW_SUBSCRIBER'
+      )
+    } catch (pushError) {
+      console.warn('[PARTNER POST] Não foi possível enviar push:', pushError)
     }
 
     return NextResponse.json(

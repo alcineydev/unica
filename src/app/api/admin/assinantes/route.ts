@@ -206,6 +206,14 @@ export async function POST(request: NextRequest) {
       console.warn('[ASSINANTE POST] Notificação admin falhou:', notifError)
     }
 
+    // === PUSH NOTIFICATION PARA ADMINS: Novo Assinante ===
+    try {
+      const { notifyNewSubscriber: pushNotifyNew } = await import('@/lib/push-notifications')
+      await pushNotifyNew(name.trim(), result.plan?.name || 'Sem plano')
+    } catch (pushError) {
+      console.warn('[ASSINANTE POST] Push não enviado:', pushError)
+    }
+
     return NextResponse.json(
       {
         message: 'Assinante criado com sucesso',

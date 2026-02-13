@@ -100,6 +100,19 @@ export async function POST(request: NextRequest) {
       
       return { user, assinante }
     })
+
+    // === PUSH NOTIFICATION PARA ADMINS: Novo Registro Público ===
+    try {
+      const { sendPushToAdmins } = await import('@/lib/push-notifications')
+      await sendPushToAdmins(
+        '🆕 Novo Cadastro Público',
+        `${validatedData.name} se cadastrou pelo site`,
+        '/admin/assinantes',
+        'NEW_SUBSCRIBER'
+      )
+    } catch (pushError) {
+      logger.warn('[REGISTRO] Push não enviado:', pushError)
+    }
     
     return NextResponse.json({
       success: true,

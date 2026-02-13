@@ -1,123 +1,106 @@
 'use client'
 
-import { Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Suspense, useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, Mail, ArrowRight, Loader2, PartyPopper, Gift } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { CheckCircle2, Crown, ArrowRight, Sparkles, PartyPopper } from 'lucide-react'
 
-function CheckoutSucessoContent() {
+function SuccessContent() {
   const searchParams = useSearchParams()
-  const router = useRouter()
-  const paymentId = searchParams.get('payment')
-  const [loading, setLoading] = useState(true)
-  const [paymentStatus, setPaymentStatus] = useState<string | null>(null)
+  const paymentId = searchParams.get('paymentId')
+  const [status, setStatus] = useState<string | null>(null)
 
   useEffect(() => {
     if (paymentId) {
-      checkStatus()
-    } else {
-      setLoading(false)
+      fetch(`/api/checkout/asaas/status/${paymentId}`)
+        .then(res => res.json())
+        .then(data => setStatus(data.status))
+        .catch(() => {})
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentId])
 
-  const checkStatus = async () => {
-    try {
-      const response = await fetch(`/api/checkout/asaas/status/${paymentId}`)
-      const data = await response.json()
-      setPaymentStatus(data.status)
-    } catch (error) {
-      console.error('Erro ao verificar status:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
-        <Loader2 className="h-8 w-8 animate-spin text-green-600" />
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center p-4">
-      {/* Confetes animados */}
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-background dark:from-green-950/20 flex items-center justify-center p-4">
+      {/* Confetti effect via CSS */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-10 left-10 animate-bounce delay-100">
-          <PartyPopper className="h-8 w-8 text-yellow-500 opacity-60" />
-        </div>
-        <div className="absolute top-20 right-20 animate-bounce delay-300">
-          <Gift className="h-6 w-6 text-purple-500 opacity-60" />
-        </div>
-        <div className="absolute bottom-32 left-1/4 animate-bounce delay-500">
-          <PartyPopper className="h-6 w-6 text-pink-500 opacity-60" />
-        </div>
-        <div className="absolute top-1/3 right-1/4 animate-bounce delay-700">
-          <Gift className="h-8 w-8 text-blue-500 opacity-60" />
-        </div>
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute animate-bounce"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `-${Math.random() * 20 + 5}%`,
+              animationDelay: `${Math.random() * 2}s`,
+              animationDuration: `${2 + Math.random() * 3}s`,
+              fontSize: `${12 + Math.random() * 16}px`,
+              opacity: 0.6 + Math.random() * 0.4,
+            }}
+          >
+            {['🎉', '🎊', '✨', '⭐', '🌟'][Math.floor(Math.random() * 5)]}
+          </div>
+        ))}
       </div>
 
-      <Card className="max-w-md w-full shadow-2xl border-0 overflow-hidden">
-        <CardHeader className="text-center pb-2 bg-gradient-to-br from-green-500 to-emerald-600 text-white pt-8 pb-6">
-          <div className="mx-auto w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4 shadow-lg">
-            <CheckCircle2 className="h-14 w-14 text-white" />
-          </div>
-          <CardTitle className="text-3xl font-bold">
-            Pagamento Confirmado!
-          </CardTitle>
-          <p className="text-green-100 mt-2">
-            Bem-vindo ao clube de benefícios
-          </p>
-        </CardHeader>
-
-        <CardContent className="text-center space-y-6 p-6">
-          <p className="text-gray-600">
-            Seu pagamento foi processado com sucesso e sua assinatura já está <span className="font-semibold text-green-600">ativa</span>!
-          </p>
-
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 space-y-3 border border-green-100">
-            <div className="flex items-center justify-center gap-2 text-green-700">
-              <Mail className="h-5 w-5" />
-              <span className="font-semibold">Verifique seu email</span>
+      <Card className="max-w-md w-full relative z-10 border-green-200">
+        <CardContent className="py-10 text-center">
+          {/* Icon */}
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-30" />
+            <div className="relative w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle2 className="h-10 w-10 text-green-600" />
             </div>
-            <p className="text-sm text-green-600">
-              Enviamos seus dados de acesso para o email cadastrado. 
-              Verifique também a pasta de spam.
-            </p>
           </div>
 
-          {paymentStatus && (
-            <div className="text-sm text-gray-500">
-              Status: <span className="font-medium text-green-600">{paymentStatus}</span>
-            </div>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <PartyPopper className="h-5 w-5 text-amber-500" />
+            <h1 className="text-2xl font-bold text-green-700 dark:text-green-400">
+              Parabéns!
+            </h1>
+            <PartyPopper className="h-5 w-5 text-amber-500 scale-x-[-1]" />
+          </div>
+
+          <p className="text-lg text-green-600 dark:text-green-400 font-medium">
+            Pagamento confirmado com sucesso!
+          </p>
+
+          <p className="text-sm text-muted-foreground mt-3 mb-6">
+            Sua assinatura no UNICA Clube de Benefícios foi ativada.
+            Agora você tem acesso a todos os benefícios do seu plano!
+          </p>
+
+          {status && (
+            <Badge variant="secondary" className="mb-4">
+              <Sparkles className="h-3 w-3 mr-1" />
+              Status: {status === 'CONFIRMED' || status === 'RECEIVED' ? 'Confirmado' : status}
+            </Badge>
           )}
 
-          <div className="space-y-3 pt-4">
-            <Button 
-              className="w-full h-12 text-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-200" 
-              size="lg"
-              onClick={() => router.push('/login')}
-            >
-              Acessar minha conta
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-
-            <Button 
-              variant="outline" 
-              className="w-full h-11 border-2"
-              onClick={() => router.push('/')}
-            >
-              Voltar ao início
-            </Button>
+          {/* Cards de próximos passos */}
+          <div className="space-y-3 mt-6 text-left">
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <Crown className="h-5 w-5 text-primary shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Acesse sua conta</p>
+                <p className="text-xs text-muted-foreground">Faça login para começar a usar seus benefícios</p>
+              </div>
+            </div>
           </div>
 
-          <p className="text-xs text-gray-400 pt-4">
-            Em caso de dúvidas, entre em contato pelo WhatsApp
-          </p>
+          {/* Botões */}
+          <div className="flex flex-col gap-2 mt-6">
+            <Button asChild size="lg" className="w-full">
+              <Link href="/login">
+                Fazer Login
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Link>
+            </Button>
+            <Button variant="outline" asChild className="w-full">
+              <Link href="/">Voltar ao Início</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -127,12 +110,11 @@ function CheckoutSucessoContent() {
 export default function CheckoutSucessoPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
-        <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     }>
-      <CheckoutSucessoContent />
+      <SuccessContent />
     </Suspense>
   )
 }
-

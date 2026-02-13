@@ -171,7 +171,105 @@ class EmailService {
     })
   }
 
+  /**
+   * Email de boas-vindas para parceiro com credenciais de acesso
+   */
+  async sendPartnerWelcomeEmail(
+    to: string,
+    data: {
+      partnerName: string
+      tradeName: string
+      email: string
+      password: string
+    }
+  ): Promise<EmailResponse> {
+    const template = this.getPartnerWelcomeTemplate(data)
+    return this.sendEmail({
+      to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+    })
+  }
+
   // Templates
+
+  private getPartnerWelcomeTemplate(data: {
+    partnerName: string
+    tradeName: string
+    email: string
+    password: string
+  }): EmailTemplate {
+    const loginUrl = process.env.NEXTAUTH_URL
+      ? `${process.env.NEXTAUTH_URL}/login`
+      : 'https://app.unicabeneficios.com.br/login'
+
+    return {
+      subject: `🤝 Bem-vindo ao UNICA Clube de Benefícios, ${data.tradeName}!`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+          <div style="max-width:600px;margin:0 auto;padding:20px;">
+            <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:16px 16px 0 0;padding:40px 30px;text-align:center;">
+              <h1 style="color:#ffffff;font-size:28px;margin:0 0 8px;">🤝 Bem-vindo ao UNICA!</h1>
+              <p style="color:#e9d5ff;font-size:16px;margin:0;">Clube de Benefícios</p>
+            </div>
+            <div style="background:#ffffff;padding:30px;border-radius:0 0 16px 16px;">
+              <p style="font-size:16px;color:#1f2937;margin:0 0 16px;">
+                Olá <strong>${data.partnerName}</strong>,
+              </p>
+              <p style="font-size:15px;color:#4b5563;line-height:1.6;margin:0 0 20px;">
+                Sua empresa <strong>${data.tradeName}</strong> foi cadastrada com sucesso como parceira no UNICA Clube de Benefícios! Agora você pode gerenciar seus benefícios e atender nossos assinantes.
+              </p>
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:0 0 24px;">
+                <h3 style="color:#1f2937;font-size:14px;margin:0 0 12px;text-transform:uppercase;letter-spacing:0.5px;">
+                  🔐 Seus dados de acesso
+                </h3>
+                <div style="margin:0 0 8px;">
+                  <span style="color:#6b7280;font-size:13px;">Email:</span><br>
+                  <strong style="color:#1f2937;font-size:15px;">${data.email}</strong>
+                </div>
+                <div>
+                  <span style="color:#6b7280;font-size:13px;">Senha:</span><br>
+                  <strong style="color:#1f2937;font-size:15px;">${data.password}</strong>
+                </div>
+              </div>
+              <div style="text-align:center;margin:24px 0;">
+                <a href="${loginUrl}" style="display:inline-block;background:#7c3aed;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;">
+                  Acessar Painel do Parceiro
+                </a>
+              </div>
+              <div style="border-top:1px solid #f3f4f6;padding-top:20px;margin-top:20px;">
+                <h3 style="color:#1f2937;font-size:14px;margin:0 0 12px;">📋 Próximos passos:</h3>
+                <div style="font-size:14px;color:#4b5563;line-height:1.8;">
+                  1. Faça login no painel do parceiro<br>
+                  2. Complete seu perfil (logo, banner, horários)<br>
+                  3. Configure seus benefícios para os assinantes<br>
+                  4. Comece a receber clientes do clube!
+                </div>
+              </div>
+              <div style="background:#fef3c7;border-radius:8px;padding:12px 16px;margin-top:20px;">
+                <p style="font-size:13px;color:#92400e;margin:0;">
+                  ⚠️ <strong>Importante:</strong> Recomendamos alterar sua senha no primeiro acesso.
+                </p>
+              </div>
+            </div>
+            <div style="text-align:center;padding:20px;color:#9ca3af;font-size:12px;">
+              <p>© ${new Date().getFullYear()} UNICA Clube de Benefícios - Grupo Zan Norte</p>
+              <p>Este email foi enviado automaticamente.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `Bem-vindo ao UNICA Clube de Benefícios!\n\nOlá, ${data.partnerName}!\n\nSua empresa ${data.tradeName} foi cadastrada como parceira.\n\nDados de acesso:\nEmail: ${data.email}\nSenha: ${data.password}\n\nAcesse: ${loginUrl}\n\nRecomendamos trocar sua senha no primeiro acesso.\n\nEquipe UNICA`,
+    }
+  }
 
   private getWelcomeTemplate(data: { name: string; planName: string }): EmailTemplate {
     return {
