@@ -1,38 +1,77 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { User, Mail, Phone, CreditCard, ChevronRight, Loader2 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  User, Mail, Phone, CreditCard, ChevronRight,
+  Loader2, CheckCircle2, AlertCircle, LogIn,
+  Eye, EyeOff, KeyRound
+} from 'lucide-react'
 import { toast } from 'sonner'
+import Link from 'next/link'
+
+interface PersonalFormData {
+  name: string
+  email: string
+  cpfCnpj: string
+  phone: string
+  password: string
+  confirmPassword: string
+}
 
 interface PersonalFormProps {
-  data: {
-    name: string
-    email: string
-    cpfCnpj: string
-    phone: string
-  }
-  onChange: (data: PersonalFormProps['data']) => void
+  data: PersonalFormData
+  onChange: (data: PersonalFormData) => void
   onNext: () => void
-  onAddressFound?: (address: {
-    cep: string
-    street: string
-    number: string
-    complement: string
-    neighborhood: string
-    city: string
-    state: string
-  }) => void
   disabled?: boolean
 }
 
-export default function CheckoutPersonalForm({ data, onChange, onNext, onAddressFound, disabled }: PersonalFormProps) {
-  const [lookingUp, setLookingUp] = useState(false)
-  const [lookedUp, setLookedUp] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+export default function CheckoutPersonalForm({ data, onChange, onNext, disabled }: PersonalFormProps) {
+  const [checkingEmail, setCheckingEmail] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [emailStatus, setEmailStatus] = useState<{
+    exists: boolean
+    hasActivePlan?: boolean
+    planName?: string
+  } | null>(null)
+
+  const checkEmail = useCallback(async (email: string) => {
+    if (!email || !email.includes('@') || email.length < 5) {
+      setEmailStatus(null)
+      return
+    }
+    setCheckingEmail(true)
+    try {
+      const res = await fetch('/api/checkout/asaas/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const result = await res.json()
+      setEmailStatus(result)
+
+      if (result.found && result.data) {
+        const d = result.data
+        const updates: PersonalFormData = { ...data, email }
+        if (d.name && !data.name) updates.name = d.name
+        if (d.cpfCnpj && !data.cpfCnpj) updates.cpfCnpj = d.cpfCnpj
+        if (d.phone && !data.phone) updates.phone = d.phone
+        onChange(updates)
+        toast.info('Dados encontrados! Preenchemos automaticamente para você.')
+        // Marcar como existente para esconder campos de senha
+        setEmailStatus({ exists: true, hasActivePlan: result.hasActivePlan, planName: result.planName })
+      }
+    } catch {
+      setEmailStatus(null)
+    } finally {
+      setCheckingEmail(false)
+    }
+  }, [data, onChange])
 
   const formatCPF = (value: string) => {
     const numbers = value.replace(/\D/g, '').slice(0, 14)
@@ -57,58 +96,6 @@ export default function CheckoutPersonalForm({ data, onChange, onNext, onAddress
     return numbers.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2')
   }
 
-  // Lookup de email existente com debounce
-  const lookupEmail = useCallback(async (email: string) => {
-    if (!email || !email.includes('@') || !email.includes('.') || lookedUp) return
-
-    setLookingUp(true)
-    try {
-      const res = await fetch('/api/checkout/asaas/lookup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      })
-      const result = await res.json()
-
-      if (result.found && result.data) {
-        const d = result.data
-        // Preencher dados pessoais (apenas campos vazios)
-        const updated = { ...data, email }
-        if (!data.name && d.name) updated.name = d.name
-        if (!data.cpfCnpj && d.cpfCnpj) updated.cpfCnpj = d.cpfCnpj
-        if (!data.phone && d.phone) updated.phone = d.phone
-        onChange(updated)
-
-        // Preencher endereço se callback disponível
-        if (onAddressFound && (d.cep || d.street || d.city)) {
-          onAddressFound({
-            cep: d.cep || '',
-            street: d.street || '',
-            number: d.number || '',
-            complement: d.complement || '',
-            neighborhood: d.neighborhood || '',
-            city: d.city || '',
-            state: d.state || '',
-          })
-        }
-
-        toast.success('Dados encontrados! Verifique as informações.')
-        setLookedUp(true)
-      }
-    } catch {
-      // silencioso - não impede o checkout
-    } finally {
-      setLookingUp(false)
-    }
-  }, [data, onChange, onAddressFound, lookedUp])
-
-  const handleEmailBlur = () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      lookupEmail(data.email)
-    }, 300)
-  }
-
   const validate = () => {
     if (!data.name?.trim()) return 'Nome é obrigatório'
     if (!data.email?.trim() || !data.email.includes('@')) return 'Email válido é obrigatório'
@@ -116,10 +103,19 @@ export default function CheckoutPersonalForm({ data, onChange, onNext, onAddress
     if (cpf.length !== 11 && cpf.length !== 14) return 'CPF ou CNPJ válido é obrigatório'
     const phone = data.phone.replace(/\D/g, '')
     if (phone.length < 10) return 'Telefone válido é obrigatório'
+    // Senha só obrigatória se NÃO tem conta existente
+    if (!emailStatus?.exists) {
+      if (!data.password || data.password.length < 6) return 'Senha deve ter no mínimo 6 caracteres'
+      if (data.password !== data.confirmPassword) return 'As senhas não coincidem'
+    }
     return null
   }
 
   const handleNext = () => {
+    if (emailStatus?.hasActivePlan) {
+      toast.error('Este email já possui uma assinatura ativa!')
+      return
+    }
     const error = validate()
     if (error) {
       toast.error(error)
@@ -128,6 +124,21 @@ export default function CheckoutPersonalForm({ data, onChange, onNext, onAddress
     onNext()
   }
 
+  const passwordStrength = (pwd: string) => {
+    if (!pwd) return { label: '', color: '' }
+    if (pwd.length < 6) return { label: 'Muito curta', color: 'text-red-500' }
+    if (pwd.length < 8) return { label: 'Fraca', color: 'text-amber-500' }
+    const hasUpper = /[A-Z]/.test(pwd)
+    const hasNumber = /[0-9]/.test(pwd)
+    const hasSpecial = /[^A-Za-z0-9]/.test(pwd)
+    const score = [hasUpper, hasNumber, hasSpecial].filter(Boolean).length
+    if (score >= 2 && pwd.length >= 8) return { label: 'Forte', color: 'text-green-500' }
+    return { label: 'Média', color: 'text-amber-500' }
+  }
+
+  const strength = passwordStrength(data.password)
+  const passwordsMatch = data.password && data.confirmPassword && data.password === data.confirmPassword
+
   return (
     <Card>
       <CardHeader>
@@ -135,15 +146,16 @@ export default function CheckoutPersonalForm({ data, onChange, onNext, onAddress
           <div className="p-1.5 rounded-lg bg-primary/10">
             <User className="h-4 w-4 text-primary" />
           </div>
-          Dados Pessoais
+          Seus Dados
         </CardTitle>
-        <CardDescription>Informe seus dados para criar a conta</CardDescription>
+        <CardDescription>Informe seus dados para criar sua conta e assinar o plano</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Email primeiro - para lookup */}
+
+        {/* Email PRIMEIRO */}
         <div className="space-y-2">
-          <Label htmlFor="checkout-email" className="flex items-center gap-1">
-            <Mail className="h-3.5 w-3.5" /> Email *
+          <Label htmlFor="checkout-email" className="flex items-center gap-1 text-sm font-medium">
+            <Mail className="h-3.5 w-3.5 text-muted-foreground" /> Email *
           </Label>
           <div className="relative">
             <Input
@@ -152,25 +164,52 @@ export default function CheckoutPersonalForm({ data, onChange, onNext, onAddress
               value={data.email}
               onChange={(e) => {
                 onChange({ ...data, email: e.target.value })
-                setLookedUp(false)
+                setEmailStatus(null)
               }}
-              onBlur={handleEmailBlur}
+              onBlur={(e) => checkEmail(e.target.value)}
               placeholder="seu@email.com"
               disabled={disabled}
+              className={emailStatus?.hasActivePlan ? 'border-amber-400' : ''}
             />
-            {lookingUp && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
+            {checkingEmail && (
+              <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+            {emailStatus?.exists && !emailStatus.hasActivePlan && !checkingEmail && (
+              <CheckCircle2 className="absolute right-3 top-3 h-4 w-4 text-green-500" />
             )}
           </div>
-          <p className="text-[10px] text-muted-foreground">
-            Já tem conta? Digite seu email para preencher automaticamente.
+          <p className="text-[11px] text-muted-foreground">
+            Já tem conta? Os dados serão preenchidos automaticamente.
           </p>
         </div>
 
+        {/* Alerta: plano ativo */}
+        {emailStatus?.hasActivePlan && (
+          <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/20">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-sm">
+              <p className="font-medium text-amber-700">Este email já possui uma assinatura ativa!</p>
+              <p className="text-amber-600 text-xs mt-1">Plano: {emailStatus.planName}</p>
+              <Button variant="outline" size="sm" className="mt-2" asChild>
+                <Link href="/login"><LogIn className="h-3.5 w-3.5 mr-1" /> Fazer Login</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Conta encontrada */}
+        {emailStatus?.exists && !emailStatus.hasActivePlan && (
+          <Alert className="border-green-300 bg-green-50 dark:bg-green-950/20">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-sm text-green-700">
+              Conta encontrada! Seus dados foram preenchidos. Você usará sua senha atual para acessar.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Nome */}
         <div className="space-y-2">
-          <Label htmlFor="checkout-name">Nome Completo *</Label>
+          <Label htmlFor="checkout-name" className="text-sm font-medium">Nome Completo *</Label>
           <Input
             id="checkout-name"
             value={data.name}
@@ -180,10 +219,11 @@ export default function CheckoutPersonalForm({ data, onChange, onNext, onAddress
           />
         </div>
 
+        {/* CPF + Telefone */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="checkout-cpf" className="flex items-center gap-1">
-              <CreditCard className="h-3.5 w-3.5" /> CPF/CNPJ *
+            <Label htmlFor="checkout-cpf" className="flex items-center gap-1 text-sm font-medium">
+              <CreditCard className="h-3.5 w-3.5 text-muted-foreground" /> CPF/CNPJ *
             </Label>
             <Input
               id="checkout-cpf"
@@ -195,8 +235,8 @@ export default function CheckoutPersonalForm({ data, onChange, onNext, onAddress
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="checkout-phone" className="flex items-center gap-1">
-              <Phone className="h-3.5 w-3.5" /> Telefone *
+            <Label htmlFor="checkout-phone" className="flex items-center gap-1 text-sm font-medium">
+              <Phone className="h-3.5 w-3.5 text-muted-foreground" /> Telefone *
             </Label>
             <Input
               id="checkout-phone"
@@ -209,7 +249,86 @@ export default function CheckoutPersonalForm({ data, onChange, onNext, onAddress
           </div>
         </div>
 
-        <Button onClick={handleNext} className="w-full mt-2" disabled={disabled || lookingUp}>
+        {/* Senha - SÓ MOSTRA SE NÃO TEM CONTA */}
+        {!emailStatus?.exists && (
+          <div className="pt-2">
+            <div className="flex items-center gap-2 mb-3">
+              <KeyRound className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Crie sua senha de acesso</span>
+            </div>
+
+            <div className="space-y-3">
+              {/* Senha */}
+              <div className="space-y-2">
+                <Label htmlFor="checkout-password" className="text-sm font-medium">Senha *</Label>
+                <div className="relative">
+                  <Input
+                    id="checkout-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={data.password}
+                    onChange={(e) => onChange({ ...data, password: e.target.value })}
+                    placeholder="Mínimo 6 caracteres"
+                    disabled={disabled}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {data.password && (
+                  <p className={`text-[11px] font-medium ${strength.color}`}>
+                    Força: {strength.label}
+                  </p>
+                )}
+              </div>
+
+              {/* Confirmar Senha */}
+              <div className="space-y-2">
+                <Label htmlFor="checkout-confirm-password" className="text-sm font-medium">Confirmar Senha *</Label>
+                <div className="relative">
+                  <Input
+                    id="checkout-confirm-password"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={data.confirmPassword}
+                    onChange={(e) => onChange({ ...data, confirmPassword: e.target.value })}
+                    placeholder="Repita a senha"
+                    disabled={disabled}
+                    className={`pr-10 ${
+                      data.confirmPassword
+                        ? passwordsMatch ? 'border-green-400' : 'border-red-400'
+                        : ''
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {data.confirmPassword && !passwordsMatch && (
+                  <p className="text-[11px] text-red-500">As senhas não coincidem</p>
+                )}
+                {!!passwordsMatch && (
+                  <p className="text-[11px] text-green-500 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Senhas coincidem
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <Button
+          onClick={handleNext}
+          className="w-full mt-2 h-11"
+          disabled={disabled || !!emailStatus?.hasActivePlan}
+        >
           Continuar
           <ChevronRight className="h-4 w-4 ml-1" />
         </Button>

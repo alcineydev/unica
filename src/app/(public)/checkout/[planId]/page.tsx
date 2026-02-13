@@ -45,7 +45,7 @@ export default function CheckoutPage() {
 
   // Dados do formulário
   const [personalData, setPersonalData] = useState({
-    name: '', email: '', cpfCnpj: '', phone: '',
+    name: '', email: '', cpfCnpj: '', phone: '', password: '', confirmPassword: '',
   })
   const [addressData, setAddressData] = useState({
     cep: '', street: '', number: '', complement: '',
@@ -88,6 +88,7 @@ export default function CheckoutPage() {
           email: personalData.email,
           cpfCnpj: personalData.cpfCnpj.replace(/\D/g, ''),
           phone: personalData.phone.replace(/\D/g, ''),
+          password: personalData.password || undefined,
           postalCode: addressData.cep.replace(/\D/g, ''),
           address: addressData.street,
           addressNumber: addressData.number,
@@ -167,7 +168,7 @@ export default function CheckoutPage() {
       if (paymentMethod === 'CREDIT_CARD' && (paymentStatus === 'CONFIRMED' || paymentStatus === 'RECEIVED')) {
         toast.success('Pagamento aprovado!')
         setTimeout(() => {
-          router.push(`/checkout/sucesso?paymentId=${paymentId}`)
+          router.push(`/checkout/sucesso?paymentId=${paymentId}&method=CREDIT_CARD`)
         }, 1500)
       }
     } catch (error: unknown) {
@@ -232,7 +233,7 @@ export default function CheckoutPage() {
             }}
             paymentId={pixPaymentId}
             onConfirmed={() => {
-              router.push(`/checkout/sucesso?paymentId=${pixPaymentId}`)
+              router.push(`/checkout/sucesso?paymentId=${pixPaymentId}&method=PIX`)
             }}
           />
           <CheckoutPlanSummary plan={plan} />
@@ -292,18 +293,6 @@ export default function CheckoutPage() {
                 data={personalData}
                 onChange={setPersonalData}
                 onNext={() => setStep(1)}
-                onAddressFound={(addr) => {
-                  // Preencher endereço se campos estiverem vazios
-                  setAddressData((prev) => ({
-                    cep: prev.cep || addr.cep,
-                    street: prev.street || addr.street,
-                    number: prev.number || addr.number,
-                    complement: prev.complement || addr.complement,
-                    neighborhood: prev.neighborhood || addr.neighborhood,
-                    city: prev.city || addr.city,
-                    state: prev.state || addr.state,
-                  }))
-                }}
                 disabled={processing}
               />
             )}

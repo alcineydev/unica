@@ -268,7 +268,7 @@ function LoginForm() {
 
               {/* Links de Cadastro */}
               <div className="space-y-3">
-                <Link href="/cadastro" className="block">
+                <Link href="/planos" className="block">
                   <div className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-white hover:border-brand-300 hover:bg-slate-50 transition-all cursor-pointer group">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center">

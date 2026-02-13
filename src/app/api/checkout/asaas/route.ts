@@ -17,6 +17,7 @@ interface CheckoutRequest {
     email: string
     cpfCnpj: string
     phone: string
+    password?: string
     // Endereço (obrigatório para boleto)
     postalCode?: string
     address?: string
@@ -180,6 +181,13 @@ export async function POST(request: NextRequest) {
       status: 'PENDING'
     })
 
+    // Calcular datas do ciclo
+    const planStartDate = new Date()
+    const planEndDate = new Date()
+    if (plan.period === 'YEARLY') planEndDate.setFullYear(planEndDate.getFullYear() + 1)
+    else if (plan.period === 'SINGLE') planEndDate.setFullYear(planEndDate.getFullYear() + 99)
+    else planEndDate.setMonth(planEndDate.getMonth() + 1)
+
     // Criar assinante como PENDING (será ativado no webhook quando pagar)
     let assinanteId: string | null = null
     try {
@@ -193,9 +201,9 @@ export async function POST(request: NextRequest) {
       })
 
       if (!user) {
-        // Criar usuário sem senha (será gerada no webhook quando pagar)
-        const tempPassword = Math.random().toString(36).slice(-8) + 'A1!'
-        const hashedPassword = await bcrypt.hash(tempPassword, 12)
+        // Criar usuário com a senha do checkout (ou default)
+        const userPassword = customer.password || 'Unica@2025'
+        const hashedPassword = await bcrypt.hash(userPassword, 12)
         
         user = await prisma.user.create({
           data: {
@@ -230,6 +238,8 @@ export async function POST(request: NextRequest) {
             asaasCustomerId: asaasCustomer.id,
             asaasPaymentId: paymentResponse.id,
             asaasSubscriptionId: subscriptionResponse?.id || null,
+            planStartDate,
+            planEndDate,
             points: 0,
             cashback: 0,
           }
@@ -245,12 +255,29 @@ export async function POST(request: NextRequest) {
             asaasPaymentId: paymentResponse.id,
             asaasSubscriptionId: subscriptionResponse?.id || null,
             subscriptionStatus: 'PENDING',
+            planStartDate,
+            planEndDate,
           }
         })
         console.log('[CHECKOUT] Assinante atualizado (PENDING):', assinante.id)
       }
 
       assinanteId = assinante.id
+
+      // === EMAIL DE BOAS-VINDAS COM CREDENCIAIS ===
+      try {
+        const { getEmailService } = await import('@/services/email')
+        const emailService = getEmailService()
+        if (emailService) {
+          await emailService.sendWelcomeEmail(customer.email, {
+            name: customer.name,
+            planName: plan.name,
+          })
+          console.log('[CHECKOUT] Email de boas-vindas enviado para:', customer.email)
+        }
+      } catch (emailError) {
+        console.warn('[CHECKOUT] Email de boas-vindas não enviado:', emailError)
+      }
 
       // === NOTIFICAÇÃO IN-APP (SININHO) PARA ADMINS ===
       try {

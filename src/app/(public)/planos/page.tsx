@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -245,10 +244,10 @@ export default function PlanosPublicPage() {
                           }`}
                           asChild
                         >
-                          <Link href={price === 0 ? '/cadastro' : getPlanUrl(plan)}>
-                            {price === 0 ? (
-                              <>Começar Grátis <ArrowRight className="h-4 w-4 ml-2" /></>
-                            ) : (
+                          <Link href={getPlanUrl(plan)}>
+                          {price === 0 ? (
+                            <>Assinar Grátis <ArrowRight className="h-4 w-4 ml-2" /></>
+                          ) : (
                               <>Assinar Agora <ArrowRight className="h-4 w-4 ml-2" /></>
                             )}
                           </Link>
@@ -494,8 +493,8 @@ export default function PlanosPublicPage() {
                   className="border-white/30 text-white hover:bg-white/10 font-semibold h-12 px-8 bg-transparent"
                   asChild
                 >
-                  <Link href="/cadastro">
-                    Criar Conta Grátis
+                  <Link href="/login">
+                    Já tenho conta
                   </Link>
                 </Button>
               </div>
