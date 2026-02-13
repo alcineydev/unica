@@ -10,7 +10,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Crown, Calendar, Coins, ArrowDownUp, Gift } from 'lucide-react'
 
 interface PlanTabProps {
@@ -27,11 +26,25 @@ export default function SubscriberPlanTab({
   saving,
 }: PlanTabProps) {
   const plan = assinante.plan as Record<string, unknown> | undefined
+  const features = Array.isArray(plan?.features)
+    ? (plan.features as string[])
+    : []
+
+  const asaasCustomerId = assinante.asaasCustomerId
+    ? String(assinante.asaasCustomerId)
+    : null
+  const asaasSubscriptionId = assinante.asaasSubscriptionId
+    ? String(assinante.asaasSubscriptionId)
+    : null
+  const asaasPaymentId = assinante.asaasPaymentId
+    ? String(assinante.asaasPaymentId)
+    : null
+  const hasAsaas = !!(asaasCustomerId || asaasSubscriptionId || asaasPaymentId)
 
   return (
     <div className="space-y-6">
       {/* Plano Atual */}
-      {plan && (
+      {!!plan && (
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -42,32 +55,31 @@ export default function SubscriberPlanTab({
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold">{plan.name as string}</h3>
+                <h3 className="text-lg font-bold">
+                  {String(plan.name ?? '')}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  {plan.description as string}
+                  {String(plan.description ?? '')}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold">
-                  R$ {Number(plan.price).toFixed(2)}
+                  R$ {Number(plan.price ?? 0).toFixed(2)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   /{plan.period === 'YEARLY' ? 'ano' : 'mês'}
                 </p>
               </div>
             </div>
-            {Array.isArray(plan.features) &&
-              (plan.features as string[]).length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {(plan.features as string[]).map(
-                    (feature: string, i: number) => (
-                      <Badge key={i} variant="secondary" className="text-xs">
-                        {feature}
-                      </Badge>
-                    )
-                  )}
-                </div>
-              )}
+            {features.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {features.map((feature, i) => (
+                  <Badge key={i} variant="secondary" className="text-xs">
+                    {feature}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -92,7 +104,7 @@ export default function SubscriberPlanTab({
                 type="date"
                 value={
                   formData.planStartDate
-                    ? new Date(formData.planStartDate as string)
+                    ? new Date(String(formData.planStartDate))
                         .toISOString()
                         .split('T')[0]
                     : ''
@@ -110,7 +122,7 @@ export default function SubscriberPlanTab({
                 type="date"
                 value={
                   formData.planEndDate
-                    ? new Date(formData.planEndDate as string)
+                    ? new Date(String(formData.planEndDate))
                         .toISOString()
                         .split('T')[0]
                     : ''
@@ -128,7 +140,7 @@ export default function SubscriberPlanTab({
                 type="date"
                 value={
                   formData.nextBillingDate
-                    ? new Date(formData.nextBillingDate as string)
+                    ? new Date(String(formData.nextBillingDate))
                         .toISOString()
                         .split('T')[0]
                     : ''
@@ -145,7 +157,7 @@ export default function SubscriberPlanTab({
                 value={
                   assinante.lastPaymentDate
                     ? new Date(
-                        assinante.lastPaymentDate as string
+                        String(assinante.lastPaymentDate)
                       ).toLocaleDateString('pt-BR')
                     : 'Nenhum'
                 }
@@ -204,9 +216,7 @@ export default function SubscriberPlanTab({
       </Card>
 
       {/* Integração Asaas */}
-      {(assinante.asaasCustomerId ||
-        assinante.asaasSubscriptionId ||
-        assinante.asaasPaymentId) && (
+      {hasAsaas && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Integração Asaas</CardTitle>
@@ -215,27 +225,27 @@ export default function SubscriberPlanTab({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            {assinante.asaasCustomerId && (
+            {!!asaasCustomerId && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Customer ID</span>
                 <code className="text-xs bg-muted px-2 py-0.5 rounded">
-                  {assinante.asaasCustomerId as string}
+                  {asaasCustomerId}
                 </code>
               </div>
             )}
-            {assinante.asaasSubscriptionId && (
+            {!!asaasSubscriptionId && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subscription ID</span>
                 <code className="text-xs bg-muted px-2 py-0.5 rounded">
-                  {assinante.asaasSubscriptionId as string}
+                  {asaasSubscriptionId}
                 </code>
               </div>
             )}
-            {assinante.asaasPaymentId && (
+            {!!asaasPaymentId && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment ID</span>
                 <code className="text-xs bg-muted px-2 py-0.5 rounded">
-                  {assinante.asaasPaymentId as string}
+                  {asaasPaymentId}
                 </code>
               </div>
             )}

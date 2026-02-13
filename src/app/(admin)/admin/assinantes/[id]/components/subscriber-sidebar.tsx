@@ -147,7 +147,7 @@ export default function SubscriberSidebar({
           <Separator className="my-4" />
 
           {/* QR Code */}
-          {assinante.qrCode && (
+          {!!assinante.qrCode && (
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground flex items-center gap-1">
                 <QrCode className="h-3 w-3" /> Código QR
