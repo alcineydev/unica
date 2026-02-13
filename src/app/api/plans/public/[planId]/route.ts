@@ -11,25 +11,52 @@ export async function GET(
 ) {
   try {
     const { planId } = await params
+    const searchTerm = decodeURIComponent(planId).trim()
 
-    const plan = await prisma.plan.findFirst({
-      where: { 
+    // Busca robusta: por ID exato, slug exato ou slug case-insensitive
+    let plan = await prisma.plan.findFirst({
+      where: {
         OR: [
-          { id: planId },
-          { slug: planId }
+          { id: searchTerm },
+          { slug: searchTerm },
+          { slug: searchTerm.toLowerCase() },
+          { slug: { equals: searchTerm, mode: 'insensitive' } },
+          // Busca por nome normalizado (sem acento) como fallback
+          { name: { equals: searchTerm, mode: 'insensitive' } },
         ],
-        isActive: true 
+        isActive: true,
       },
       include: {
         planBenefits: {
           include: {
-            benefit: true
-          }
-        }
-      }
+            benefit: true,
+          },
+        },
+      },
     })
 
+    // Fallback: busca por slug parcial (contém o termo)
     if (!plan) {
+      plan = await prisma.plan.findFirst({
+        where: {
+          OR: [
+            { slug: { contains: searchTerm.toLowerCase(), mode: 'insensitive' } },
+            { name: { contains: searchTerm, mode: 'insensitive' } },
+          ],
+          isActive: true,
+        },
+        include: {
+          planBenefits: {
+            include: {
+              benefit: true,
+            },
+          },
+        },
+      })
+    }
+
+    if (!plan) {
+      console.warn('[PLAN] Plano não encontrado:', searchTerm)
       return NextResponse.json({ error: 'Plano não encontrado' }, { status: 404 })
     }
 
@@ -46,15 +73,14 @@ export async function GET(
         priceSingle: plan.priceSingle ? Number(plan.priceSingle) : null,
         period: plan.period,
         features: plan.features,
-        benefits: plan.planBenefits.map(pb => ({
+        benefits: plan.planBenefits.map((pb) => ({
           id: pb.benefit.id,
           name: pb.benefit.name,
           description: pb.benefit.description,
-          type: pb.benefit.type
-        }))
-      }
+          type: pb.benefit.type,
+        })),
+      },
     })
-
   } catch (error) {
     console.error('[PLAN] Erro ao buscar plano:', error)
     return NextResponse.json(
@@ -63,4 +89,3 @@ export async function GET(
     )
   }
 }
-
