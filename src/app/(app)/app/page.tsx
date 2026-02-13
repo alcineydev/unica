@@ -221,7 +221,7 @@ export default function AppHomePage() {
                       variant={index === 0 ? 'default' : 'outline'}
                       asChild
                     >
-                      <Link href={`/checkout?plano=${plan.id}`}>
+                      <Link href="/app/planos">
                         Assinar
                         <ArrowRight className="h-4 w-4 ml-2" />
                       </Link>

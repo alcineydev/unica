@@ -156,9 +156,9 @@ function CadastroForm() {
 
       if (result?.ok) {
         toast.success('Conta criada com sucesso!')
-        router.push(planId ? `/checkout?plano=${planId}` : '/planos')
+        router.push('/app/planos')
       } else {
-        toast.success('Conta criada! Faca login para continuar.')
+        toast.success('Conta criada! Faça login para continuar.')
         router.push('/login')
       }
 

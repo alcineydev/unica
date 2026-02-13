@@ -1,606 +1,830 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
+import { toast } from 'sonner'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Save,
   User,
   Mail,
   Phone,
   CreditCard,
   Calendar,
   MapPin,
-  Crown,
   Camera,
+  Save,
   Loader2,
-  Star,
-  Wallet,
+  Crown,
+  Coins,
+  ArrowDownUp,
   QrCode,
-  Clock,
-  CheckCircle,
-  ChevronRight
+  Search,
+  ChevronRight,
+  Upload,
+  X,
 } from 'lucide-react'
-import { toast } from 'sonner'
 
-interface Perfil {
+// ─── Types ───────────────────────────────────────────────
+
+interface Profile {
   id: string
-  nome: string
   email: string
-  telefone: string
-  cpf: string
-  avatar?: string
-  dataNascimento?: string
-  endereco?: {
-    cep?: string
-    logradouro?: string
-    numero?: string
-    complemento?: string
-    bairro?: string
-    cidade?: string
-    estado?: string
-  }
-  plano?: {
+  avatar: string | null
+  phone: string | null
+  createdAt: string
+  name: string
+  cpf: string | null
+  birthDate: string | null
+  address: Record<string, string> | null
+  plan: {
     id: string
-    nome: string
-  }
-  status: string
-  pontos: number
+    name: string
+    price: number | string
+    period?: string
+    features?: string[]
+  } | null
+  planId: string | null
+  subscriptionStatus: string
+  planStartDate: string | null
+  planEndDate: string | null
+  points: number
   cashback: number
-  qrCode?: string
-  membroDesde: string
+  qrCode: string | null
+  city: { id: string; name: string; state: string } | null
+  cityId: string | null
+  totalTransactions: number
+  totalAvaliacoes: number
 }
+
+interface FormData {
+  name: string
+  phone: string
+  cpf: string
+  birthDate: string | null
+  address: Record<string, string>
+}
+
+// ─── Constants ───────────────────────────────────────────
+
+const STATUS_MAP: Record<string, { label: string; color: string }> = {
+  ACTIVE: { label: 'Ativo', color: 'bg-green-100 text-green-700' },
+  PENDING: { label: 'Pendente', color: 'bg-amber-100 text-amber-700' },
+  INACTIVE: { label: 'Inativo', color: 'bg-gray-100 text-gray-700' },
+  SUSPENDED: { label: 'Suspenso', color: 'bg-red-100 text-red-700' },
+  CANCELED: { label: 'Cancelado', color: 'bg-red-100 text-red-700' },
+  EXPIRED: { label: 'Expirado', color: 'bg-gray-100 text-gray-700' },
+  GUEST: { label: 'Convidado', color: 'bg-purple-100 text-purple-700' },
+}
+
+// ─── Helpers ─────────────────────────────────────────────
+
+function formatCPF(value: string) {
+  const numbers = value.replace(/\D/g, '').slice(0, 11)
+  return numbers
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+}
+
+function formatPhone(value: string) {
+  const numbers = value.replace(/\D/g, '').slice(0, 11)
+  if (numbers.length <= 10) {
+    return numbers
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+  }
+  return numbers
+    .replace(/(\d{2})(\d)/, '($1) $2')
+    .replace(/(\d{5})(\d)/, '$1-$2')
+}
+
+function formatCEP(value: string) {
+  return value
+    .replace(/\D/g, '')
+    .slice(0, 8)
+    .replace(/(\d{5})(\d)/, '$1-$2')
+}
+
+// ─── Component ───────────────────────────────────────────
 
 export default function PerfilPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [perfil, setPerfil] = useState<Perfil | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
-  const [formData, setFormData] = useState<Partial<Perfil>>({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [searchingCep, setSearchingCep] = useState(false)
 
-  useEffect(() => {
-    fetchPerfil()
-  }, [])
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    phone: '',
+    cpf: '',
+    birthDate: null,
+    address: {},
+  })
+  const [hasChanges, setHasChanges] = useState(false)
 
-  const fetchPerfil = async () => {
+  // ─── Fetch profile ─────────────────────────────────────
+
+  const fetchProfile = useCallback(async () => {
     try {
-      const response = await fetch('/api/app/perfil')
-      const data = await response.json()
-
-      if (data.error) {
-        toast.error(data.error)
-        return
-      }
-
-      setPerfil(data.perfil)
-      setFormData(data.perfil)
-    } catch (error) {
-      console.error('Erro ao buscar perfil:', error)
+      setLoading(true)
+      const res = await fetch('/api/app/perfil')
+      if (!res.ok) throw new Error('Erro ao carregar perfil')
+      const data = await res.json()
+      setProfile(data)
+      setFormData({
+        name: data.name || '',
+        phone: data.phone || '',
+        cpf: data.cpf || '',
+        birthDate: data.birthDate || null,
+        address: data.address || {},
+      })
+      setHasChanges(false)
+    } catch {
       toast.error('Erro ao carregar perfil')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
+  }, [])
+
+  useEffect(() => {
+    fetchProfile()
+  }, [fetchProfile])
+
+  // ─── Update form ───────────────────────────────────────
+
+  const updateForm = (data: Partial<FormData>) => {
+    setFormData((prev) => ({ ...prev, ...data }))
+    setHasChanges(true)
   }
 
-  const updateField = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+  const updateAddress = (field: string, value: string) => {
+    updateForm({
+      address: { ...formData.address, [field]: value },
+    })
   }
 
-  const updateEndereco = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      endereco: { ...prev.endereco, [field]: value }
-    }))
-  }
+  // ─── Search CEP ────────────────────────────────────────
 
-  // Máscaras
-  const maskPhone = (value: string) => {
-    return value
-      .replace(/\D/g, '')
-      .slice(0, 11)
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d)/, '$1-$2')
-  }
-
-  const maskCEP = (value: string) => {
-    return value
-      .replace(/\D/g, '')
-      .slice(0, 8)
-      .replace(/(\d{5})(\d)/, '$1-$2')
-  }
-
-  const maskCPF = (value: string) => {
-    return value
-      .replace(/\D/g, '')
-      .slice(0, 11)
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
-  }
-
-  // Buscar CEP
-  const buscarCEP = async (cep: string) => {
-    const cepLimpo = cep.replace(/\D/g, '')
-    if (cepLimpo.length !== 8) return
-
+  const searchCEP = async () => {
+    const cep = (formData.address?.cep || '').replace(/\D/g, '')
+    if (cep.length !== 8) {
+      toast.error('CEP deve ter 8 dígitos')
+      return
+    }
+    setSearchingCep(true)
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
-      const data = await response.json()
-
-      if (!data.erro) {
-        setFormData(prev => ({
-          ...prev,
-          endereco: {
-            ...prev.endereco,
-            cep: cepLimpo,
-            logradouro: data.logradouro || '',
-            bairro: data.bairro || '',
-            cidade: data.localidade || '',
-            estado: data.uf || ''
-          }
-        }))
-        toast.success('Endereço encontrado!')
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      const data = await res.json()
+      if (data.erro) {
+        toast.error('CEP não encontrado')
+        return
       }
-    } catch (error) {
-      console.error('Erro ao buscar CEP:', error)
+      updateForm({
+        address: {
+          ...formData.address,
+          cep,
+          street: data.logradouro || '',
+          neighborhood: data.bairro || '',
+          city: data.localidade || '',
+          state: data.uf || '',
+        },
+      })
+      toast.success('Endereço encontrado!')
+    } catch {
+      toast.error('Erro ao buscar CEP')
+    } finally {
+      setSearchingCep(false)
     }
   }
 
-  // Upload de avatar
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click()
-  }
+  // ─── Avatar upload ─────────────────────────────────────
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validar tipo
     if (!file.type.startsWith('image/')) {
       toast.error('Selecione uma imagem válida')
       return
     }
-
-    // Validar tamanho (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Imagem deve ter no máximo 5MB')
       return
     }
 
-    setIsUploadingAvatar(true)
-
+    setUploadingAvatar(true)
     try {
       const formDataUpload = new FormData()
       formDataUpload.append('file', file)
-      formDataUpload.append('folder', 'avatars')
 
-      const response = await fetch('/api/upload', {
+      const uploadRes = await fetch('/api/upload', {
         method: 'POST',
-        body: formDataUpload
+        body: formDataUpload,
       })
 
-      const data = await response.json()
-
-      if (data.url) {
-        setFormData(prev => ({ ...prev, avatar: data.url }))
-        toast.success('Foto atualizada!')
-      } else {
-        toast.error('Erro ao fazer upload')
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json()
+        throw new Error(err.error || 'Erro no upload')
       }
+
+      const uploadData = await uploadRes.json()
+      const avatarUrl = uploadData.url || uploadData.secure_url
+
+      // Salvar avatar no perfil
+      const saveRes = await fetch('/api/app/perfil', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar: avatarUrl }),
+      })
+
+      if (!saveRes.ok) throw new Error('Erro ao salvar avatar')
+
+      toast.success('Foto atualizada!')
+      await fetchProfile()
     } catch (error) {
-      console.error('Erro no upload:', error)
-      toast.error('Erro ao fazer upload da foto')
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao atualizar foto'
+      )
     } finally {
-      setIsUploadingAvatar(false)
+      setUploadingAvatar(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
-  const handleSave = async () => {
-    setIsSaving(true)
+  // ─── Remove avatar ─────────────────────────────────────
 
+  const removeAvatar = async () => {
+    setSaving(true)
     try {
-      const response = await fetch('/api/app/perfil', {
+      const res = await fetch('/api/app/perfil', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar: null }),
+      })
+      if (!res.ok) throw new Error('Erro ao remover foto')
+      toast.success('Foto removida!')
+      await fetchProfile()
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao remover foto'
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ─── Save ──────────────────────────────────────────────
+
+  const handleSave = async () => {
+    if (!formData.name?.trim()) {
+      toast.error('Nome é obrigatório')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const res = await fetch('/api/app/perfil', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nome: formData.nome,
-          telefone: formData.telefone?.replace(/\D/g, ''),
-          dataNascimento: formData.dataNascimento,
-          endereco: formData.endereco,
-          avatar: formData.avatar
-        })
+          name: formData.name,
+          phone: formData.phone,
+          cpf: formData.cpf,
+          birthDate: formData.birthDate,
+          address: formData.address,
+        }),
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        toast.error(data.error || 'Erro ao salvar')
-        return
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Erro ao salvar')
       }
 
       toast.success('Perfil atualizado com sucesso!')
-      fetchPerfil()
-
+      setHasChanges(false)
+      await fetchProfile()
     } catch (error) {
-      console.error('Erro ao salvar:', error)
-      toast.error('Erro ao salvar alterações')
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao salvar'
+      )
     } finally {
-      setIsSaving(false)
+      setSaving(false)
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return <Badge className="bg-green-100 text-green-800">Ativo</Badge>
-      case 'PENDING':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pendente</Badge>
-      case 'INACTIVE':
-        return <Badge className="bg-gray-100 text-gray-800">Inativo</Badge>
-      case 'CANCELLED':
-        return <Badge className="bg-red-100 text-red-800">Cancelado</Badge>
-      default:
-        return <Badge variant="outline">{status}</Badge>
-    }
-  }
+  // ─── Loading ───────────────────────────────────────────
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid lg:grid-cols-3 gap-6">
-          <Skeleton className="h-64" />
-          <Skeleton className="h-96 lg:col-span-2" />
-        </div>
+      <div className="space-y-4">
+        <Skeleton className="h-48 w-full rounded-xl" />
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-64 w-full" />
       </div>
     )
   }
 
-  if (!perfil) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Perfil não encontrado</p>
-      </div>
-    )
+  if (!profile) return null
+
+  const statusInfo = STATUS_MAP[profile.subscriptionStatus] || {
+    label: profile.subscriptionStatus,
+    color: 'bg-gray-100 text-gray-700',
   }
+  const memberSince = new Date(profile.createdAt)
+  const daysMember = Math.floor(
+    (Date.now() - memberSince.getTime()) / (1000 * 60 * 60 * 24)
+  )
+
+  // ─── Render ────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Meu Perfil</h1>
-          <p className="text-muted-foreground">Gerencie suas informações pessoais</p>
-        </div>
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Salvar
-            </>
-          )}
-        </Button>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Coluna Esquerda - Resumo */}
-        <div className="space-y-6">
-          {/* Card do Perfil */}
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="relative inline-block mb-4">
-                <Avatar className="h-28 w-28">
-                  <AvatarImage src={formData.avatar} />
-                  <AvatarFallback className="text-3xl bg-primary/10">
-                    {perfil.nome?.charAt(0)?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <button
-                  onClick={handleAvatarClick}
-                  disabled={isUploadingAvatar}
-                  className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {isUploadingAvatar ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Camera className="h-4 w-4" />
-                  )}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  className="hidden"
+    <div className="pb-20 md:pb-6">
+      {/* Header Card - Perfil Resumo */}
+      <div className="bg-gradient-to-br from-primary/90 to-primary px-4 pt-6 pb-8 -mx-4 -mt-6 md:mx-0 md:mt-0 md:rounded-xl">
+        <div className="flex items-center gap-4">
+          {/* Avatar com upload */}
+          <div className="relative group">
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-white/20 border-2 border-white/40 shrink-0">
+              {profile.avatar ? (
+                <Image
+                  src={profile.avatar}
+                  alt={profile.name}
+                  width={80}
+                  height={80}
+                  className="object-cover w-full h-full"
                 />
-              </div>
-              <h2 className="text-xl font-semibold">{perfil.nome}</h2>
-              <p className="text-muted-foreground">{perfil.email}</p>
-              <div className="mt-3">
-                {getStatusBadge(perfil.status)}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card do Plano */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Crown className="h-4 w-4 text-primary" />
-                <span className="font-medium text-sm">Meu Plano</span>
-              </div>
-              {perfil.plano ? (
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-semibold">{perfil.plano.nome}</span>
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                </div>
               ) : (
-                <div>
-                  <p className="text-muted-foreground mb-3">Você ainda não tem um plano</p>
-                  <Link href="/planos">
-                    <Button size="sm" className="w-full">Ver Planos</Button>
-                  </Link>
+                <div className="w-full h-full flex items-center justify-center">
+                  <User className="h-8 w-8 text-white/70" />
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            >
+              {uploadingAvatar ? (
+                <Loader2 className="h-5 w-5 text-white animate-spin" />
+              ) : (
+                <Camera className="h-5 w-5 text-white" />
+              )}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+              aria-label="Selecionar foto de perfil"
+              title="Selecionar foto de perfil"
+            />
+          </div>
 
-          {/* Card de Saldo */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Wallet className="h-4 w-4 text-green-600" />
-                <span className="font-medium text-sm">Meu Saldo</span>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Star className="h-5 w-5 text-yellow-500" />
-                    <span>Pontos</span>
-                  </div>
-                  <span className="text-xl font-bold">{perfil.pontos}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Wallet className="h-5 w-5 text-green-500" />
-                    <span>Cashback</span>
-                  </div>
-                  <span className="text-xl font-bold">R$ {Number(perfil.cashback).toFixed(2)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="text-white min-w-0">
+            <h1 className="text-xl font-bold truncate">{profile.name}</h1>
+            <p className="text-sm text-white/80 truncate">{profile.email}</p>
+            <div className="flex items-center gap-2 mt-1.5">
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusInfo.color}`}
+              >
+                {statusInfo.label}
+              </span>
+              {profile.plan && (
+                <span className="text-xs text-white/70 flex items-center gap-1">
+                  <Crown className="h-3 w-3" /> {profile.plan.name}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
 
-          {/* Membro desde */}
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <Clock className="h-5 w-5 text-muted-foreground" />
+        {/* Mini stats */}
+        <div className="grid grid-cols-3 gap-3 mt-5">
+          <div className="bg-white/10 rounded-lg p-2.5 text-center">
+            <Coins className="h-4 w-4 mx-auto text-white/80 mb-0.5" />
+            <p className="text-lg font-bold text-white">
+              {profile.points.toFixed(0)}
+            </p>
+            <p className="text-[10px] text-white/60">Pontos</p>
+          </div>
+          <div className="bg-white/10 rounded-lg p-2.5 text-center">
+            <ArrowDownUp className="h-4 w-4 mx-auto text-white/80 mb-0.5" />
+            <p className="text-lg font-bold text-white">
+              R$ {profile.cashback.toFixed(2)}
+            </p>
+            <p className="text-[10px] text-white/60">Cashback</p>
+          </div>
+          <div className="bg-white/10 rounded-lg p-2.5 text-center">
+            <Calendar className="h-4 w-4 mx-auto text-white/80 mb-0.5" />
+            <p className="text-lg font-bold text-white">{daysMember}</p>
+            <p className="text-[10px] text-white/60">Dias membro</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Avatar actions */}
+      {profile.avatar && (
+        <div className="flex justify-center -mt-3 mb-2">
+          <div className="flex gap-2 bg-background rounded-full shadow-sm border px-3 py-1.5">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              disabled={uploadingAvatar}
+            >
+              <Upload className="h-3 w-3" /> Trocar foto
+            </button>
+            <Separator orientation="vertical" className="h-4 my-auto" />
+            <button
+              onClick={removeAvatar}
+              className="text-xs text-destructive hover:text-destructive/80 flex items-center gap-1"
+              disabled={saving}
+            >
+              <X className="h-3 w-3" /> Remover
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Links */}
+      <div className="mt-4 space-y-2">
+        <Link
+          href="/app/carteira"
+          className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <QrCode className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm font-medium">Minha Carteirinha</p>
+              <p className="text-xs text-muted-foreground">
+                QR Code e dados do cartão
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
+
+        {!profile.plan && (
+          <Link
+            href="/app/planos"
+            className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors border border-amber-200 dark:border-amber-800"
+          >
+            <div className="flex items-center gap-3">
+              <Crown className="h-5 w-5 text-amber-600" />
               <div>
-                <p className="text-sm text-muted-foreground">Membro desde</p>
-                <p className="font-medium">
-                  {new Date(perfil.membroDesde).toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                  Escolher um Plano
+                </p>
+                <p className="text-xs text-amber-600/70">
+                  Ative sua assinatura para acessar benefícios
                 </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-amber-400" />
+          </Link>
+        )}
+      </div>
 
-        {/* Coluna Direita - Formulário */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardContent className="p-6">
-              <Tabs defaultValue="dados" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="dados">Dados Pessoais</TabsTrigger>
-                  <TabsTrigger value="endereco">Endereço</TabsTrigger>
-                </TabsList>
+      {/* Tabs de edição */}
+      <div className="mt-6">
+        <Tabs defaultValue="personal" className="space-y-4">
+          <TabsList className="w-full">
+            <TabsTrigger value="personal" className="flex-1 text-xs">
+              <User className="h-3.5 w-3.5 mr-1" /> Dados Pessoais
+            </TabsTrigger>
+            <TabsTrigger value="address" className="flex-1 text-xs">
+              <MapPin className="h-3.5 w-3.5 mr-1" /> Endereço
+            </TabsTrigger>
+          </TabsList>
 
-                {/* Tab Dados Pessoais */}
-                <TabsContent value="dados" className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="nome">Nome Completo</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="nome"
-                          className="pl-10"
-                          value={formData.nome || ''}
-                          onChange={(e) => updateField('nome', e.target.value)}
-                        />
-                      </div>
-                    </div>
+          {/* Tab Dados Pessoais */}
+          <TabsContent value="personal">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Dados Pessoais</CardTitle>
+                <CardDescription className="text-xs">
+                  Atualize suas informações pessoais
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm">
+                    Nome Completo
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formData.name || ''}
+                    onChange={(e) => updateForm({ name: e.target.value })}
+                    disabled={saving}
+                    placeholder="Seu nome completo"
+                  />
+                </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="email"
-                          className="pl-10 bg-muted"
-                          value={perfil.email || ''}
-                          disabled
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">Email não pode ser alterado</p>
-                    </div>
-                  </div>
+                <div className="space-y-2">
+                  <Label className="text-sm flex items-center gap-1">
+                    <Mail className="h-3.5 w-3.5" /> Email
+                  </Label>
+                  <Input value={profile.email} disabled className="bg-muted" />
+                  <p className="text-[10px] text-muted-foreground">
+                    O email não pode ser alterado por aqui. Entre em contato com
+                    o suporte.
+                  </p>
+                </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="cpf">CPF</Label>
-                      <div className="relative">
-                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="cpf"
-                          className="pl-10 bg-muted"
-                          value={perfil.cpf ? maskCPF(perfil.cpf) : ''}
-                          disabled
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">CPF não pode ser alterado</p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="telefone">Telefone</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="telefone"
-                          className="pl-10"
-                          value={formData.telefone ? maskPhone(formData.telefone) : ''}
-                          onChange={(e) => updateField('telefone', e.target.value.replace(/\D/g, ''))}
-                          placeholder="(00) 00000-0000"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="dataNascimento">Data de Nascimento</Label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="dataNascimento"
-                        type="date"
-                        className="pl-10"
-                        value={formData.dataNascimento || ''}
-                        onChange={(e) => updateField('dataNascimento', e.target.value)}
-                      />
-                    </div>
+                    <Label
+                      htmlFor="cpf"
+                      className="text-sm flex items-center gap-1"
+                    >
+                      <CreditCard className="h-3.5 w-3.5" /> CPF
+                    </Label>
+                    <Input
+                      id="cpf"
+                      value={formData.cpf ? formatCPF(formData.cpf) : ''}
+                      onChange={(e) =>
+                        updateForm({ cpf: e.target.value.replace(/\D/g, '') })
+                      }
+                      disabled={saving}
+                      placeholder="000.000.000-00"
+                      maxLength={14}
+                    />
                   </div>
-                </TabsContent>
-
-                {/* Tab Endereço */}
-                <TabsContent value="endereco" className="space-y-4">
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="cep">CEP</Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="cep"
-                          className="pl-10"
-                          value={formData.endereco?.cep ? maskCEP(formData.endereco.cep) : ''}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '')
-                            updateEndereco('cep', value)
-                            if (value.length === 8) {
-                              buscarCEP(value)
-                            }
-                          }}
-                          placeholder="00000-000"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="md:col-span-2 space-y-2">
-                      <Label htmlFor="logradouro">Logradouro</Label>
-                      <Input
-                        id="logradouro"
-                        value={formData.endereco?.logradouro || ''}
-                        onChange={(e) => updateEndereco('logradouro', e.target.value)}
-                        placeholder="Rua, Avenida..."
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="numero">Número</Label>
-                      <Input
-                        id="numero"
-                        value={formData.endereco?.numero || ''}
-                        onChange={(e) => updateEndereco('numero', e.target.value)}
-                        placeholder="123"
-                      />
-                    </div>
-
-                    <div className="md:col-span-3 space-y-2">
-                      <Label htmlFor="complemento">Complemento</Label>
-                      <Input
-                        id="complemento"
-                        value={formData.endereco?.complemento || ''}
-                        onChange={(e) => updateEndereco('complemento', e.target.value)}
-                        placeholder="Apto, Bloco..."
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="bairro">Bairro</Label>
-                      <Input
-                        id="bairro"
-                        value={formData.endereco?.bairro || ''}
-                        onChange={(e) => updateEndereco('bairro', e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="cidade">Cidade</Label>
-                      <Input
-                        id="cidade"
-                        value={formData.endereco?.cidade || ''}
-                        onChange={(e) => updateEndereco('cidade', e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="estado">Estado</Label>
-                      <Input
-                        id="estado"
-                        value={formData.endereco?.estado || ''}
-                        onChange={(e) => updateEndereco('estado', e.target.value.toUpperCase())}
-                        maxLength={2}
-                        placeholder="UF"
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
-          {/* Link para Carteirinha */}
-          <Card className="mt-6">
-            <CardContent className="p-4">
-              <Link href="/app/carteira" className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                    <QrCode className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Minha Carteirinha</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Ver QR Code para usar nos parceiros
-                    </p>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="phone"
+                      className="text-sm flex items-center gap-1"
+                    >
+                      <Phone className="h-3.5 w-3.5" /> Telefone
+                    </Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone ? formatPhone(formData.phone) : ''}
+                      onChange={(e) =>
+                        updateForm({
+                          phone: e.target.value.replace(/\D/g, ''),
+                        })
+                      }
+                      disabled={saving}
+                      placeholder="(00) 00000-0000"
+                      maxLength={15}
+                    />
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="birthDate"
+                    className="text-sm flex items-center gap-1"
+                  >
+                    <Calendar className="h-3.5 w-3.5" /> Data de Nascimento
+                  </Label>
+                  <Input
+                    id="birthDate"
+                    type="date"
+                    value={
+                      formData.birthDate
+                        ? new Date(formData.birthDate)
+                            .toISOString()
+                            .split('T')[0]
+                        : ''
+                    }
+                    onChange={(e) =>
+                      updateForm({ birthDate: e.target.value || null })
+                    }
+                    disabled={saving}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Card do Plano */}
+            {profile.plan && (
+              <Card className="mt-4 border-primary/20">
+                <CardContent className="pt-4 pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Crown className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">
+                          {profile.plan.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          R$ {Number(profile.plan.price).toFixed(2)}/
+                          {profile.plan.period === 'YEARLY' ? 'ano' : 'mês'}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {statusInfo.label}
+                    </Badge>
+                  </div>
+                  {profile.planEndDate && (
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      Válido até{' '}
+                      {new Date(profile.planEndDate).toLocaleDateString(
+                        'pt-BR'
+                      )}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Tab Endereço */}
+          <TabsContent value="address">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MapPin className="h-4 w-4" /> Endereço
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Seu endereço residencial
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* CEP com busca */}
+                <div className="flex gap-2">
+                  <div className="space-y-2 flex-1">
+                    <Label htmlFor="cep" className="text-sm">
+                      CEP
+                    </Label>
+                    <Input
+                      id="cep"
+                      value={formatCEP(formData.address?.cep || '')}
+                      onChange={(e) =>
+                        updateAddress(
+                          'cep',
+                          e.target.value.replace(/\D/g, '')
+                        )
+                      }
+                      placeholder="00000-000"
+                      maxLength={9}
+                      disabled={saving}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={searchCEP}
+                      disabled={searchingCep || saving}
+                      className="h-10 w-10"
+                    >
+                      {searchingCep ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Logradouro</Label>
+                  <Input
+                    value={formData.address?.street || ''}
+                    onChange={(e) => updateAddress('street', e.target.value)}
+                    placeholder="Rua, Avenida..."
+                    disabled={saving}
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Número</Label>
+                    <Input
+                      value={formData.address?.number || ''}
+                      onChange={(e) => updateAddress('number', e.target.value)}
+                      placeholder="Nº"
+                      disabled={saving}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label className="text-sm">Complemento</Label>
+                    <Input
+                      value={formData.address?.complement || ''}
+                      onChange={(e) =>
+                        updateAddress('complement', e.target.value)
+                      }
+                      placeholder="Apto, Bloco..."
+                      disabled={saving}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Bairro</Label>
+                  <Input
+                    value={formData.address?.neighborhood || ''}
+                    onChange={(e) =>
+                      updateAddress('neighborhood', e.target.value)
+                    }
+                    placeholder="Bairro"
+                    disabled={saving}
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2 col-span-2">
+                    <Label className="text-sm">Cidade</Label>
+                    <Input
+                      value={formData.address?.city || ''}
+                      onChange={(e) => updateAddress('city', e.target.value)}
+                      placeholder="Cidade"
+                      disabled={saving}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">UF</Label>
+                    <Input
+                      value={formData.address?.state || ''}
+                      onChange={(e) => updateAddress('state', e.target.value)}
+                      placeholder="UF"
+                      maxLength={2}
+                      disabled={saving}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Botão Salvar fixo no mobile */}
+        {hasChanges && (
+          <div className="fixed bottom-16 left-0 right-0 md:static md:mt-6 p-4 md:p-0 bg-background/95 backdrop-blur-sm border-t md:border-0 z-40">
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full"
+              size="lg"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Alterações
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Info da Conta */}
+        <Card className="mt-4 mb-4">
+          <CardContent className="pt-4 pb-3">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Membro desde</span>
+                <span>{memberSince.toLocaleDateString('pt-BR')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Transações</span>
+                <span>{profile.totalTransactions}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Avaliações</span>
+                <span>{profile.totalAvaliacoes}</span>
+              </div>
+              {profile.qrCode && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">QR Code</span>
+                  <code className="text-xs bg-muted px-2 py-0.5 rounded">
+                    {profile.qrCode}
+                  </code>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
-// Forçar rota dinâmica
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
@@ -22,72 +21,80 @@ export async function POST(request: NextRequest) {
 
     // Buscar plano
     const plan = await prisma.plan.findUnique({
-      where: { id: planId }
+      where: { id: planId },
     })
 
     if (!plan || !plan.isActive) {
-      return NextResponse.json({ error: 'Plano não encontrado' }, { status: 404 })
-    }
-
-    // Se o plano tem slug, redirecionar para checkout público
-    if (plan.slug) {
-      return NextResponse.json({ 
-        checkoutUrl: `/checkout/${plan.slug}` 
-      })
+      return NextResponse.json({ error: 'Plano não encontrado ou inativo' }, { status: 404 })
     }
 
     // Buscar assinante
     const assinante = await prisma.assinante.findUnique({
-      where: { userId: session.user.id }
+      where: { userId: session.user.id },
     })
 
     if (!assinante) {
-      return NextResponse.json({ 
-        error: 'Assinante não encontrado. Complete seu cadastro primeiro.' 
-      }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Assinante não encontrado. Complete seu cadastro primeiro.' },
+        { status: 400 }
+      )
     }
 
-    // Para planos pagos, deveria redirecionar para Mercado Pago
-    // Por enquanto, simula ativação
+    // Verificar se já tem esse plano ativo
+    if (
+      assinante.planId === plan.id &&
+      assinante.subscriptionStatus === 'ACTIVE'
+    ) {
+      return NextResponse.json(
+        { error: 'Você já possui este plano ativo' },
+        { status: 400 }
+      )
+    }
+
     const price = Number(plan.priceMonthly || plan.price)
-    
-    if (price > 0) {
-      // TODO: Integrar com Mercado Pago
-      // Por enquanto, ativa direto para teste
+
+    // ==========================================
+    // PLANO GRATUITO - Ativa direto
+    // ==========================================
+    if (price <= 0) {
       await prisma.assinante.update({
         where: { id: assinante.id },
         data: {
           planId: plan.id,
           subscriptionStatus: 'ACTIVE',
           planStartDate: new Date(),
-          planEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // +30 dias
-        }
+          planEndDate: null, // Gratuito não expira
+        },
       })
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: true,
-        message: 'Plano ativado com sucesso! (Modo de teste)'
+        message: `Plano ${plan.name} ativado com sucesso!`,
+        redirect: '/app',
       })
     }
 
-    // Plano gratuito - ativa diretamente
-    await prisma.assinante.update({
-      where: { id: assinante.id },
-      data: {
-        planId: plan.id,
-        subscriptionStatus: 'ACTIVE',
-        planStartDate: new Date()
-      }
-    })
+    // ==========================================
+    // PLANO PAGO - Redireciona para checkout Asaas
+    // ==========================================
+    if (plan.slug) {
+      return NextResponse.json({
+        success: true,
+        checkoutUrl: `/checkout/${plan.slug}`,
+        message: 'Redirecionando para o pagamento...',
+      })
+    }
 
-    return NextResponse.json({ 
-      success: true,
-      message: 'Plano ativado com sucesso!'
-    })
-
+    // Plano pago sem slug configurado
+    return NextResponse.json(
+      {
+        error:
+          'Este plano ainda não possui checkout configurado. Entre em contato com o suporte.',
+      },
+      { status: 400 }
+    )
   } catch (error) {
-    console.error('Erro no checkout:', error)
+    console.error('[APP CHECKOUT]', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
-
