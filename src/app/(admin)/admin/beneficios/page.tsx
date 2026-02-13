@@ -204,10 +204,16 @@ export default function BeneficiosPage() {
     const value = benefit.value as Record<string, number | string>
     switch (benefit.type) {
       case 'DESCONTO':
+        if (value.type === 'percentage') {
+          return `${value.value}%`
+        } else if (value.type === 'fixed') {
+          return `R$ ${value.value}`
+        }
+        return `${value.value || 0}%` // Fallback
       case 'CASHBACK':
         return `${value.percentage}%`
       case 'PONTOS':
-        return `${value.monthlyPoints} pts/mês`
+        return `${value.multiplier}x pontos`
       case 'ACESSO_EXCLUSIVO':
         return 'Premium'
       default:
