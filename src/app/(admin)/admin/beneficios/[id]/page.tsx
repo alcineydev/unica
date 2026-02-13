@@ -191,9 +191,32 @@ export default function EditarBeneficioPage({ params }: { params: Promise<{ id: 
   const handleDelete = async () => {
     setDeleting(true)
     try {
-      const response = await fetch(`/api/admin/benefits/${id}`, {
+      // Primeira tentativa sem forçar
+      let response = await fetch(`/api/admin/benefits/${id}`, {
         method: 'DELETE',
       })
+
+      // Se bloqueado por vínculos, perguntar se quer forçar
+      if (response.status === 400) {
+        const data = await response.json()
+        
+        if (data.details && (data.details.planBenefits > 0 || data.details.benefitAccess > 0)) {
+          const confirmForce = window.confirm(
+            `Este benefício está vinculado a ${data.details.planBenefits || 0} plano(s) e ${data.details.benefitAccess || 0} parceiro(s).\n\nDeseja excluir mesmo assim? Os vínculos serão removidos.`
+          )
+          
+          if (confirmForce) {
+            // Tentar novamente com force=true
+            response = await fetch(`/api/admin/benefits/${id}?force=true`, {
+              method: 'DELETE',
+            })
+          } else {
+            setDeleting(false)
+            setDeleteDialogOpen(false)
+            return
+          }
+        }
+      }
 
       if (!response.ok) {
         const data = await response.json()

@@ -154,6 +154,10 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     }
 
     const { id } = await params
+    
+    // Verificar query param para forçar exclusão
+    const { searchParams } = new URL(request.url)
+    const force = searchParams.get('force') === 'true'
 
     // Verifica se o benefício existe
     const benefit = await prisma.benefit.findUnique({
@@ -162,6 +166,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
         _count: {
           select: {
             planBenefits: true,
+            benefitAccess: true,
           },
         },
       },
@@ -174,19 +179,33 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       )
     }
 
-    // Não permite excluir benefício vinculado a planos
-    if (benefit._count.planBenefits > 0) {
+    const hasRelations = benefit._count.planBenefits > 0 || benefit._count.benefitAccess > 0
+
+    // Se tem vínculos e não é forçado, bloquear
+    if (hasRelations && !force) {
       return NextResponse.json(
         { 
-          error: 'Não é possível excluir este benefício pois está vinculado a planos. Desative o benefício ao invés de excluir.' 
+          error: `Benefício vinculado a ${benefit._count.planBenefits} plano(s) e ${benefit._count.benefitAccess} parceiro(s).`,
+          details: {
+            planBenefits: benefit._count.planBenefits,
+            benefitAccess: benefit._count.benefitAccess,
+          }
         },
         { status: 400 }
       )
     }
 
-    await prisma.benefit.delete({
-      where: { id },
-    })
+    // Se forçado, deletar vínculos primeiro
+    if (hasRelations && force) {
+      await prisma.$transaction([
+        prisma.planBenefit.deleteMany({ where: { benefitId: id } }),
+        prisma.benefitAccess.deleteMany({ where: { benefitId: id } }),
+        prisma.benefit.delete({ where: { id } }),
+      ])
+    } else {
+      // Sem vínculos, deletar direto
+      await prisma.benefit.delete({ where: { id } })
+    }
 
     return NextResponse.json(
       { message: 'Benefício excluído com sucesso' }

@@ -201,21 +201,57 @@ export default function BeneficiosPage() {
 
   // Formatador de valor
   function formatValue(benefit: Benefit): string {
-    const value = benefit.value as Record<string, number | string>
+    const value = benefit.value as Record<string, number | string | undefined>
+    
+    if (!value || typeof value !== 'object') {
+      return '-'
+    }
+    
     switch (benefit.type) {
       case 'DESCONTO':
-        if (value.type === 'percentage') {
+        // Formato novo: {type: 'percentage'|'fixed', value: number}
+        if (value.type === 'percentage' && value.value !== undefined) {
           return `${value.value}%`
-        } else if (value.type === 'fixed') {
+        }
+        if (value.type === 'fixed' && value.value !== undefined) {
           return `R$ ${value.value}`
         }
-        return `${value.value || 0}%` // Fallback
+        // Formato antigo: {percentage: number}
+        if (value.percentage !== undefined) {
+          return `${value.percentage}%`
+        }
+        // Fallback: tentar qualquer valor numérico
+        if (value.value !== undefined) {
+          return `${value.value}%`
+        }
+        return '-'
+        
       case 'CASHBACK':
-        return `${value.percentage}%`
+        // {percentage: number}
+        if (value.percentage !== undefined) {
+          return `${value.percentage}%`
+        }
+        return '-'
+        
       case 'PONTOS':
-        return `${value.multiplier}x pontos`
+        // Formato novo: {multiplier: number}
+        if (value.multiplier !== undefined) {
+          return `${value.multiplier}x pontos`
+        }
+        // Formato antigo: {monthlyPoints: number}
+        if (value.monthlyPoints !== undefined) {
+          return `${value.monthlyPoints} pts/mês`
+        }
+        return '-'
+        
       case 'ACESSO_EXCLUSIVO':
+        // {description?: string}
+        if (value.description) {
+          const desc = String(value.description)
+          return desc.length > 30 ? desc.substring(0, 30) + '...' : desc
+        }
         return 'Premium'
+        
       default:
         return '-'
     }

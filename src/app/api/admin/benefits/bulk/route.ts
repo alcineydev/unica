@@ -50,35 +50,55 @@ export async function POST(request: NextRequest) {
                 break
 
             case 'delete':
-                // Verificar se algum benefício está vinculado a planos ou parceiros
-                const benefitsWithRelations = await prisma.benefit.findMany({
-                    where: { id: { in: ids } },
-                    include: {
-                        _count: {
-                            select: {
-                                planBenefits: true,
-                                benefitAccess: true
-                            }
-                        }
+                // Verificar se força exclusão
+                const force = body.force === true
+                
+                if (force) {
+                    // Deletar vínculos primeiro, depois benefícios
+                    await prisma.$transaction([
+                        prisma.planBenefit.deleteMany({ where: { benefitId: { in: ids } } }),
+                        prisma.benefitAccess.deleteMany({ where: { benefitId: { in: ids } } }),
+                        prisma.benefit.deleteMany({ where: { id: { in: ids } } }),
+                    ])
+                    result = { count: ids.length }
+                    message = `${ids.length} benefício(s) excluído(s) com vínculos removidos`
+                } else {
+                    // Verificar vínculos
+                    const benefitsWithRelations = await prisma.benefit.findMany({
+                        where: { id: { in: ids } },
+                        include: {
+                            _count: {
+                                select: {
+                                    planBenefits: true,
+                                    benefitAccess: true,
+                                },
+                            },
+                        },
+                    })
+
+                    const benefitsInUse = benefitsWithRelations.filter(
+                        b => b._count.planBenefits > 0 || b._count.benefitAccess > 0
+                    )
+
+                    if (benefitsInUse.length > 0) {
+                        const names = benefitsInUse.map(b => b.name).join(', ')
+                        return NextResponse.json({
+                            error: `Não é possível excluir. Os benefícios "${names}" estão vinculados a planos ou parceiros.`,
+                            canForce: true,
+                            benefitsInUse: benefitsInUse.map(b => ({
+                                id: b.id,
+                                name: b.name,
+                                planBenefits: b._count.planBenefits,
+                                benefitAccess: b._count.benefitAccess,
+                            })),
+                        }, { status: 400 })
                     }
-                })
 
-                const benefitsInUse = benefitsWithRelations.filter(
-                    b => b._count.planBenefits > 0 || b._count.benefitAccess > 0
-                )
-
-                if (benefitsInUse.length > 0) {
-                    const names = benefitsInUse.map(b => b.name).join(', ')
-                    return NextResponse.json({
-                        error: `Não é possível excluir. Os benefícios "${names}" estão vinculados a planos ou parceiros.`
-                    }, { status: 400 })
+                    result = await prisma.benefit.deleteMany({
+                        where: { id: { in: ids } },
+                    })
+                    message = `${result.count} benefício(s) excluído(s)`
                 }
-
-                // Deletar benefícios
-                result = await prisma.benefit.deleteMany({
-                    where: { id: { in: ids } }
-                })
-                message = `${result.count} benefício(s) excluído(s)`
                 break
 
             default:
