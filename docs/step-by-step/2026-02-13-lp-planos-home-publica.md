@@ -74,6 +74,34 @@ Fluxo completo do visitante:
 
 ---
 
+## Fix Middleware + Auth Config (2026-02-13 atualização)
+
+### 5. Fix Middleware - Excluir `/api/plans` da proteção
+- **Arquivo:** `src/middleware.ts`
+- **Problema:** A regex do `matcher` NÃO excluía `/api/plans`, fazendo com que a rota pública `/api/plans/public` fosse interceptada pelo middleware e redirecionada ao `/login` para usuários não autenticados.
+- **Fix:** Adicionado `api/plans` no regex de exclusão: `api/auth|api/public|api/plans|api/checkout|...`
+
+### 6. Fix Auth Config - Adicionar prefix público
+- **Arquivo:** `src/lib/auth.config.ts`
+- **Problema:** O array `publicPrefixes` não continha `/api/plans`, causando o callback `authorized` a retornar `false` para essa rota.
+- **Fix:** Adicionado `'/api/plans'` ao array `publicPrefixes`.
+
+### 7. LP de Planos - UI Premium (v2)
+- **Arquivo:** `src/app/(public)/planos/page.tsx` (REESCRITO)
+- **Melhorias sobre v1:**
+  - Hero com gradiente, blur effects e badge animado
+  - Cards de plano com ribbon "Mais Popular" e scale 1.03x
+  - Seção "Como funciona?" com 3 passos visuais (ícones + números)
+  - Seção "Por que ser UNICA?" com 4 cards de vantagens
+  - FAQ expandido (5 perguntas)
+  - Seção de métodos de pagamento com ícones (PIX, Cartão, Boleto)
+  - Trust badges com Asaas Pagamentos
+  - CTA final com gradiente e 2 botões
+  - Footer completo com links legais
+  - Suporte a ambos formatos de API (`benefits` e `planBenefits`)
+
+---
+
 ## Checklist
 
 - [x] API busca slug case-insensitive + fallback por nome
@@ -83,4 +111,7 @@ Fluxo completo do visitante:
 - [x] Planos pagos direcionam para `/checkout/[slug]`
 - [x] Referencia "Mercado Pago" removida (agora "Asaas")
 - [x] `(auth)/planos` redireciona para `/planos`
+- [x] `src/middleware.ts` - adicionado `api/plans` na regex de exclusão
+- [x] `src/lib/auth.config.ts` - adicionado `/api/plans` nos publicPrefixes
+- [x] LP premium v2 com hero, FAQ, "Como funciona", trust badges, CTA final
 - [x] 0 erros de lint

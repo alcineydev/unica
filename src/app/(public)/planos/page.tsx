@@ -1,365 +1,479 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Check,
-  Gift,
-  Star,
-  Zap,
-  Shield,
-  QrCode,
-  ArrowRight,
-  ChevronLeft,
-  Crown,
+  Crown, Check, ArrowRight, Shield, Zap, Star,
+  Gift, Percent, Sparkles, Lock, CreditCard,
+  QrCode, FileText, ArrowLeft,
+  Store, BadgeCheck, Heart
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+
+interface PlanBenefit {
+  benefit: {
+    id: string
+    name: string
+    type: string
+    description: string | null
+  }
+}
 
 interface Plan {
   id: string
   name: string
   slug: string | null
-  description: string
+  description: string | null
   price: number
-  priceMonthly: number | null
-  priceYearly: number | null
   period: string
   features: string[]
-  benefits: Array<{
+  benefits?: Array<{
     id: string
     name: string
-    description: string
     type: string
+    description: string | null
   }>
+  planBenefits?: PlanBenefit[]
 }
 
 export default function PlanosPublicPage() {
-  const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchPlans = useCallback(async () => {
+  useEffect(() => {
+    fetchPlans()
+  }, [])
+
+  const fetchPlans = async () => {
     try {
-      setLoading(true)
       const res = await fetch('/api/plans/public')
+      if (!res.ok) throw new Error('Erro ao carregar planos')
       const data = await res.json()
-      if (data.plans) {
-        setPlans(data.plans)
-      }
+      const list = data.plans || (Array.isArray(data) ? data : data.data || [])
+      setPlans(list)
     } catch (error) {
-      console.error('Erro ao buscar planos:', error)
+      console.error('Erro ao carregar planos:', error)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }
 
-  useEffect(() => {
-    fetchPlans()
-  }, [fetchPlans])
+  const getPlanUrl = (plan: Plan) => `/checkout/${plan.slug || plan.id}`
 
-  const handleSelectPlan = (plan: Plan) => {
-    const identifier = plan.slug || plan.id
-    if (plan.price === 0) {
-      // Plano gratuito: vai direto pro cadastro
-      router.push(`/cadastro?plano=${plan.id}`)
-    } else {
-      // Plano pago: vai pro checkout Asaas
-      router.push(`/checkout/${identifier}`)
+  const periodLabel = (period: string) => {
+    if (period === 'YEARLY') return '/ano'
+    if (period === 'SINGLE') return 'único'
+    return '/mês'
+  }
+
+  const highlightIndex = plans.length <= 1 ? 0 : 1
+
+  // Extrair benefícios do plano (suporta ambos formatos da API)
+  const getPlanBenefits = (plan: Plan) => {
+    if (plan.benefits && plan.benefits.length > 0) return plan.benefits
+    if (plan.planBenefits && plan.planBenefits.length > 0) {
+      return plan.planBenefits.map((pb) => pb.benefit)
     }
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(price)
-  }
-
-  const getPeriodLabel = (period: string) => {
-    switch (period) {
-      case 'YEARLY': return '/ano'
-      case 'SINGLE': return ' unico'
-      default: return '/mes'
-    }
-  }
-
-  // Loading
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-        <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-50">
-          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-8 w-24" />
-          </div>
-        </header>
-        <main className="container mx-auto px-4 py-12">
-          <div className="text-center mb-12">
-            <Skeleton className="h-8 w-48 mx-auto mb-4" />
-            <Skeleton className="h-12 w-80 mx-auto mb-4" />
-            <Skeleton className="h-6 w-96 mx-auto" />
-          </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-96 rounded-2xl" />
-            ))}
-          </div>
-        </main>
-      </div>
-    )
+    return []
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      {/* Header */}
+    <div className="min-h-screen bg-background">
+      {/* ====== HEADER ====== */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Gift className="h-5 w-5 text-primary-foreground" />
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-sm">
+              <Crown className="h-5 w-5 text-white" />
             </div>
-            <span className="font-bold">UNICA</span>
+            <div>
+              <span className="font-bold text-lg leading-none">UNICA</span>
+              <span className="text-[10px] text-muted-foreground block leading-none">Clube de Benefícios</span>
+            </div>
           </Link>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
               <Link href="/">
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Inicio
+                <ArrowLeft className="h-4 w-4 mr-1" /> Início
               </Link>
             </Button>
-            <Button variant="outline" size="sm" asChild>
+            <Button size="sm" asChild>
               <Link href="/login">Entrar</Link>
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="container mx-auto px-4 py-12 md:py-16 text-center">
-        <Badge className="mb-4" variant="secondary">
-          <Crown className="h-3 w-3 mr-1" />
-          Escolha seu plano
-        </Badge>
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-          Comece a Economizar{' '}
-          <span className="text-primary">Hoje</span>
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Escolha o plano ideal para voce e tenha acesso a descontos exclusivos,
-          cashback e pontos em centenas de parceiros.
-        </p>
+      {/* ====== HERO ====== */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5" />
+        <div className="absolute top-0 left-1/4 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+
+        <div className="relative max-w-4xl mx-auto px-4 pt-16 pb-12 md:pt-24 md:pb-16 text-center">
+          <Badge variant="secondary" className="mb-5 px-4 py-1.5 text-sm">
+            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+            Escolha seu plano
+          </Badge>
+
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-5 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            Comece a Economizar Hoje
+          </h1>
+
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Escolha o plano ideal para você e tenha acesso a descontos exclusivos, cashback
+            e pontos em centenas de parceiros.
+          </p>
+        </div>
       </section>
 
-      {/* Plans Grid */}
-      <section className="container mx-auto px-4 pb-16">
-        {plans.length === 0 ? (
-          <div className="text-center py-12">
-            <Gift className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground">Nenhum plano disponivel no momento.</p>
-            <Button variant="outline" className="mt-4" asChild>
-              <Link href="/">Voltar ao inicio</Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
-            {plans.map((plan, index) => {
-              const isPopular = plans.length >= 2 && index === 1
-              const isFree = plan.price === 0
-
-              return (
-                <Card
-                  key={plan.id}
-                  className={cn(
-                    'relative overflow-hidden transition-all hover:shadow-lg rounded-2xl',
-                    isPopular && 'border-primary shadow-lg lg:scale-105 z-10'
-                  )}
-                >
-                  {/* Popular badge */}
-                  {isPopular && (
-                    <div className="absolute top-0 left-0 right-0 bg-primary text-primary-foreground text-center py-1.5 text-xs font-semibold">
-                      <Star className="inline h-3 w-3 mr-1" />
-                      Mais Popular
+      {/* ====== PLANS ====== */}
+      <section className="px-4 pb-16 md:pb-24 -mt-4" id="plans">
+        <div className="max-w-5xl mx-auto">
+          {loading ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="pt-8 pb-6 px-6">
+                    <div className="h-6 bg-muted rounded w-24 mb-2" />
+                    <div className="h-4 bg-muted rounded w-40 mb-6" />
+                    <div className="h-12 bg-muted rounded w-36 mb-6" />
+                    <div className="h-10 bg-muted rounded w-full mb-6" />
+                    <div className="space-y-3">
+                      {Array.from({ length: 4 }).map((_, j) => (
+                        <div key={j} className="h-4 bg-muted rounded w-full" />
+                      ))}
                     </div>
-                  )}
-
-                  <CardContent className={cn('p-6', isPopular && 'pt-10')}>
-                    {/* Name */}
-                    <div className="mb-4">
-                      <h3 className="text-xl font-bold">{plan.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
-                    </div>
-
-                    {/* Price */}
-                    <div className="mb-6">
-                      {isFree ? (
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-4xl font-bold text-green-600">Gratis</span>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-4xl font-bold">{formatPrice(plan.price)}</span>
-                            <span className="text-sm text-muted-foreground">{getPeriodLabel(plan.period)}</span>
-                          </div>
-                          {plan.priceYearly && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              ou {formatPrice(plan.priceYearly)}/ano
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    {/* CTA */}
-                    <Button
-                      className="w-full mb-6"
-                      variant={isPopular ? 'default' : 'outline'}
-                      size="lg"
-                      onClick={() => handleSelectPlan(plan)}
-                    >
-                      {isFree ? (
-                        <>Criar Conta Gratis</>
-                      ) : (
-                        <>
-                          <Zap className="mr-2 h-4 w-4" />
-                          Assinar {plan.name}
-                        </>
-                      )}
-                    </Button>
-
-                    <Separator className="mb-4" />
-
-                    {/* Features */}
-                    {plan.features && plan.features.length > 0 && (
-                      <div className="space-y-2.5">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                          Incluso no plano
-                        </p>
-                        {plan.features.map((feature, i) => (
-                          <div key={i} className="flex items-start gap-2">
-                            <Check className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                            <span className="text-sm">{feature}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Benefits */}
-                    {plan.benefits && plan.benefits.length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                          Beneficios
-                        </p>
-                        {plan.benefits.slice(0, 5).map((benefit) => (
-                          <div key={benefit.id} className="flex items-start gap-2">
-                            <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                            <div>
-                              <span className="text-sm font-medium">{benefit.name}</span>
-                              {benefit.description && (
-                                <p className="text-xs text-muted-foreground">{benefit.description}</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                        {plan.benefits.length > 5 && (
-                          <p className="text-xs text-muted-foreground pl-6">
-                            +{plan.benefits.length - 5} beneficios inclusos
-                          </p>
-                        )}
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
-              )
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          ) : plans.length === 0 ? (
+            <Card className="max-w-md mx-auto">
+              <CardContent className="py-16 text-center">
+                <Gift className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
+                <h3 className="text-lg font-semibold mb-2">Nenhum plano disponível no momento.</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Estamos preparando novos planos. Volte em breve!
+                </p>
+                <Button variant="outline" asChild>
+                  <Link href="/">Voltar ao início</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className={`grid gap-6 ${
+              plans.length === 1 ? 'max-w-md mx-auto' :
+              plans.length === 2 ? 'md:grid-cols-2 max-w-3xl mx-auto' :
+              'lg:grid-cols-3 max-w-5xl mx-auto'
+            }`}>
+              {plans.map((plan, index) => {
+                const price = Number(plan.price)
+                const isHighlight = index === highlightIndex && plans.length > 1
+                const benefits = getPlanBenefits(plan)
+
+                return (
+                  <Card
+                    key={plan.id}
+                    className={`relative overflow-hidden transition-all duration-300 ${
+                      isHighlight
+                        ? 'border-primary shadow-xl shadow-primary/10 md:scale-[1.03] z-10'
+                        : 'border-border hover:border-primary/40 hover:shadow-lg'
+                    }`}
+                  >
+                    {/* Highlight ribbon */}
+                    {isHighlight && (
+                      <div className="bg-gradient-to-r from-primary to-primary/90 text-white text-center py-2 text-xs font-semibold tracking-widest uppercase">
+                        <Star className="h-3 w-3 inline mr-1" />
+                        Mais Popular
+                      </div>
+                    )}
+
+                    <CardContent className={`${isHighlight ? 'pt-6' : 'pt-8'} pb-6 px-6`}>
+                      {/* Plan name */}
+                      <div className="mb-5">
+                        <h3 className="text-xl font-bold">{plan.name}</h3>
+                        {plan.description && (
+                          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{plan.description}</p>
+                        )}
+                      </div>
+
+                      {/* Price */}
+                      <div className="mb-6">
+                        {price === 0 ? (
+                          <div>
+                            <span className="text-4xl font-bold text-green-600">Grátis</span>
+                            <p className="text-xs text-muted-foreground mt-1">Sem compromisso</p>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-sm font-medium text-muted-foreground">R$</span>
+                              <span className="text-4xl font-bold tracking-tight">
+                                {price.toFixed(2).replace('.', ',')}
+                              </span>
+                              <span className="text-sm text-muted-foreground">{periodLabel(plan.period)}</span>
+                            </div>
+                            {plan.period === 'MONTHLY' && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Cobrado mensalmente
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* CTA */}
+                      <Button
+                        className={`w-full mb-6 h-12 text-base font-semibold ${
+                          isHighlight ? 'shadow-md shadow-primary/20' : ''
+                        }`}
+                        variant={isHighlight ? 'default' : price === 0 ? 'outline' : 'default'}
+                        size="lg"
+                        asChild
+                      >
+                        <Link href={price === 0 ? '/cadastro' : getPlanUrl(plan)}>
+                          <Zap className="h-4 w-4 mr-2" />
+                          {price === 0 ? 'Criar Conta Grátis' : `Assinar ${plan.name}`}
+                        </Link>
+                      </Button>
+
+                      <Separator className="mb-5" />
+
+                      {/* Features */}
+                      {plan.features && plan.features.length > 0 && (
+                        <div className="space-y-3 mb-5">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            O que está incluso:
+                          </p>
+                          {plan.features.map((feature, i) => (
+                            <div key={i} className="flex items-start gap-2.5">
+                              <div className="mt-0.5 w-4 h-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
+                                <Check className="h-2.5 w-2.5 text-green-600" />
+                              </div>
+                              <span className="text-sm leading-snug">{feature}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Benefícios */}
+                      {benefits.length > 0 && (
+                        <div className="pt-4 border-t">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Benefícios:
+                          </p>
+                          <div className="space-y-2">
+                            {benefits.slice(0, 5).map((b, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <Gift className="h-3.5 w-3.5 text-primary shrink-0" />
+                                <span className="text-sm text-muted-foreground">{b.name}</span>
+                              </div>
+                            ))}
+                            {benefits.length > 5 && (
+                              <p className="text-xs text-primary font-medium pl-5">
+                                +{benefits.length - 5} benefício{benefits.length - 5 > 1 ? 's' : ''}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </section>
 
-      {/* Trust */}
-      <section className="py-8 border-t bg-muted/20">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <Shield className="h-4 w-4 text-green-600" />
-              <span>Pagamento seguro via Asaas</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <QrCode className="h-4 w-4 text-primary" />
-              <span>PIX, Cartao e Boleto</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Star className="h-4 w-4 text-amber-500" />
-              <span>Cancele quando quiser</span>
-            </div>
+      {/* ====== HOW IT WORKS ====== */}
+      <section className="py-16 md:py-20 bg-muted/30 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">Como funciona?</h2>
+            <p className="text-muted-foreground">Comece a economizar em 3 passos simples</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: Crown,
+                title: 'Escolha seu plano',
+                desc: 'Selecione o plano que melhor se encaixa no seu perfil e faça o pagamento de forma segura.',
+                color: 'from-primary/10 to-primary/5 text-primary',
+                step: '01',
+              },
+              {
+                icon: QrCode,
+                title: 'Receba seu cartão digital',
+                desc: 'Após a assinatura, acesse seu QR Code exclusivo pelo app para usar nos parceiros.',
+                color: 'from-green-500/10 to-green-500/5 text-green-600',
+                step: '02',
+              },
+              {
+                icon: Percent,
+                title: 'Economize sempre',
+                desc: 'Apresente seu cartão e aproveite descontos, cashback e benefícios em cada compra.',
+                color: 'from-amber-500/10 to-amber-500/5 text-amber-600',
+                step: '03',
+              },
+            ].map((item, i) => (
+              <div key={i} className="relative">
+                <div className={`bg-gradient-to-br ${item.color} rounded-2xl p-6 h-full`}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-4xl font-bold opacity-15">{item.step}</span>
+                    <item.icon className="h-7 w-7" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2 text-foreground">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ resumido */}
-      <section className="py-12 container mx-auto px-4">
-        <h2 className="text-xl font-bold text-center mb-8">Perguntas Frequentes</h2>
-        <div className="max-w-2xl mx-auto space-y-4">
-          {[
-            {
-              q: 'Como funciona o pagamento?',
-              a: 'Voce escolhe entre PIX (aprovacao instantanea), cartao de credito ou boleto bancario. O plano e ativado automaticamente apos a confirmacao.',
-            },
-            {
-              q: 'Posso cancelar a qualquer momento?',
-              a: 'Sim! Voce pode cancelar sua assinatura quando quiser, sem multa ou fidelidade.',
-            },
-            {
-              q: 'Como uso meus beneficios?',
-              a: 'Apos assinar, voce recebe um QR Code exclusivo. Basta apresentar nos parceiros para obter seus descontos e cashback.',
-            },
-          ].map((faq, i) => (
-            <div key={i} className="bg-muted/30 rounded-xl p-4 border">
-              <p className="font-medium text-sm mb-1">{faq.q}</p>
-              <p className="text-sm text-muted-foreground">{faq.a}</p>
-            </div>
-          ))}
+      {/* ====== BENEFITS ====== */}
+      <section className="py-16 md:py-20 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">Por que ser UNICA?</h2>
+            <p className="text-muted-foreground">Vantagens exclusivas para nossos assinantes</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: Store, title: 'Parceiros locais', desc: 'Dezenas de estabelecimentos parceiros na sua cidade' },
+              { icon: Percent, title: 'Descontos reais', desc: 'Economia de verdade em cada compra que você fizer' },
+              { icon: ArrowRight, title: 'Cashback', desc: 'Receba parte do valor de volta em compras selecionadas' },
+              { icon: Heart, title: 'Benefícios exclusivos', desc: 'Acesso a promoções e eventos especiais do clube' },
+            ].map((item, i) => (
+              <Card key={i} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="pt-6 pb-5 text-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <item.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-sm mb-1">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* CTA final */}
-      <section className="py-12 container mx-auto px-4">
-        <div className="max-w-xl mx-auto text-center bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-8 text-white">
-          <h2 className="text-xl font-bold mb-2">Ainda tem duvidas?</h2>
-          <p className="text-white/80 text-sm mb-4">
-            Crie uma conta gratuita e conheca o clube sem compromisso.
+      {/* ====== FAQ ====== */}
+      <section className="py-16 md:py-20 bg-muted/30 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">Perguntas Frequentes</h2>
+          </div>
+          <div className="space-y-3">
+            {[
+              { q: 'Como funciona o clube de benefícios?', a: 'Ao assinar, você recebe um cartão digital (QR Code) que dá acesso a descontos e benefícios em diversos parceiros da sua cidade.' },
+              { q: 'Como uso meus benefícios?', a: 'Basta apresentar seu QR Code no app nos estabelecimentos parceiros. O desconto é aplicado na hora!' },
+              { q: 'Posso cancelar quando quiser?', a: 'Sim! Sem multa, sem burocracia. Cancele a qualquer momento direto pelo app.' },
+              { q: 'O pagamento é seguro?', a: 'Totalmente. Usamos a plataforma Asaas com criptografia de ponta a ponta e certificação PCI-DSS.' },
+              { q: 'Quais formas de pagamento?', a: 'PIX (aprovação instantânea), cartão de crédito e boleto bancário.' },
+            ].map((faq, i) => (
+              <Card key={i} className="border-0 shadow-sm">
+                <CardContent className="py-4 px-5">
+                  <h3 className="font-semibold text-sm mb-1.5">{faq.q}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ====== PAYMENT METHODS ====== */}
+      <section className="py-12 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-4">
+            Formas de pagamento aceitas
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-            <Button variant="secondary" asChild>
-              <Link href="/cadastro">
-                Criar Conta Gratis
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </Link>
-            </Button>
-            <Button variant="ghost" className="text-white hover:text-white hover:bg-white/10" asChild>
-              <Link href="/login">Ja tenho conta</Link>
-            </Button>
+          <div className="flex flex-wrap items-center justify-center gap-8">
+            {[
+              { icon: QrCode, label: 'PIX', color: 'text-green-600' },
+              { icon: CreditCard, label: 'Cartão de Crédito', color: 'text-blue-600' },
+              { icon: FileText, label: 'Boleto', color: 'text-amber-600' },
+            ].map((method, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <method.icon className={`h-5 w-5 ${method.color}`} />
+                <span className="font-medium">{method.label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-center gap-2 mt-4 text-xs text-muted-foreground">
+            <Shield className="h-3.5 w-3.5 text-green-600" />
+            <span>Ambiente 100% seguro</span>
+            <span className="text-muted-foreground/30">·</span>
+            <Lock className="h-3.5 w-3.5 text-green-600" />
+            <span>Dados criptografados</span>
+            <span className="text-muted-foreground/30">·</span>
+            <BadgeCheck className="h-3.5 w-3.5 text-green-600" />
+            <span>Asaas Pagamentos</span>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-6 border-t">
-        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} UNICA Clube de Beneficios - Grupo Zan Norte</p>
-          <div className="flex items-center gap-4">
-            <Link href="/termos" className="hover:text-foreground transition-colors">
-              Termos
-            </Link>
-            <Link href="/privacidade" className="hover:text-foreground transition-colors">
-              Privacidade
-            </Link>
+      {/* ====== CTA FINAL ====== */}
+      <section className="py-16 px-4">
+        <div className="max-w-2xl mx-auto">
+          <Card className="overflow-hidden border-0">
+            <div className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 p-8 md:p-12 text-center text-white">
+              <Crown className="h-10 w-10 mx-auto mb-4 opacity-80" />
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">
+                Pronto para economizar?
+              </h2>
+              <p className="text-white/80 mb-6 max-w-md mx-auto">
+                Junte-se a centenas de assinantes que já aproveitam benefícios exclusivos todos os dias.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button size="lg" variant="secondary" className="font-semibold" asChild>
+                  <a href="#plans">
+                    <Zap className="h-4 w-4 mr-2" />
+                    Ver Planos
+                  </a>
+                </Button>
+                <Button size="lg" variant="outline" className="text-white border-white/30 hover:bg-white/10 font-semibold" asChild>
+                  <Link href="/cadastro">
+                    Criar Conta Grátis
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </section>
+
+      {/* ====== FOOTER ====== */}
+      <footer className="border-t bg-muted/20">
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+                <Crown className="h-4 w-4 text-white" />
+              </div>
+              <span className="font-semibold text-sm">UNICA Clube de Benefícios</span>
+            </div>
+            <div className="flex gap-6 text-sm">
+              <Link href="/termos" className="text-muted-foreground hover:text-foreground transition-colors">
+                Termos
+              </Link>
+              <Link href="/privacidade" className="text-muted-foreground hover:text-foreground transition-colors">
+                Privacidade
+              </Link>
+              <Link href="/aviso-legal" className="text-muted-foreground hover:text-foreground transition-colors">
+                Aviso Legal
+              </Link>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              &copy; {new Date().getFullYear()} UNICA. Todos os direitos reservados.
+            </p>
           </div>
         </div>
       </footer>

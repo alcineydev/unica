@@ -17,7 +17,7 @@ export const authConfig: NextAuthConfig = {
 
       // Rotas públicas
       const publicRoutes = ['/', '/login', '/cadastro', '/interesse-parceiro', '/recuperar-senha', '/redefinir-senha']
-      const publicPrefixes = ['/planos', '/checkout/', '/checkout', '/termos', '/privacidade', '/aviso-legal', '/api/public', '/api/checkout', '/api/webhooks', '/api/manifest', '/api/auth', '/sw.js', '/icons/', '/recuperar-senha', '/redefinir-senha']
+      const publicPrefixes = ['/planos', '/checkout/', '/checkout', '/termos', '/privacidade', '/aviso-legal', '/api/public', '/api/plans', '/api/checkout', '/api/webhooks', '/api/manifest', '/api/auth', '/sw.js', '/icons/', '/recuperar-senha', '/redefinir-senha']
 
       const isPublicRoute = publicRoutes.includes(pathname) ||
         publicPrefixes.some(prefix => pathname.startsWith(prefix))

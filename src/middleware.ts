@@ -21,7 +21,7 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder assets
      */
-    '/((?!api/auth|api/public|api/checkout|api/webhooks|api/manifest|sw\\.js|planos|checkout|termos|privacidade|aviso-legal|recuperar-senha|redefinir-senha|_next/static|_next/image|favicon.ico|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api/auth|api/public|api/plans|api/checkout|api/webhooks|api/manifest|sw\\.js|planos|checkout|termos|privacidade|aviso-legal|recuperar-senha|redefinir-senha|_next/static|_next/image|favicon.ico|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
 
