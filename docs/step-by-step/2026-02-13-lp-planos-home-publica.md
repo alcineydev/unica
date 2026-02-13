@@ -100,6 +100,28 @@ Fluxo completo do visitante:
   - Footer completo com links legais
   - Suporte a ambos formatos de API (`benefits` e `planBenefits`)
 
+### 8. LP de Planos - UI Premium (v3)
+- **Arquivo:** `src/app/(public)/planos/page.tsx` (REESCRITO)
+- **Bugs corrigidos da v2:**
+  - CTA final: texto branco invisível (Card bg branco sobrepunha gradiente) -> Agora usa DIV pura com gradiente
+  - Badge "Mais Popular" não aparecia -> Agora destaca o último plano (mais caro) com borda gradiente glow
+  - Cards sem diferenciação visual -> Glow effect violet no destaque, shadow-2xl, -mt-4
+  - "Como funciona" baixo contraste -> Números 01/02/03 em violet-100, ícones em cards brancos com border
+  - Features vazias -> Fallback "Acesso ao app, Cartão digital, Suporte WhatsApp"
+- **Melhorias visuais v3:**
+  - Paleta violet/indigo consistente em vez de primary genérico
+  - Hero com blob decorativo blur-3xl + scroll indicator animado
+  - Cards com glow border gradiente (absolute -inset-0.5)
+  - Preço 5xl extragrande com R$ separado
+  - Botões CTA com gradiente violet no destaque, bg-gray-900 nos demais
+  - "Por que UNICA" com cards hover:shadow-lg + cores por categoria
+  - Métodos pagamento com ícones em caixas coloridas (não só texto)
+  - CTA final em DIV rounded-3xl com círculos decorativos bg-white/5
+  - Botão "Ver Planos" branco com text-violet-700 (alto contraste)
+  - Botão "Criar Conta" outline com border-white/30 + bg-transparent
+  - Suporte completo dark mode com classes explícitas
+  - Header com 3 botões: Início, Entrar, Cadastre-se (gradiente)
+
 ---
 
 ## Checklist
@@ -114,4 +136,5 @@ Fluxo completo do visitante:
 - [x] `src/middleware.ts` - adicionado `api/plans` na regex de exclusão
 - [x] `src/lib/auth.config.ts` - adicionado `/api/plans` nos publicPrefixes
 - [x] LP premium v2 com hero, FAQ, "Como funciona", trust badges, CTA final
+- [x] LP premium v3: CTA fix, glow cards, fallback features, paleta violet/indigo
 - [x] 0 erros de lint
