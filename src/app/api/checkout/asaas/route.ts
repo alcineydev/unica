@@ -269,11 +269,44 @@ export async function POST(request: NextRequest) {
         const { getEmailService } = await import('@/services/email')
         const emailService = getEmailService()
         if (emailService) {
-          await emailService.sendWelcomeEmail(customer.email, {
-            name: customer.name,
-            planName: plan.name,
+          const userPassword = customer.password || 'Unica@2025'
+          await emailService.sendEmail({
+            to: customer.email,
+            subject: `🎉 Bem-vindo ao UNICA - ${plan.name}`,
+            html: `
+              <!DOCTYPE html>
+              <html><head><meta charset="utf-8"></head>
+              <body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                <div style="max-width:500px;margin:0 auto;padding:20px;">
+                  <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:12px 12px 0 0;padding:24px;text-align:center;">
+                    <h1 style="color:#fff;font-size:22px;margin:0;">Bem-vindo ao UNICA!</h1>
+                  </div>
+                  <div style="background:#fff;padding:24px;border-radius:0 0 12px 12px;">
+                    <p style="color:#374151;font-size:16px;">Olá <strong>${customer.name}</strong>,</p>
+                    <p style="color:#6b7280;font-size:14px;">Sua conta foi criada com sucesso! Aqui estão seus dados de acesso:</p>
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin:16px 0;">
+                      <p style="margin:4px 0;font-size:14px;"><strong>Email:</strong> ${customer.email}</p>
+                      <p style="margin:4px 0;font-size:14px;"><strong>Senha:</strong> ${userPassword}</p>
+                      <p style="margin:4px 0;font-size:14px;"><strong>Plano:</strong> ${plan.name}</p>
+                    </div>
+                    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:12px;margin:16px 0;">
+                      <p style="color:#92400e;font-size:12px;margin:0;">&#9203; <strong>Status:</strong> Aguardando confirmação de pagamento. Assim que confirmado, sua assinatura será ativada automaticamente.</p>
+                    </div>
+                    <div style="text-align:center;margin-top:20px;">
+                      <a href="${process.env.NEXTAUTH_URL || 'https://app.unicabeneficios.com.br'}/login"
+                         style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600;">
+                        Acessar Minha Conta
+                      </a>
+                    </div>
+                    <p style="color:#9ca3af;font-size:11px;text-align:center;margin-top:16px;">Recomendamos trocar sua senha no primeiro acesso.</p>
+                  </div>
+                  <p style="text-align:center;color:#9ca3af;font-size:11px;margin-top:16px;">UNICA Clube de Benefícios</p>
+                </div>
+              </body>
+              </html>
+            `,
           })
-          console.log('[CHECKOUT] Email de boas-vindas enviado para:', customer.email)
+          console.log('[CHECKOUT] Email de boas-vindas com credenciais enviado para:', customer.email)
         }
       } catch (emailError) {
         console.warn('[CHECKOUT] Email de boas-vindas não enviado:', emailError)

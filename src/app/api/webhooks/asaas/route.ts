@@ -269,22 +269,54 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
       }
     })
 
-    // Enviar WhatsApp de boas-vindas
+    // Enviar notificações de boas-vindas/confirmação
     if (assinante.plan) {
-      const tempPassword = generateTempPassword()
-      // Atualizar senha do usuário
-      const hashedPassword = await hash(tempPassword, 12)
-      await prisma.user.update({
+      // Verificar se o usuário já tem senha (criado no checkout com senha própria)
+      const existingUser = await prisma.user.findUnique({
         where: { id: assinante.userId },
-        data: { password: hashedPassword }
+        select: { password: true }
       })
+      const userHasPassword = existingUser?.password && existingUser.password.length > 10
 
-      await sendWelcomeNotifications(
-        { name: assinante.name, email: assinante.user.email, phone: assinante.phone || undefined },
-        { name: assinante.plan.name },
-        tempPassword,
-        true // isNewUser
-      )
+      if (userHasPassword) {
+        // Usuário criado no checkout com senha própria → NÃO sobrescrever
+        // Enviar apenas email de CONFIRMAÇÃO de pagamento (sem credenciais)
+        logger.info('[WEBHOOK ASAAS] Usuário já tem senha (checkout). Enviando confirmação sem nova senha.')
+
+        try {
+          const emailService = getEmailService()
+          if (emailService) {
+            const nextDue = new Date()
+            nextDue.setMonth(nextDue.getMonth() + 1)
+            await emailService.sendPaymentConfirmationEmail(assinante.user.email, {
+              name: assinante.name,
+              amount: payment.value,
+              planName: assinante.plan.name,
+              nextDueDate: nextDue.toLocaleDateString('pt-BR'),
+            })
+            logger.info('[WEBHOOK ASAAS] Email de confirmação enviado (sem credenciais)')
+          }
+        } catch (emailError) {
+          logger.warn('[WEBHOOK ASAAS] Email de confirmação não enviado:', emailError)
+        }
+      } else {
+        // Usuário sem senha (criado pelo admin ou fallback) → gerar temporária
+        logger.info('[WEBHOOK ASAAS] Usuário sem senha. Gerando senha temporária.')
+
+        const tempPassword = generateTempPassword()
+        const hashedPassword = await hash(tempPassword, 12)
+        await prisma.user.update({
+          where: { id: assinante.userId },
+          data: { password: hashedPassword }
+        })
+
+        await sendWelcomeNotifications(
+          { name: assinante.name, email: assinante.user.email, phone: assinante.phone || undefined },
+          { name: assinante.plan.name },
+          tempPassword,
+          true
+        )
+      }
     }
 
     // Push para admins - Novo pagamento recebido
