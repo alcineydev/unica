@@ -92,8 +92,8 @@ function SuccessContent() {
           {/* Botões */}
           <div className="flex flex-col gap-2 mt-6">
             <Button asChild size="lg" className="w-full">
-              <Link href="/login">
-                Fazer Login
+              <Link href="/login?redirect=/app">
+                Acessar Minha Conta
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Link>
             </Button>

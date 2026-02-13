@@ -251,6 +251,26 @@ export async function POST(request: NextRequest) {
       }
 
       assinanteId = assinante.id
+
+      // === NOTIFICAÇÃO IN-APP (SININHO) PARA ADMINS ===
+      try {
+        const { notifyNewSubscriber } = await import('@/lib/admin-notifications')
+        await notifyNewSubscriber({
+          id: assinante.id,
+          name: customer.name,
+          planName: plan.name,
+        })
+      } catch (notifErr) {
+        console.warn('[CHECKOUT] Notificação in-app falhou:', notifErr)
+      }
+
+      // === PUSH NOTIFICATION PARA ADMINS ===
+      try {
+        const { notifyNewSubscriber: pushNotify } = await import('@/lib/push-notifications')
+        await pushNotify(customer.name, plan.name)
+      } catch (pushErr) {
+        console.warn('[CHECKOUT] Push não enviado:', pushErr)
+      }
     } catch (dbError) {
       console.error('[CHECKOUT] Erro ao criar/atualizar assinante:', dbError)
       // Não falhar o checkout, apenas logar - o webhook pode criar depois

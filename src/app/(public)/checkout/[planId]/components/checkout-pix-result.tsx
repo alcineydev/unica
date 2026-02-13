@@ -85,7 +85,7 @@ export default function CheckoutPixResult({ pixData, paymentId, onConfirmed }: P
           </div>
           <h3 className="text-xl font-bold text-green-700 dark:text-green-400">Pagamento Confirmado!</h3>
           <p className="text-sm text-green-600 mt-2">Seu plano foi ativado com sucesso.</p>
-          <Button className="mt-4" onClick={() => window.location.href = '/login'}>
+          <Button className="mt-4" onClick={() => window.location.href = '/login?redirect=/app'}>
             Acessar Minha Conta
           </Button>
         </CardContent>

@@ -70,8 +70,8 @@ export default function CheckoutBoletoResult({ boletoData }: BoletoResultProps) 
               </a>
             </Button>
           )}
-          <Button variant="outline" className="w-full" onClick={() => window.location.href = '/login'}>
-            Ir para Login
+          <Button variant="outline" className="w-full" onClick={() => window.location.href = '/login?redirect=/app'}>
+            Acessar Minha Conta
           </Button>
         </div>
 

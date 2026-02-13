@@ -260,6 +260,18 @@ export async function POST(request: Request) {
       console.warn('[PARTNER POST] Não foi possível enviar push:', pushError)
     }
 
+    // === NOTIFICAÇÃO IN-APP (SININHO) PARA ADMINS ===
+    try {
+      const { notifyNewPartner } = await import('@/lib/admin-notifications')
+      await notifyNewPartner({
+        id: user.parceiro!.id,
+        name: tradeName || companyName,
+        categoryName: category || undefined,
+      })
+    } catch (notifError) {
+      console.warn('[PARTNER POST] Notificação in-app falhou:', notifError)
+    }
+
     return NextResponse.json(
       { message: 'Parceiro criado com sucesso', data: user.parceiro },
       { status: 201 }

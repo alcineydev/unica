@@ -160,10 +160,14 @@ export default function CheckoutPage() {
       const result = await res.json()
       setPaymentResult(result)
 
-      if (paymentMethod === 'CREDIT_CARD' && (result.status === 'CONFIRMED' || result.status === 'RECEIVED')) {
+      // Cartão: verificar status direto da resposta (nested em payment)
+      const paymentStatus = result.payment?.status || result.status
+      const paymentId = result.payment?.id || result.paymentId || result.id
+
+      if (paymentMethod === 'CREDIT_CARD' && (paymentStatus === 'CONFIRMED' || paymentStatus === 'RECEIVED')) {
         toast.success('Pagamento aprovado!')
         setTimeout(() => {
-          router.push(`/checkout/sucesso?paymentId=${result.paymentId || result.id}`)
+          router.push(`/checkout/sucesso?paymentId=${paymentId}`)
         }, 1500)
       }
     } catch (error: unknown) {
@@ -210,7 +214,9 @@ export default function CheckoutPage() {
   }
 
   // Resultado do pagamento (PIX)
+  // API retorna: { payment: { id, status, bankSlipUrl, dueDate, ... }, pix: { qrCode, copyPaste, expirationDate }, ... }
   if (paymentResult && paymentMethod === 'PIX') {
+    const pixPaymentId = paymentResult.payment?.id || paymentResult.paymentId || paymentResult.id
     return (
       <div className="min-h-screen bg-gradient-to-b from-muted/50 to-background">
         <div className="max-w-lg mx-auto p-4 md:p-8 space-y-6">
@@ -220,13 +226,13 @@ export default function CheckoutPage() {
           </div>
           <CheckoutPixResult
             pixData={{
-              qrCodeImage: paymentResult.pixQrCode || paymentResult.qrCode?.encodedImage,
-              qrCodeText: paymentResult.pixCopyPaste || paymentResult.qrCode?.payload,
-              expirationDate: paymentResult.expirationDate,
+              qrCodeImage: paymentResult.pix?.qrCode || paymentResult.pixQrCode,
+              qrCodeText: paymentResult.pix?.copyPaste || paymentResult.pixCopyPaste,
+              expirationDate: paymentResult.pix?.expirationDate || paymentResult.expirationDate,
             }}
-            paymentId={paymentResult.paymentId || paymentResult.id}
+            paymentId={pixPaymentId}
             onConfirmed={() => {
-              router.push(`/checkout/sucesso?paymentId=${paymentResult.paymentId || paymentResult.id}`)
+              router.push(`/checkout/sucesso?paymentId=${pixPaymentId}`)
             }}
           />
           <CheckoutPlanSummary plan={plan} />
@@ -246,9 +252,9 @@ export default function CheckoutPage() {
           </div>
           <CheckoutBoletoResult
             boletoData={{
-              bankSlipUrl: paymentResult.bankSlipUrl,
-              identificationField: paymentResult.identificationField,
-              dueDate: paymentResult.dueDate,
+              bankSlipUrl: paymentResult.payment?.bankSlipUrl || paymentResult.bankSlipUrl,
+              identificationField: paymentResult.payment?.identificationField || paymentResult.identificationField,
+              dueDate: paymentResult.payment?.dueDate || paymentResult.dueDate,
             }}
           />
           <CheckoutPlanSummary plan={plan} />
@@ -286,6 +292,18 @@ export default function CheckoutPage() {
                 data={personalData}
                 onChange={setPersonalData}
                 onNext={() => setStep(1)}
+                onAddressFound={(addr) => {
+                  // Preencher endereço se campos estiverem vazios
+                  setAddressData((prev) => ({
+                    cep: prev.cep || addr.cep,
+                    street: prev.street || addr.street,
+                    number: prev.number || addr.number,
+                    complement: prev.complement || addr.complement,
+                    neighborhood: prev.neighborhood || addr.neighborhood,
+                    city: prev.city || addr.city,
+                    state: prev.state || addr.state,
+                  }))
+                }}
                 disabled={processing}
               />
             )}

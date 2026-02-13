@@ -113,6 +113,17 @@ export async function POST(request: NextRequest) {
     } catch (pushError) {
       logger.warn('[REGISTRO] Push não enviado:', pushError)
     }
+
+    // === NOTIFICAÇÃO IN-APP (SININHO) PARA ADMINS ===
+    try {
+      const { notifyNewSubscriber } = await import('@/lib/admin-notifications')
+      await notifyNewSubscriber({
+        id: result.assinante.id,
+        name: validatedData.name,
+      })
+    } catch (notifError) {
+      logger.warn('[REGISTRO] Notificação in-app falhou:', notifError)
+    }
     
     return NextResponse.json({
       success: true,
