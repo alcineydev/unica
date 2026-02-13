@@ -323,7 +323,7 @@ export default function PlanosPage() {
                         <div>
                           <CardTitle className="text-lg">{plan.name}</CardTitle>
                           {plan.description && (
-                            <p className="text-sm text-muted-foreground mt-0.5">
+                            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
                               {plan.description}
                             </p>
                           )}

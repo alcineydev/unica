@@ -396,7 +396,7 @@ export default function PlanosPage() {
                         aria-label={`Selecionar ${plan.name}`}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-xs">
                       <div>
                         <p className="font-medium">{plan.name}</p>
                         {plan.description && (

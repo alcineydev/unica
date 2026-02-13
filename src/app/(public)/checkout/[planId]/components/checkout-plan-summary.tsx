@@ -39,8 +39,8 @@ export default function CheckoutPlanSummary({ plan }: PlanSummaryProps) {
         </div>
         <h3 className="text-xl font-bold">{plan.name}</h3>
         {plan.description && (
-          <p className="text-sm text-white/70 mt-1">{plan.description}</p>
-        )}
+                    <p className="text-sm text-white/70 mt-1 line-clamp-2">{plan.description}</p>
+                  )}
       </div>
 
       <CardContent className="pt-4">
