@@ -56,7 +56,7 @@ export default function SubscriberPlanTab({
                 </p>
               </div>
             </div>
-            {plan.features &&
+            {Array.isArray(plan.features) &&
               (plan.features as string[]).length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {(plan.features as string[]).map(
