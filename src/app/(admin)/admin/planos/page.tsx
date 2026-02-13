@@ -256,7 +256,7 @@ export default function PlanosPage() {
           <p className="text-muted-foreground">Gerencie os planos de assinatura</p>
         </div>
         <Button asChild>
-          <Link href="/admin/planos?action=create">
+          <Link href="/admin/planos/novo">
             <Plus className="h-4 w-4 mr-2" />
             Novo Plano
           </Link>
