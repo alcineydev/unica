@@ -198,20 +198,38 @@ async function processSubscriptionEvent(event: AsaasSubscriptionEvent, subscript
 async function handlePaymentConfirmed(payment: AsaasPaymentData) {
   logger.info('[WEBHOOK ASAAS] Pagamento confirmado:', payment.id)
 
-  // PRIMEIRO: Tentar encontrar assinante já criado no checkout (pelos campos Asaas)
+  // PRIMEIRO: Tentar encontrar assinante já criado no checkout
+  // Busca por: paymentId, customerId, ou externalReference (assinante.id)
   let assinante = await prisma.assinante.findFirst({
     where: {
       OR: [
         { asaasPaymentId: payment.id },
-        { asaasCustomerId: payment.customer }
+        { asaasCustomerId: payment.customer },
+        ...(payment.externalReference ? [{ id: payment.externalReference }] : []),
       ]
     },
     include: { user: true, plan: true }
   })
 
-  // Se encontrou assinante criado no checkout, apenas ativar
+  // Se encontrou assinante criado no checkout, ativar
   if (assinante) {
     logger.info('[WEBHOOK ASAAS] Assinante encontrado (criado no checkout):', assinante.id)
+
+    // Proteção contra race condition: se checkout já ativou (cartão aprovado instantâneo)
+    if (assinante.subscriptionStatus === 'ACTIVE') {
+      logger.info('[WEBHOOK ASAAS] Assinante já ACTIVE (ativado no checkout). Garantindo dados.')
+      // Apenas garantir payment ID correto e user ativo
+      await prisma.assinante.update({
+        where: { id: assinante.id },
+        data: { asaasPaymentId: payment.id },
+      })
+      await prisma.user.update({
+        where: { id: assinante.userId },
+        data: { isActive: true },
+      })
+      logger.info('[WEBHOOK ASAAS] Dados garantidos para assinante já ativo.')
+      return
+    }
 
     const now = new Date()
     const planEndDate = new Date(now)
