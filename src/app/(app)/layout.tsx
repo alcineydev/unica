@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { BottomNav, AppSidebar } from '@/components/app'
+import { UpdateChecker } from '@/components/app/update-checker'
 import { NotificationPermissionModal } from '@/components/app/notification-permission-modal'
 import { Toaster } from 'sonner'
 
@@ -35,6 +36,7 @@ export default async function AppLayout({
       {/* Bottom nav: mobile only */}
       <BottomNav />
       <NotificationPermissionModal />
+      <UpdateChecker />
       <Toaster position="top-right" richColors />
     </div>
   )
