@@ -60,7 +60,7 @@ export default function PlanosAssinantePage() {
   const currentPrice = currentPlan ? Number(currentPlan.price) : 0
 
   return (
-    <div className="pb-24 px-4 lg:px-0 pt-4 lg:pt-0">
+    <div className="pb-24 px-4 pt-4 lg:px-8 lg:pt-6">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">Planos</h1>

@@ -46,7 +46,7 @@ export default function BuscarPage() {
   }, [router])
 
   return (
-    <div className="pb-24 px-4 lg:px-0 pt-4 lg:pt-0">
+    <div className="pb-24 px-4 pt-4 lg:px-8 lg:pt-6">
       {/* Search */}
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900 mb-3">Buscar</h1>

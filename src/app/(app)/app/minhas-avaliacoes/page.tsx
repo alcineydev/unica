@@ -80,7 +80,7 @@ export default function MinhasAvaliacoesPage() {
   }
 
   return (
-    <div className="p-4 lg:p-0 space-y-6">
+    <div className="p-4 lg:px-8 lg:pt-6 space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">Minhas Avaliações</h1>

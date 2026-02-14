@@ -357,7 +357,7 @@ export default function PerfilPage() {
   // ─── Render ────────────────────────────────────────────
 
   return (
-    <div className="pb-20 md:pb-6 px-4 lg:px-0 pt-4 lg:pt-0">
+    <div className="pb-20 md:pb-6 px-4 pt-4 lg:px-8 lg:pt-6">
       {/* Header Card - Perfil Resumo */}
       <div className="bg-gradient-to-br from-blue-600 to-blue-700 px-4 pt-6 pb-8 -mx-4 -mt-6 md:mx-0 md:mt-0 md:rounded-xl">
         <div className="flex items-center gap-4">

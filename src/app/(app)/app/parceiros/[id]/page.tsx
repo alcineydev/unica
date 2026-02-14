@@ -151,7 +151,7 @@ export default function ParceiroDetalhesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] lg:-mx-8 lg:-mt-6 pb-28">
+    <div className="min-h-screen bg-[#f8fafc] pb-28">
 
       {/* ===== HERO BANNER ===== */}
       <div className="relative">

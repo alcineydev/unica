@@ -28,11 +28,7 @@ export default async function AppLayout({
 
         {/* Main content */}
         <main className="flex-1 min-w-0 pb-20 lg:pb-0">
-          <div className="lg:px-8 lg:py-6 px-0 py-0">
-            <div className="lg:max-w-5xl">
-              {children}
-            </div>
-          </div>
+          {children}
         </main>
       </div>
 
