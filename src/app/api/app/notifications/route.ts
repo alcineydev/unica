@@ -4,13 +4,16 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await auth()
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+
+    const { searchParams } = new URL(request.url)
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50') || 50, 1), 100)
 
     // Buscar assinante
     const assinante = await prisma.assinante.findFirst({
@@ -25,7 +28,7 @@ export async function GET() {
     const notificacoes = await prisma.assinanteNotificacao.findMany({
       where: { assinanteId: assinante.id },
       orderBy: { createdAt: 'desc' },
-      take: 50
+      take: limit
     })
 
     return NextResponse.json({

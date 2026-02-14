@@ -8,10 +8,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   Store, ChevronRight, Crown, Zap, ArrowRight, Wallet,
   Eye, EyeOff, Coins, TrendingUp, Sparkles, Star,
-  Building2, Bell
+  Building2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CarouselDestaques, RecentTransactions } from '@/components/app/home'
+import { NotificationBell } from '@/components/app/notification-bell'
 
 // ==========================================
 // Tipos
@@ -67,7 +68,7 @@ interface ParceiroDestaque {
 }
 
 interface HomeData {
-  user: { name: string; firstName: string; planName: string | null }
+  user: { name: string; firstName: string; planName: string | null; avatar: string | null }
   assinante: {
     name: string; points: number; cashback: number
     planId: string | null; subscriptionStatus: string
@@ -251,8 +252,14 @@ export default function AppHomePage() {
             {/* Mini header: foto+nome+plano | sino */}
             <div className="flex items-center justify-between mb-5">
               <Link href="/app/perfil" className="flex items-center gap-2.5">
-                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center border border-white/10 overflow-hidden">
-                  <span className="text-white/70 font-semibold text-sm">{user.firstName?.charAt(0)?.toUpperCase()}</span>
+                <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 shrink-0">
+                  {user.avatar ? (
+                    <Image src={user.avatar} alt={user.firstName} width={40} height={40} className="object-cover w-full h-full" unoptimized />
+                  ) : (
+                    <div className="w-full h-full bg-white/10 flex items-center justify-center">
+                      <span className="text-white/70 font-semibold text-sm">{user.firstName?.charAt(0)?.toUpperCase()}</span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <p className="text-white font-semibold text-[14px]">Olá, {user.firstName}</p>
@@ -262,9 +269,7 @@ export default function AppHomePage() {
                   </div>
                 </div>
               </Link>
-              <Link href="/app/notificacoes" className="relative p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-all">
-                <Bell className="h-5 w-5" />
-              </Link>
+              <NotificationBell variant="dark" />
             </div>
 
             {/* Saldo + Toggle */}
@@ -327,6 +332,7 @@ export default function AppHomePage() {
                   <span className="text-[12px] text-gray-400">{assinante.plan?.name || 'Plano'}</span>
                 </div>
               </div>
+              <NotificationBell variant="light" />
             </div>
 
             {/* Saldo + Toggle */}

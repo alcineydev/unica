@@ -16,6 +16,12 @@ export async function GET() {
       )
     }
 
+    // Buscar avatar do user
+    const userDb = await prisma.user.findUnique({
+      where: { id: session.user.id! },
+      select: { avatar: true }
+    })
+
     // Busca o assinante
     const assinante = await prisma.assinante.findUnique({
       where: { userId: session.user.id! },
@@ -323,7 +329,8 @@ export async function GET() {
         user: {
           name: assinante.name,
           firstName: assinante.name?.split(' ')[0] || 'Usuário',
-          planName: assinante.plan?.name || null
+          planName: assinante.plan?.name || null,
+          avatar: userDb?.avatar || null
         },
         assinante: {
           name: assinante.name,
