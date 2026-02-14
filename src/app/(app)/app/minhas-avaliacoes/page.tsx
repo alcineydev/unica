@@ -55,7 +55,7 @@ export default function MinhasAvaliacoesPage() {
             className={`h-4 w-4 ${
               star <= nota 
                 ? 'fill-yellow-400 text-yellow-400' 
-                : 'fill-zinc-200 text-zinc-200'
+                : 'fill-gray-200 text-gray-200'
             }`}
           />
         ))}
@@ -74,7 +74,7 @@ export default function MinhasAvaliacoesPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
   }
@@ -84,16 +84,16 @@ export default function MinhasAvaliacoesPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">Minhas Avaliações</h1>
-        <p className="text-muted-foreground">Histórico das suas avaliações</p>
+        <p className="text-gray-500">Histórico das suas avaliações</p>
       </div>
 
       {/* Lista */}
       {avaliacoes.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <MessageSquare className="h-12 w-12 mx-auto text-gray-500 mb-4" />
             <h3 className="font-semibold mb-2">Nenhuma avaliação</h3>
-            <p className="text-muted-foreground">
+            <p className="text-gray-500">
               Suas avaliações aparecerão aqui após você avaliar um parceiro
             </p>
           </CardContent>
@@ -106,7 +106,7 @@ export default function MinhasAvaliacoesPage() {
                 <div className="flex items-start gap-3">
                   <Avatar className="h-12 w-12">
                     <AvatarImage src={avaliacao.parceiro.logo} />
-                    <AvatarFallback className="bg-primary/10 text-primary">
+                    <AvatarFallback className="bg-blue-50 text-blue-600">
                       {avaliacao.parceiro.nome.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
@@ -116,11 +116,11 @@ export default function MinhasAvaliacoesPage() {
                       {renderStars(avaliacao.nota)}
                     </div>
                     {avaliacao.comentario && (
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-sm text-gray-500 mt-1">
                         &quot;{avaliacao.comentario}&quot;
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="text-xs text-gray-500 mt-2">
                       {formatDate(avaliacao.createdAt)}
                     </p>
                   </div>

@@ -359,7 +359,7 @@ export default function PerfilPage() {
   return (
     <div className="pb-20 md:pb-6">
       {/* Header Card - Perfil Resumo */}
-      <div className="bg-gradient-to-br from-primary/90 to-primary px-4 pt-6 pb-8 -mx-4 -mt-6 md:mx-0 md:mt-0 md:rounded-xl">
+      <div className="bg-gradient-to-br from-blue-600 to-blue-700 px-4 pt-6 pb-8 -mx-4 -mt-6 md:mx-0 md:mt-0 md:rounded-xl">
         <div className="flex items-center gap-4">
           {/* Avatar com upload */}
           <div className="relative group">
@@ -445,10 +445,10 @@ export default function PerfilPage() {
       {/* Avatar actions */}
       {profile.avatar && (
         <div className="flex justify-center -mt-3 mb-2">
-          <div className="flex gap-2 bg-background rounded-full shadow-sm border px-3 py-1.5">
+          <div className="flex gap-2 bg-white rounded-full shadow-sm border px-3 py-1.5">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              className="text-xs text-gray-500 hover:text-gray-900 flex items-center gap-1"
               disabled={uploadingAvatar}
             >
               <Upload className="h-3 w-3" /> Trocar foto
@@ -456,7 +456,7 @@ export default function PerfilPage() {
             <Separator orientation="vertical" className="h-4 my-auto" />
             <button
               onClick={removeAvatar}
-              className="text-xs text-destructive hover:text-destructive/80 flex items-center gap-1"
+              className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1"
               disabled={saving}
             >
               <X className="h-3 w-3" /> Remover
@@ -469,29 +469,29 @@ export default function PerfilPage() {
       <div className="mt-4 space-y-2">
         <Link
           href="/app/carteira"
-          className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <QrCode className="h-5 w-5 text-primary" />
+            <QrCode className="h-5 w-5 text-blue-600" />
             <div>
               <p className="text-sm font-medium">Minha Carteirinha</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-500">
                 QR Code e dados do cartão
               </p>
             </div>
           </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <ChevronRight className="h-4 w-4 text-gray-500" />
         </Link>
 
         {!profile.plan && (
           <Link
             href="/app/planos"
-            className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors border border-amber-200 dark:border-amber-800"
+            className="flex items-center justify-between p-3 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors border border-amber-200"
           >
             <div className="flex items-center gap-3">
               <Crown className="h-5 w-5 text-amber-600" />
               <div>
-                <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                <p className="text-sm font-medium text-amber-700">
                   Escolher um Plano
                 </p>
                 <p className="text-xs text-amber-600/70">
@@ -543,8 +543,8 @@ export default function PerfilPage() {
                   <Label className="text-sm flex items-center gap-1">
                     <Mail className="h-3.5 w-3.5" /> Email
                   </Label>
-                  <Input value={profile.email} disabled className="bg-muted" />
-                  <p className="text-[10px] text-muted-foreground">
+                  <Input value={profile.email} disabled className="bg-gray-100" />
+                  <p className="text-[10px] text-gray-500">
                     O email não pode ser alterado por aqui. Entre em contato com
                     o suporte.
                   </p>
@@ -619,18 +619,18 @@ export default function PerfilPage() {
 
             {/* Card do Plano */}
             {profile.plan && (
-              <Card className="mt-4 border-primary/20">
+              <Card className="mt-4 border-blue-200">
                 <CardContent className="pt-4 pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <Crown className="h-5 w-5 text-primary" />
+                      <div className="p-2 rounded-lg bg-blue-50">
+                        <Crown className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
                         <p className="font-medium text-sm">
                           {profile.plan.name}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-500">
                           R$ {Number(profile.plan.price).toFixed(2)}/
                           {profile.plan.period === 'YEARLY' ? 'ano' : 'mês'}
                         </p>
@@ -641,7 +641,7 @@ export default function PerfilPage() {
                     </Badge>
                   </div>
                   {profile.planEndDate && (
-                    <p className="text-[10px] text-muted-foreground mt-2">
+                    <p className="text-[10px] text-gray-500 mt-2">
                       Válido até{' '}
                       {new Date(profile.planEndDate).toLocaleDateString(
                         'pt-BR'
@@ -776,7 +776,7 @@ export default function PerfilPage() {
 
         {/* Botão Salvar fixo no mobile */}
         {hasChanges && (
-          <div className="fixed bottom-16 left-0 right-0 md:static md:mt-6 p-4 md:p-0 bg-background/95 backdrop-blur-sm border-t md:border-0 z-40">
+          <div className="fixed bottom-16 left-0 right-0 md:static md:mt-6 p-4 md:p-0 bg-white/95 backdrop-blur-sm border-t md:border-0 z-40">
             <Button
               onClick={handleSave}
               disabled={saving}
@@ -803,21 +803,21 @@ export default function PerfilPage() {
           <CardContent className="pt-4 pb-3">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Membro desde</span>
+                <span className="text-gray-500">Membro desde</span>
                 <span>{memberSince.toLocaleDateString('pt-BR')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Transações</span>
+                <span className="text-gray-500">Transações</span>
                 <span>{profile.totalTransactions}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Avaliações</span>
+                <span className="text-gray-500">Avaliações</span>
                 <span>{profile.totalAvaliacoes}</span>
               </div>
               {profile.qrCode && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">QR Code</span>
-                  <code className="text-xs bg-muted px-2 py-0.5 rounded">
+                  <span className="text-gray-500">QR Code</span>
+                  <code className="text-xs bg-gray-100 px-2 py-0.5 rounded">
                     {profile.qrCode}
                   </code>
                 </div>

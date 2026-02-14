@@ -157,6 +157,19 @@ export default function ParceiroDetalhesPage() {
     }
   }
 
+  const getBenefitBgSoft = (type: string) => {
+    switch (type) {
+      case 'DESCONTO':
+      case 'DISCOUNT': return 'bg-green-500/10'
+      case 'CASHBACK': return 'bg-yellow-500/10'
+      case 'PONTOS':
+      case 'POINTS': return 'bg-blue-500/10'
+      case 'ACESSO_EXCLUSIVO':
+      case 'FREEBIE': return 'bg-purple-500/10'
+      default: return 'bg-gray-500/10'
+    }
+  }
+
   const getBenefitTextColor = (type: string) => {
     switch (type) {
       case 'DESCONTO':
@@ -187,8 +200,8 @@ export default function ParceiroDetalhesPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Carregando...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-500">Carregando...</p>
         </div>
       </div>
     )
@@ -197,11 +210,11 @@ export default function ParceiroDetalhesPage() {
   if (!parceiro) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
-        <div className="bg-muted/50 rounded-full w-20 h-20 flex items-center justify-center mb-4">
-          <Building2 className="h-10 w-10 text-muted-foreground" />
+        <div className="bg-gray-50 rounded-full w-20 h-20 flex items-center justify-center mb-4">
+          <Building2 className="h-10 w-10 text-gray-500" />
         </div>
         <h2 className="text-xl font-semibold mb-2">Parceiro não encontrado</h2>
-        <p className="text-muted-foreground text-center mb-6">
+        <p className="text-gray-500 text-center mb-6">
           Este parceiro não existe ou você não tem acesso.
         </p>
         <Button onClick={() => router.back()}>
@@ -213,11 +226,11 @@ export default function ParceiroDetalhesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background pb-28">
+    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-[#f8fafc] pb-28">
       {/* Header com Banner */}
       <div className="relative">
         {/* Banner */}
-        <div className="h-48 md:h-64 bg-gradient-to-br from-primary/30 via-primary/20 to-primary/5">
+        <div className="h-48 md:h-64 bg-gradient-to-br from-blue-200 via-blue-100 to-blue-50">
           {parceiro.banner && (
             <Image
               src={parceiro.banner}
@@ -228,14 +241,14 @@ export default function ParceiroDetalhesPage() {
             />
           )}
           {/* Overlay gradiente */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#f8fafc] via-[#f8fafc]/50 to-transparent" />
         </div>
 
         {/* Botão Voltar */}
         <Button
           variant="secondary"
           size="icon"
-          className="absolute top-4 left-4 rounded-full shadow-lg bg-background/80 backdrop-blur-sm"
+          className="absolute top-4 left-4 rounded-full shadow-lg bg-[#f8fafc]/80 backdrop-blur-sm"
           onClick={() => router.back()}
         >
           <ArrowLeft className="h-5 w-5" />
@@ -245,7 +258,7 @@ export default function ParceiroDetalhesPage() {
         <div className="container max-w-4xl relative -mt-16 px-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
             {/* Logo */}
-            <div className="relative h-28 w-28 rounded-2xl overflow-hidden bg-card border-4 border-background shadow-xl">
+            <div className="relative h-28 w-28 rounded-2xl overflow-hidden bg-white border-4 border-white shadow-xl">
               {parceiro.logo ? (
                 <Image
                   src={parceiro.logo}
@@ -255,8 +268,8 @@ export default function ParceiroDetalhesPage() {
                   unoptimized
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                  <Building2 className="h-12 w-12 text-primary/60" />
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-50">
+                  <Building2 className="h-12 w-12 text-blue-600/60" />
                 </div>
               )}
             </div>
@@ -268,7 +281,7 @@ export default function ParceiroDetalhesPage() {
                 <Badge variant="secondary">{parceiro.category}</Badge>
               </div>
               {parceiro.city && (
-                <p className="text-muted-foreground flex items-center gap-1">
+                <p className="text-gray-500 flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
                   {parceiro.city.name}, {parceiro.city.state}
                 </p>
@@ -285,7 +298,7 @@ export default function ParceiroDetalhesPage() {
         {parceiro.benefits && parceiro.benefits.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Gift className="h-5 w-5 text-primary" />
+              <Gift className="h-5 w-5 text-blue-600" />
               Seus Benefícios
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -295,7 +308,7 @@ export default function ParceiroDetalhesPage() {
                     <div className="flex items-stretch">
                       <div className={`w-2 ${getBenefitColor(benefit.type)}`} />
                       <div className="flex items-center gap-4 p-4 flex-1">
-                        <div className={`p-3 rounded-xl ${getBenefitColor(benefit.type)} bg-opacity-10`}>
+                        <div className={`p-3 rounded-xl ${getBenefitBgSoft(benefit.type)}`}>
                           <div className={getBenefitTextColor(benefit.type)}>
                             {getBenefitIcon(benefit.type)}
                           </div>
@@ -306,7 +319,7 @@ export default function ParceiroDetalhesPage() {
                             {getBenefitText(benefit)}
                           </p>
                           {benefit.description && (
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-gray-500 mt-1">
                               {benefit.description}
                             </p>
                           )}
@@ -325,7 +338,7 @@ export default function ParceiroDetalhesPage() {
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold mb-2">Sobre</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
+              <p className="text-gray-500 text-sm leading-relaxed">
                 {parceiro.description}
               </p>
             </CardContent>
@@ -338,7 +351,7 @@ export default function ParceiroDetalhesPage() {
           <Card>
             <CardContent className="p-4 space-y-3">
               <h3 className="font-semibold flex items-center gap-2">
-                <Phone className="h-4 w-4 text-primary" />
+                <Phone className="h-4 w-4 text-blue-600" />
                 Contato
               </h3>
               
@@ -361,9 +374,9 @@ export default function ParceiroDetalhesPage() {
                 {parceiro.phone && parceiro.phone !== parceiro.whatsapp && (
                   <a 
                     href={`tel:${parceiro.phone}`}
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <Phone className="h-4 w-4 text-gray-500" />
                     <span className="text-sm">{formatPhone(parceiro.phone)}</span>
                   </a>
                 )}
@@ -371,9 +384,9 @@ export default function ParceiroDetalhesPage() {
                 {parceiro.email && (
                   <a 
                     href={`mailto:${parceiro.email}`}
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <Mail className="h-4 w-4 text-gray-500" />
                     <span className="text-sm truncate">{parceiro.email}</span>
                   </a>
                 )}
@@ -383,11 +396,11 @@ export default function ParceiroDetalhesPage() {
                     href={parceiro.website.startsWith('http') ? parceiro.website : `https://${parceiro.website}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <Globe className="h-4 w-4 text-gray-500" />
                     <span className="text-sm truncate">{parceiro.website}</span>
-                    <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto" />
+                    <ExternalLink className="h-3 w-3 text-gray-500 ml-auto" />
                   </a>
                 )}
               </div>
@@ -430,7 +443,7 @@ export default function ParceiroDetalhesPage() {
             <Card>
               <CardContent className="p-4 space-y-3">
                 <h3 className="font-semibold flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-primary" />
+                  <MapPin className="h-4 w-4 text-blue-600" />
                   Localização
                 </h3>
                 
@@ -439,13 +452,13 @@ export default function ParceiroDetalhesPage() {
                     <p>{parceiro.address}{parceiro.addressNumber && `, ${parceiro.addressNumber}`}</p>
                   )}
                   {parceiro.neighborhood && (
-                    <p className="text-muted-foreground">{parceiro.neighborhood}</p>
+                    <p className="text-gray-500">{parceiro.neighborhood}</p>
                   )}
                   {parceiro.city && (
                     <p>{parceiro.city.name} - {parceiro.city.state}</p>
                   )}
                   {parceiro.zipCode && (
-                    <p className="text-muted-foreground">CEP: {parceiro.zipCode}</p>
+                    <p className="text-gray-500">CEP: {parceiro.zipCode}</p>
                   )}
                 </div>
 
@@ -501,7 +514,7 @@ export default function ParceiroDetalhesPage() {
                 Chamar no WhatsApp
               </Button>
             </a>
-            <p className="text-xs text-center text-muted-foreground mt-2">
+            <p className="text-xs text-center text-gray-500 mt-2">
               Mensagem: &quot;Olá! Sou {assinante?.name || 'cliente'}, assinante {assinante?.planName || 'UNICA'}...&quot;
             </p>
           </div>

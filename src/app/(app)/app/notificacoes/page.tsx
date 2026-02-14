@@ -135,7 +135,7 @@ export default function NotificacoesPage() {
       <div className="p-4 space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Notificações</h1>
-          <p className="text-muted-foreground">Suas atualizações e avisos</p>
+          <p className="text-gray-500">Suas atualizações e avisos</p>
         </div>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -152,7 +152,7 @@ export default function NotificacoesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Notificações</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-500">
             {naoLidas > 0 ? `${naoLidas} não lida${naoLidas > 1 ? 's' : ''}` : 'Todas lidas'}
           </p>
         </div>
@@ -168,9 +168,9 @@ export default function NotificacoesPage() {
       {notificacoes.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <Bell className="h-12 w-12 mx-auto text-gray-500 mb-4" />
             <h3 className="font-semibold mb-2">Nenhuma notificação</h3>
-            <p className="text-muted-foreground">
+            <p className="text-gray-500">
               Você será notificado sobre compras, pontos e promoções
             </p>
           </CardContent>
@@ -180,8 +180,8 @@ export default function NotificacoesPage() {
           {notificacoes.map((notificacao) => (
             <Card
               key={notificacao.id}
-              className={`cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900 ${
-                !notificacao.read ? 'border-primary/30 bg-primary/5' : 'opacity-70'
+              className={`cursor-pointer transition-colors hover:bg-gray-50 ${
+                !notificacao.read ? 'border-blue-200 bg-blue-50/50' : 'opacity-70'
               }`}
               onClick={() => handleNotificacaoClick(notificacao)}
             >
@@ -199,14 +199,14 @@ export default function NotificacoesPage() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-sm text-gray-500 mt-1">
                       {notificacao.message}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="text-xs text-gray-500 mt-2">
                       {formatDate(notificacao.createdAt)}
                     </p>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 self-center" />
+                  <ChevronRight className="h-5 w-5 text-gray-500 flex-shrink-0 self-center" />
                 </div>
               </CardContent>
             </Card>

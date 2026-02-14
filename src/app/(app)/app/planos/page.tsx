@@ -83,7 +83,7 @@ function getBenefitIcon(type: string) {
     case 'CASHBACK': return <Coins className="h-4 w-4 text-yellow-500" />
     case 'POINTS': return <Star className="h-4 w-4 text-blue-500" />
     case 'FREEBIE': return <Gift className="h-4 w-4 text-purple-500" />
-    default: return <Check className="h-4 w-4 text-primary" />
+    default: return <Check className="h-4 w-4 text-blue-600" />
   }
 }
 
@@ -236,7 +236,7 @@ export default function PlanosPage() {
           <div>
             <h1 className="text-lg font-bold">Escolha seu Plano</h1>
             {subscription?.status === 'ACTIVE' && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-500">
                 Gerencie ou troque seu plano
               </p>
             )}
@@ -246,15 +246,15 @@ export default function PlanosPage() {
 
       <div className="px-4 py-6">
         {/* Subtítulo */}
-        <p className="text-muted-foreground text-center mb-8">
+        <p className="text-gray-500 text-center mb-8">
           Aproveite os melhores benefícios e descontos exclusivos em nossos parceiros
         </p>
 
         {/* Sem planos */}
         {plans.length === 0 ? (
           <div className="text-center py-12">
-            <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">Nenhum plano disponível no momento.</p>
+            <Sparkles className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+            <p className="text-gray-500">Nenhum plano disponível no momento.</p>
           </div>
         ) : (
           <div className="space-y-4 max-w-lg mx-auto">
@@ -276,7 +276,7 @@ export default function PlanosPage() {
                   {/* Badge Popular */}
                   {isPopular && !isCurrentPlan && (
                     <div className="absolute -top-3 left-4 z-10">
-                      <Badge className="bg-primary text-primary-foreground shadow-sm">
+                      <Badge className="bg-blue-600 text-white shadow-sm">
                         Mais Popular
                       </Badge>
                     </div>
@@ -306,8 +306,8 @@ export default function PlanosPage() {
                             isCurrentPlan
                               ? 'bg-green-100 text-green-600'
                               : isPopular
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted text-muted-foreground'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-500'
                           )}
                         >
                           {getPlanIcon(index, isPopular)}
@@ -315,7 +315,7 @@ export default function PlanosPage() {
                         <div>
                           <CardTitle className="text-lg">{plan.name}</CardTitle>
                           {plan.description && (
-                            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+                            <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">
                               {plan.description}
                             </p>
                           )}
@@ -325,7 +325,7 @@ export default function PlanosPage() {
                         <div className="text-2xl font-bold">
                           {formatPrice(price)}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-gray-500">
                           {getPeriodLabel(plan.period)}
                         </div>
                       </div>
@@ -336,7 +336,7 @@ export default function PlanosPage() {
                     {/* Benefícios */}
                     {plan.benefits && plan.benefits.length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                           Benefícios inclusos
                         </p>
                         <ul className="space-y-2">
@@ -365,7 +365,7 @@ export default function PlanosPage() {
                     {/* Features extras */}
                     {plan.features && plan.features.length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                           Vantagens
                         </p>
                         <ul className="space-y-1">
@@ -391,7 +391,7 @@ export default function PlanosPage() {
                         'w-full h-12',
                         isPopular &&
                           !isCurrentPlan &&
-                          'bg-primary hover:bg-primary/90'
+                          'bg-blue-600 hover:bg-blue-700'
                       )}
                       variant={
                         isCurrentPlan
@@ -429,11 +429,11 @@ export default function PlanosPage() {
 
         {/* Informações adicionais */}
         <div className="mt-8 text-center space-y-2">
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
             <Shield className="h-4 w-4" />
             Pagamento seguro via Asaas
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-gray-500">
             Cancele quando quiser - sem fidelidade
           </p>
         </div>

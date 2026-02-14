@@ -69,7 +69,7 @@ export default function CategoriaPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
   }
@@ -77,8 +77,8 @@ export default function CategoriaPage() {
   if (error || !data?.category) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-4">
-        <Store className="h-12 w-12 text-muted-foreground" />
-        <p className="text-muted-foreground text-center">{error || 'Categoria não encontrada'}</p>
+        <Store className="h-12 w-12 text-gray-500" />
+        <p className="text-gray-500 text-center">{error || 'Categoria não encontrada'}</p>
         <Button onClick={() => router.back()}>Voltar</Button>
       </div>
     )
@@ -87,11 +87,11 @@ export default function CategoriaPage() {
   const { category, parceiros, total } = data
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-[#f8fafc] pb-24">
       {/* Header com Banner */}
       <div className="relative">
         {/* Banner da Categoria */}
-        <div className="relative w-full h-40 bg-muted">
+        <div className="relative w-full h-40 bg-gray-100">
           {category.banner ? (
             <Image
               src={category.banner}
@@ -101,7 +101,7 @@ export default function CategoriaPage() {
               unoptimized
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary to-primary/60" />
+            <div className="w-full h-full bg-gradient-to-br from-blue-600 to-blue-400" />
           )}
 
           {/* Overlay gradiente */}
@@ -131,7 +131,7 @@ export default function CategoriaPage() {
       <div className="p-4 space-y-4">
         {/* Descrição da categoria */}
         {category.description && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             {category.description}
           </p>
         )}
@@ -145,8 +145,8 @@ export default function CategoriaPage() {
           </div>
         ) : (
           <div className="text-center py-12">
-            <Store className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">
+            <Store className="h-12 w-12 mx-auto text-gray-500 mb-3" />
+            <p className="text-gray-500">
               Nenhum parceiro nesta categoria ainda
             </p>
           </div>

@@ -101,10 +101,10 @@ export default function AvaliarPage({ params }: { params: Promise<{ parceiroId: 
               <CheckCircle className="h-10 w-10 text-white" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Obrigado!</h2>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-gray-500 mb-4">
               Sua avaliação foi enviada com sucesso
             </p>
-            <div className="flex items-center justify-center gap-2 text-primary mb-6">
+            <div className="flex items-center justify-center gap-2 text-blue-600 mb-6">
               <Gift className="h-5 w-5" />
               <span className="font-semibold">+1 ponto adicionado!</span>
             </div>
@@ -120,7 +120,7 @@ export default function AvaliarPage({ params }: { params: Promise<{ parceiroId: 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
   }
@@ -134,7 +134,7 @@ export default function AvaliarPage({ params }: { params: Promise<{ parceiroId: 
         </Button>
         <div>
           <h1 className="text-xl font-bold">Avaliar</h1>
-          <p className="text-sm text-muted-foreground">Como foi sua experiência?</p>
+          <p className="text-sm text-gray-500">Como foi sua experiência?</p>
         </div>
       </div>
 
@@ -143,13 +143,13 @@ export default function AvaliarPage({ params }: { params: Promise<{ parceiroId: 
         <CardContent className="p-4 flex items-center gap-4">
           <Avatar className="h-14 w-14">
             <AvatarImage src={parceiro?.logo} />
-            <AvatarFallback className="bg-primary/10 text-primary text-lg">
+            <AvatarFallback className="bg-blue-50 text-blue-600 text-lg">
               {parceiro?.nome?.charAt(0) || 'P'}
             </AvatarFallback>
           </Avatar>
           <div>
             <h2 className="font-semibold">{parceiro?.nome || 'Carregando...'}</h2>
-            <p className="text-sm text-muted-foreground">Avalie sua experiência</p>
+            <p className="text-sm text-gray-500">Avalie sua experiência</p>
           </div>
         </CardContent>
       </Card>
@@ -169,18 +169,19 @@ export default function AvaliarPage({ params }: { params: Promise<{ parceiroId: 
                 onMouseEnter={() => setHoverNota(star)}
                 onMouseLeave={() => setHoverNota(0)}
                 className="p-1 transition-transform hover:scale-110"
+                title={`${star} estrela${star > 1 ? 's' : ''}`}
               >
                 <Star
                   className={`h-10 w-10 transition-colors ${
                     star <= (hoverNota || nota)
                       ? 'fill-yellow-400 text-yellow-400'
-                      : 'fill-zinc-200 text-zinc-200'
+                      : 'fill-gray-200 text-gray-200'
                   }`}
                 />
               </button>
             ))}
           </div>
-          <p className="text-center text-sm text-muted-foreground mt-2">
+          <p className="text-center text-sm text-gray-500 mt-2">
             {nota === 0 && 'Toque nas estrelas para avaliar'}
             {nota === 1 && 'Muito ruim'}
             {nota === 2 && 'Ruim'}
@@ -204,16 +205,16 @@ export default function AvaliarPage({ params }: { params: Promise<{ parceiroId: 
             rows={4}
             maxLength={500}
           />
-          <p className="text-xs text-muted-foreground mt-2 text-right">
+          <p className="text-xs text-gray-500 mt-2 text-right">
             {comentario.length}/500
           </p>
         </CardContent>
       </Card>
 
       {/* Bonificação */}
-      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-primary/5 p-3 rounded-lg">
-        <Gift className="h-4 w-4 text-primary" />
-        <span>Ganhe <strong className="text-primary">+1 ponto</strong> ao avaliar!</span>
+      <div className="flex items-center justify-center gap-2 text-sm text-gray-500 bg-blue-50 p-3 rounded-lg">
+        <Gift className="h-4 w-4 text-blue-600" />
+        <span>Ganhe <strong className="text-blue-600">+1 ponto</strong> ao avaliar!</span>
       </div>
 
       {/* Botão Enviar */}

@@ -120,9 +120,9 @@ function ParceirosContent() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-[#f8fafc] pb-20">
       {/* Header com busca */}
-      <div className="sticky top-0 z-10 bg-background border-b">
+      <div className="sticky top-0 z-10 bg-[#f8fafc] border-b">
         <div className="px-4 py-3">
           <SearchInput
             value={search}
@@ -148,7 +148,7 @@ function ParceirosContent() {
         {/* Título e contagem */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-bold">{getTitle()}</h1>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-gray-500">
             {data?.pagination?.total || 0} parceiro{(data?.pagination?.total || 0) !== 1 ? 's' : ''}
           </span>
         </div>
@@ -156,20 +156,20 @@ function ParceirosContent() {
         {/* Loading */}
         {loading && (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
           </div>
         )}
 
         {/* Lista vazia */}
         {!loading && (!data?.data || data.data.length === 0) && (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">
+            <p className="text-gray-500">
               Nenhum parceiro encontrado
             </p>
             {(search || categoria) && (
               <button
                 onClick={handleClearFilters}
-                className="mt-2 text-primary text-sm underline"
+                className="mt-2 text-blue-600 text-sm underline"
               >
                 Limpar filtros
               </button>
@@ -179,7 +179,7 @@ function ParceirosContent() {
 
         {/* Grid de parceiros */}
         {!loading && data?.data && data.data.length > 0 && (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {data.data.map(parceiro => (
               <ParceiroCardGrid key={parceiro.id} parceiro={parceiro} />
             ))}
@@ -188,7 +188,7 @@ function ParceirosContent() {
 
         {/* Paginação */}
         {data?.pagination && data.pagination.totalPages > 1 && (
-          <div className="text-center text-sm text-muted-foreground mt-4">
+          <div className="text-center text-sm text-gray-500 mt-4">
             Página {data.pagination.page} de {data.pagination.totalPages}
           </div>
         )}
@@ -201,8 +201,8 @@ export default function ParceirosPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
         </div>
       }
     >

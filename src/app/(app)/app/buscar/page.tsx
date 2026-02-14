@@ -67,9 +67,9 @@ export default function BuscarPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-[#f8fafc] pb-20">
       {/* Header */}
-      <div className="bg-background border-b px-4 py-4">
+      <div className="bg-[#f8fafc] border-b px-4 py-4">
         <h1 className="text-xl font-bold mb-3">Buscar</h1>
         <SearchInput
           onChange={handleSearch}
@@ -83,7 +83,7 @@ export default function BuscarPage() {
         {/* Buscas populares */}
         <section>
           <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="h-4 w-4 text-primary" />
+            <TrendingUp className="h-4 w-4 text-blue-600" />
             <h2 className="font-semibold">Buscas populares</h2>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -91,7 +91,7 @@ export default function BuscarPage() {
               <button
                 key={term}
                 onClick={() => handlePopularClick(term)}
-                className="px-3 py-1.5 rounded-full bg-muted text-sm text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+                className="px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-500 hover:bg-blue-600 hover:text-white transition-colors"
               >
                 {term}
               </button>
@@ -105,12 +105,12 @@ export default function BuscarPage() {
 
           {loading && (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
             </div>
           )}
 
           {!loading && categories.length === 0 && (
-            <p className="text-muted-foreground text-sm py-4">
+            <p className="text-gray-500 text-sm py-4">
               Nenhuma categoria disponível
             </p>
           )}
@@ -121,22 +121,22 @@ export default function BuscarPage() {
                 <button
                   key={category.id}
                   onClick={() => handleCategoryClick(category.id)}
-                  className="flex items-center justify-between w-full p-3 rounded-xl hover:bg-muted transition-colors"
+                  className="flex items-center justify-between w-full p-3 rounded-xl hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Search className="h-5 w-5 text-primary" />
+                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                      <Search className="h-5 w-5 text-blue-600" />
                     </div>
                     <div className="text-left">
                       <p className="font-medium">{category.name}</p>
                       {category.count !== undefined && category.count > 0 && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-500">
                           {category.count} parceiro{category.count !== 1 ? 's' : ''}
                         </p>
                       )}
                     </div>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  <ChevronRight className="h-5 w-5 text-gray-500" />
                 </button>
               ))}
             </div>
@@ -146,7 +146,7 @@ export default function BuscarPage() {
         {/* Link para ver todos */}
         <Link
           href="/app/parceiros"
-          className="block text-center text-primary text-sm font-medium py-2"
+          className="block text-center text-blue-600 text-sm font-medium py-2"
         >
           Ver todos os parceiros
         </Link>

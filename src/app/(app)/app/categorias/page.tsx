@@ -38,15 +38,15 @@ export default function CategoriasPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-[#f8fafc] pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b">
+      <div className="sticky top-0 z-10 bg-[#f8fafc] border-b">
         <div className="flex items-center gap-3 p-4">
           <Button
             variant="ghost"
@@ -79,7 +79,7 @@ export default function CategoriasPage() {
                     unoptimized
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-primary to-primary/60" />
+                  <div className="w-full h-full bg-gradient-to-br from-blue-600 to-blue-400" />
                 )}
 
                 {/* Overlay */}
@@ -99,8 +99,8 @@ export default function CategoriasPage() {
           </div>
         ) : (
           <div className="text-center py-12">
-            <Store className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">Nenhuma categoria disponível</p>
+            <Store className="h-12 w-12 mx-auto text-gray-500 mb-3" />
+            <p className="text-gray-500">Nenhuma categoria disponível</p>
           </div>
         )}
       </div>

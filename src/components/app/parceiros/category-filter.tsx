@@ -48,7 +48,7 @@ export function CategoryFilter({
       <div
         ref={scrollRef}
         className="flex gap-2 overflow-x-auto scrollbar-hide pb-1"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        
       >
         {/* Botão "Todos" */}
         <button
@@ -57,8 +57,8 @@ export function CategoryFilter({
           className={cn(
             'flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all',
             !selected
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
           )}
         >
           Todos
@@ -73,8 +73,8 @@ export function CategoryFilter({
             className={cn(
               'flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
               selected === category.id
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
             )}
           >
             {category.name}
