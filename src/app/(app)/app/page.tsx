@@ -133,7 +133,7 @@ export default function AppHomePage() {
   // Loading
   if (isLoading) {
     return (
-      <div className="space-y-0 -mx-4 -mt-4 lg:-mx-8 lg:-mt-6">
+      <div className="space-y-0 lg:-mx-8 lg:-mt-6">
         <Skeleton className="h-[240px] rounded-none" />
         <div className="px-4 sm:px-6 space-y-4 mt-4">
           <Skeleton className="h-40 rounded-2xl" />
@@ -235,33 +235,33 @@ export default function AppHomePage() {
   ) || []
 
   return (
-    <div className="space-y-0 -mx-4 -mt-4 lg:-mx-8 lg:-mt-6 pb-24">
+    <div className="space-y-0 lg:-mx-8 lg:-mt-6 pb-24">
 
       {/* ╔══════════════════════════════════════╗ */}
-      {/* ║          HERO - APP BANKING          ║ */}
+      {/* ║          HERO - LIGHT STYLE          ║ */}
       {/* ╚══════════════════════════════════════╝ */}
       <div className="relative overflow-hidden">
-        <div className="bg-gradient-to-br from-[#0a1628] via-[#0f1f3d] to-[#0a1628]">
-          {/* Decoração */}
-          <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/[0.08] rounded-full blur-[100px] -translate-y-1/3 translate-x-1/4 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-56 h-56 bg-blue-400/[0.06] rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+        <div className="bg-white">
+          {/* Decoração sutil */}
+          <div className="absolute top-0 right-0 w-72 h-72 bg-blue-100/40 rounded-full blur-[120px] -translate-y-1/3 translate-x-1/4 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-56 h-56 bg-blue-50/60 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
 
-          <div className="relative px-5 pt-4 lg:pt-5 pb-7">
+          <div className="relative px-5 pt-4 lg:pt-6 pb-6">
 
-            {/* Mobile mini header (logo + ações) - só mobile */}
+            {/* Mobile mini header (logo + ações) — SÓ MOBILE */}
             <div className="flex items-center justify-between mb-5 lg:hidden">
               <Link href="/app" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm shadow-blue-200/60">
                   <span className="text-white font-extrabold text-[11px]">U</span>
                 </div>
               </Link>
               <div className="flex items-center gap-1">
-                <Link href="/app/notificacoes" className="relative p-2 rounded-full text-white/50 hover:text-white/80 hover:bg-white/5 transition-all">
+                <Link href="/app/notificacoes" className="relative p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all">
                   <Bell className="h-5 w-5" />
                 </Link>
                 <Link href="/app/perfil" className="p-1">
-                  <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center border border-white/10">
-                    <span className="text-white/70 font-semibold text-[10px]">{user.firstName?.charAt(0)?.toUpperCase()}</span>
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-blue-100 border-2 border-blue-200 flex items-center justify-center">
+                    <span className="text-blue-600 font-semibold text-[10px]">{user.firstName?.charAt(0)?.toUpperCase()}</span>
                   </div>
                 </Link>
               </div>
@@ -270,21 +270,17 @@ export default function AppHomePage() {
             {/* Saudação */}
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
-                {/* Avatar: desktop only (mobile tem no mini header) */}
-                <div className="hidden lg:flex w-11 h-11 bg-white/10 rounded-full items-center justify-center border border-white/10">
-                  <span className="text-white font-bold text-sm">{user.firstName?.charAt(0)?.toUpperCase()}</span>
-                </div>
                 <div>
-                  <p className="text-white font-semibold text-base">Olá, {user.firstName}</p>
+                  <p className="text-gray-900 font-semibold text-lg">Olá, {user.firstName}</p>
                   <div className="flex items-center gap-1.5">
-                    <Crown className="h-3 w-3 text-blue-300/70" />
-                    <span className="text-[11px] text-blue-300/60">{assinante.plan?.name || 'Plano'}</span>
+                    <Crown className="h-3 w-3 text-amber-500" />
+                    <span className="text-[12px] text-gray-400">{assinante.plan?.name || 'Plano'}</span>
                   </div>
                 </div>
               </div>
               <button
                 onClick={() => setShowValues(!showValues)}
-                className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
+                className="p-2 rounded-full text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all"
                 title={showValues ? 'Ocultar valores' : 'Mostrar valores'}
               >
                 {showValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
@@ -293,37 +289,38 @@ export default function AppHomePage() {
 
             {/* Saldo */}
             <div className="mb-5">
-              <p className="text-[10px] text-blue-300/40 uppercase tracking-widest mb-1">Saldo disponível</p>
-              <h1 className="text-[28px] sm:text-[32px] font-extrabold text-white tracking-tight">
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Saldo disponível</p>
+              <h1 className="text-[32px] sm:text-[36px] font-extrabold text-gray-900 tracking-tight">
                 {showValues ? formatCurrency(assinante.cashback || 0) : 'R$ •••••'}
               </h1>
             </div>
 
             {/* Métricas */}
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-xl p-3 text-center">
-                <Coins className="h-4 w-4 text-amber-400 mx-auto mb-1" />
-                <p className="text-base font-bold text-white">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200/50 rounded-2xl p-3.5 text-center">
+                <Coins className="h-4 w-4 text-amber-500 mx-auto mb-1" />
+                <p className="text-lg font-bold text-gray-900">
                   {showValues ? Number(assinante.points || 0).toLocaleString('pt-BR') : '•••'}
                 </p>
-                <p className="text-[9px] text-white/30">Pontos</p>
+                <p className="text-[10px] text-gray-400">Pontos</p>
               </div>
-              <div className="bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-xl p-3 text-center">
-                <TrendingUp className="h-4 w-4 text-green-400 mx-auto mb-1" />
-                <p className="text-base font-bold text-white">
+              <div className="bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200/50 rounded-2xl p-3.5 text-center">
+                <TrendingUp className="h-4 w-4 text-green-500 mx-auto mb-1" />
+                <p className="text-lg font-bold text-gray-900">
                   {showValues ? formatCurrency((assinante.cashback || 0) + (assinante.points || 0) * 0.01) : '•••'}
                 </p>
-                <p className="text-[9px] text-white/30">Economia</p>
+                <p className="text-[10px] text-gray-400">Economia</p>
               </div>
-              <Link href="/app/carteira" className="bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-xl p-3 text-center hover:bg-white/[0.1] transition-colors">
-                <Wallet className="h-4 w-4 text-blue-400 mx-auto mb-1" />
-                <p className="text-[10px] font-semibold text-white">Carteira</p>
-                <p className="text-[9px] text-white/30">QR Code</p>
+              <Link href="/app/carteira" className="bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200/50 rounded-2xl p-3.5 text-center hover:shadow-md hover:border-blue-300/60 transition-all">
+                <Wallet className="h-4 w-4 text-blue-500 mx-auto mb-1" />
+                <p className="text-[11px] font-semibold text-gray-900">Carteira</p>
+                <p className="text-[10px] text-gray-400">QR Code</p>
               </Link>
             </div>
           </div>
         </div>
-        <div className="h-4 bg-gradient-to-b from-[#0a1628] to-transparent rounded-b-[20px]" />
+        {/* Transição suave */}
+        <div className="h-3 bg-gradient-to-b from-white to-[#f8fafc]" />
       </div>
 
       {/* ===== CARROSSEL DESTAQUES ===== */}

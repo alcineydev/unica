@@ -87,7 +87,7 @@ export default function CategoriaPage() {
   const { category, parceiros, total } = data
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-24">
+    <div className="min-h-screen bg-[#f8fafc] pb-24 px-4 lg:px-0 pt-4 lg:pt-0">
       {/* Header com Banner */}
       <div className="relative">
         {/* Banner da Categoria */}

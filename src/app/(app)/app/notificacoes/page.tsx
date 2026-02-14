@@ -119,7 +119,7 @@ export default function NotificacoesPage() {
   }
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 px-4 lg:px-0 pt-4 lg:pt-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>

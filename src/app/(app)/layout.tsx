@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
-import { BottomNav, AppHeader, AppSidebar } from '@/components/app'
+import { BottomNav, AppSidebar } from '@/components/app'
 import { NotificationPermissionModal } from '@/components/app/notification-permission-modal'
 import { Toaster } from 'sonner'
 
@@ -22,19 +22,14 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-      {/* Header: mobile only */}
-      <AppHeader />
-
       <div className="flex min-h-screen">
-        {/* Sidebar: desktop only, full viewport height */}
+        {/* Sidebar: desktop only */}
         <AppSidebar />
 
         {/* Main content */}
         <main className="flex-1 min-w-0 pb-20 lg:pb-0">
-          {/* Desktop: padding interno, sem max-w restritivo */}
-          {/* Mobile: padding para bottom nav */}
-          <div className="lg:px-8 lg:py-6 px-4 py-4">
-            <div className="max-w-5xl">
+          <div className="lg:px-8 lg:py-6 px-0 py-0">
+            <div className="lg:max-w-5xl">
               {children}
             </div>
           </div>

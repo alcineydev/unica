@@ -214,7 +214,7 @@ export default function CarteiraPage() {
   const StatusIcon = statusInfo.icon
 
   return (
-    <div className="space-y-0 -mx-4 sm:-mx-6 -mt-6 pb-24">
+    <div className="space-y-0 lg:-mx-8 lg:-mt-6 pb-24">
       {/* ===== HERO - BANKING STYLE ===== */}
       <div className="relative overflow-hidden">
         <div className="bg-gradient-to-br from-[#0a1628] via-[#0f1f3d] to-[#0a1628]">
