@@ -182,10 +182,10 @@ export default function CheckoutPage() {
   // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-muted/50 to-background">
+      <div className="min-h-screen bg-[#f8fafc]">
         <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6">
           <Skeleton className="h-10 w-48" />
-          <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+          <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
             <Skeleton className="h-96" />
             <Skeleton className="h-64" />
           </div>
@@ -197,7 +197,7 @@ export default function CheckoutPage() {
   // Plano não encontrado
   if (!plan) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-muted/50 to-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardContent className="py-8 text-center">
             <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive opacity-60" />
@@ -219,7 +219,7 @@ export default function CheckoutPage() {
   if (paymentResult && paymentMethod === 'PIX') {
     const pixPaymentId = paymentResult.payment?.id || paymentResult.paymentId || paymentResult.id
     return (
-      <div className="min-h-screen bg-gradient-to-b from-muted/50 to-background">
+      <div className="min-h-screen bg-[#f8fafc]">
         <div className="max-w-lg mx-auto p-4 md:p-8 space-y-6">
           <div className="text-center">
             <h1 className="text-xl font-bold">Pagamento PIX</h1>
@@ -245,7 +245,7 @@ export default function CheckoutPage() {
   // Resultado do pagamento (Boleto)
   if (paymentResult && paymentMethod === 'BOLETO') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-muted/50 to-background">
+      <div className="min-h-screen bg-[#f8fafc]">
         <div className="max-w-lg mx-auto p-4 md:p-8 space-y-6">
           <div className="text-center">
             <h1 className="text-xl font-bold">Boleto Gerado</h1>
@@ -266,26 +266,31 @@ export default function CheckoutPage() {
 
   // Formulário de checkout (3 steps)
   return (
-    <div className="min-h-screen bg-gradient-to-b from-muted/50 to-background">
-      <div className="max-w-4xl mx-auto p-4 md:p-8">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => step > 0 ? setStep(step - 1) : router.back()}>
-            <ArrowLeft className="h-5 w-5" />
+    <div className="min-h-screen bg-[#f8fafc]">
+      {/* Header com branding */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <Link href="/planos" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm">
+              <span className="text-white font-extrabold text-xs">U</span>
+            </div>
+            <span className="font-bold text-sm text-gray-900">UNICA</span>
+          </Link>
+          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 text-xs" onClick={() => step > 0 ? setStep(step - 1) : router.back()}>
+            <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+            {step > 0 ? 'Voltar' : 'Ver planos'}
           </Button>
-          <div>
-            <h1 className="text-xl font-bold">Checkout</h1>
-            <p className="text-sm text-muted-foreground">Finalize sua assinatura</p>
-          </div>
         </div>
+      </header>
 
+      <div className="max-w-4xl mx-auto p-4 md:p-8">
         {/* Stepper */}
-        <div className="mb-8">
+        <div className="mb-8 mt-2">
           <CheckoutStepper currentStep={step} />
         </div>
 
         {/* Layout: Form + Sidebar */}
-        <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
           {/* Formulário */}
           <div>
             {step === 0 && (

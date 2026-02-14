@@ -1,66 +1,53 @@
 'use client'
 
-import { Check, User, MapPin, CreditCard } from 'lucide-react'
+import { User, MapPin, CreditCard, Check } from 'lucide-react'
 
-interface StepperProps {
+interface Props {
   currentStep: number
-  steps?: { label: string; icon: React.ComponentType<{ className?: string }> }[]
 }
 
-const DEFAULT_STEPS = [
+const steps = [
   { label: 'Dados', icon: User },
   { label: 'Endereço', icon: MapPin },
   { label: 'Pagamento', icon: CreditCard },
 ]
 
-export default function CheckoutStepper({ currentStep, steps = DEFAULT_STEPS }: StepperProps) {
+export default function CheckoutStepper({ currentStep }: Props) {
   return (
-    <div className="flex items-center justify-center w-full max-w-md mx-auto">
-      {steps.map((step, index) => {
+    <div className="flex items-center justify-center gap-0 w-full max-w-md mx-auto">
+      {steps.map((step, i) => {
+        const isActive = i === currentStep
+        const isCompleted = i < currentStep
         const StepIcon = step.icon
-        const isActive = index === currentStep
-        const isCompleted = index < currentStep
 
         return (
-          <div key={index} className="flex items-center flex-1 last:flex-none">
-            {/* Step Circle */}
-            <div className="flex flex-col items-center">
-              <div
-                className={`
-                  w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300
-                  ${isCompleted
-                    ? 'bg-primary border-primary text-white'
-                    : isActive
-                      ? 'bg-primary/10 border-primary text-primary'
-                      : 'bg-muted border-muted-foreground/20 text-muted-foreground'
-                  }
-                `}
-              >
+          <div key={i} className="flex items-center flex-1">
+            <div className="flex flex-col items-center flex-1">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                isCompleted
+                  ? 'bg-green-500 text-white shadow-sm shadow-green-200'
+                  : isActive
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200/60 ring-4 ring-blue-100'
+                    : 'bg-gray-100 text-gray-400'
+              }`}>
                 {isCompleted ? (
                   <Check className="h-4 w-4" />
                 ) : (
                   <StepIcon className="h-4 w-4" />
                 )}
               </div>
-              <span
-                className={`text-[10px] mt-1.5 font-medium transition-colors ${
-                  isActive || isCompleted ? 'text-primary' : 'text-muted-foreground'
-                }`}
-              >
+              <span className={`text-[11px] mt-1.5 font-medium transition-colors ${
+                isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'
+              }`}>
                 {step.label}
               </span>
             </div>
 
-            {/* Connector Line */}
-            {index < steps.length - 1 && (
-              <div className="flex-1 mx-2 mb-5">
-                <div className="h-0.5 w-full bg-muted-foreground/20 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all duration-500"
-                    style={{ width: isCompleted ? '100%' : '0%' }}
-                  />
-                </div>
-              </div>
+            {/* Conector */}
+            {i < steps.length - 1 && (
+              <div className={`h-[2px] w-full mx-1 -mt-5 transition-colors duration-300 ${
+                isCompleted ? 'bg-green-400' : 'bg-gray-200'
+              }`} />
             )}
           </div>
         )

@@ -251,7 +251,7 @@ export default function CheckoutPaymentForm({
             </Button>
             <Button
               onClick={handleSubmit}
-              className="flex-1"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold h-12 rounded-xl shadow-md shadow-blue-200/40"
               disabled={loading || !acceptedTerms}
               size="lg"
             >

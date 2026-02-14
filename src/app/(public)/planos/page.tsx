@@ -8,7 +8,7 @@ import {
   Crown, Check, ArrowRight, Shield, Zap, Star,
   Gift, Percent, Sparkles, Lock, CreditCard,
   QrCode, FileText, ArrowLeft, Store,
-  BadgeCheck, Heart, ChevronRight, Loader2
+  BadgeCheck, Heart, ChevronDown, Loader2, Users
 } from 'lucide-react'
 
 interface Plan {
@@ -35,7 +35,6 @@ export default function PlanosPublicPage() {
       if (!res.ok) throw new Error('Erro')
       const data = await res.json()
       const list = data.plans || (Array.isArray(data) ? data : data.data || [])
-      // Filtrar apenas planos ativos E com preço > 0 (sem grátis)
       setPlans(list.filter((p: Plan & { isActive?: boolean }) => p.isActive !== false && Number(p.price) > 0))
     } catch (err) {
       console.error('Erro ao carregar planos:', err)
@@ -56,89 +55,81 @@ export default function PlanosPublicPage() {
   const highlightIndex = plans.length >= 2 ? plans.length - 1 : -1
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#f8fafc]">
 
-      {/* HEADER */}
-      <header className="border-b bg-white/95 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-sm">
-              <Crown className="h-5 w-5 text-white" />
+      {/* ===== HEADER ===== */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-md shadow-blue-200/60 group-hover:shadow-lg group-hover:shadow-blue-200/80 transition-shadow">
+              <span className="text-white font-extrabold text-sm">U</span>
             </div>
             <div>
-              <span className="font-bold text-lg leading-none tracking-tight">UNICA</span>
-              <span className="text-[10px] text-muted-foreground block leading-tight">Clube de Benefícios</span>
+              <span className="font-bold text-[17px] leading-none tracking-tight text-gray-900">UNICA</span>
+              <span className="text-[10px] text-gray-400 block leading-tight tracking-wide">Clube de Benefícios</span>
             </div>
           </Link>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/login">
-                <ArrowLeft className="h-4 w-4 mr-1" /> Entrar
-              </Link>
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" className="font-medium border-gray-200 text-gray-600 hover:text-primary hover:border-primary/40" asChild>
+            <Link href="/login">
+              <ArrowLeft className="h-3.5 w-3.5 mr-1.5" /> Entrar
+            </Link>
+          </Button>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-blue-50 via-white to-white">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-br from-blue-200/40 to-blue-100/40 rounded-full blur-3xl -mt-48" />
+      {/* ===== HERO ===== */}
+      <section className="relative overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-600 via-blue-700 to-blue-800" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNCI+PHBhdGggZD0iTTM2IDM0djItSDJ2LTJoMzR6bTAtMzBWMkgydjJoMzR6TTIgMzR2LTJoMzR2MkgyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#f8fafc] to-transparent" />
 
-        <div className="relative max-w-4xl mx-auto px-4 pt-20 pb-8 md:pt-28 md:pb-12 text-center">
-          <div className="inline-flex items-center gap-1.5 mb-6 px-4 py-1.5 text-sm bg-blue-50 text-primary border border-blue-200 rounded-full">
-            <Sparkles className="h-3.5 w-3.5" />
-            Clube de Benefícios
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-28 text-center">
+          <div className="inline-flex items-center gap-1.5 mb-6 px-3 py-1 text-xs font-semibold bg-white/15 backdrop-blur-sm text-white/90 rounded-full border border-white/20">
+            <Sparkles className="h-3 w-3" />
+            Clube de Benefícios da sua cidade
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 text-gray-900">
-            Economize em tudo{' '}
-            <span className="text-primary">com um só cartão</span>
+          <h1 className="text-4xl sm:text-5xl md:text-[3.5rem] font-extrabold tracking-tight mb-5 text-white leading-[1.1]">
+            Economize de verdade<br className="hidden sm:block" />
+            <span className="text-blue-200">em cada compra</span>
           </h1>
 
-          <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed mb-8">
-            Descontos exclusivos, cashback e pontos em centenas de parceiros da sua cidade.
-            Escolha seu plano e comece a economizar hoje mesmo.
+          <p className="text-base sm:text-lg text-blue-100/80 max-w-xl mx-auto leading-relaxed mb-10">
+            Descontos, cashback e benefícios exclusivos nos melhores parceiros da sua região. Assine e comece a economizar.
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-400">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-blue-200/70">
             {['Sem taxa de adesão', 'Cancele quando quiser', 'Ativação imediata'].map((t, i) => (
               <div key={i} className="flex items-center gap-1.5">
-                <Check className="h-4 w-4 text-green-500" />
+                <div className="w-4 h-4 rounded-full bg-green-400/20 flex items-center justify-center">
+                  <Check className="h-2.5 w-2.5 text-green-300" />
+                </div>
                 <span>{t}</span>
               </div>
             ))}
           </div>
         </div>
-
-        <div className="flex justify-center pb-6">
-          <a href="#planos" className="animate-bounce text-gray-300" aria-label="Ver planos">
-            <ChevronRight className="h-5 w-5 rotate-90" />
-          </a>
-        </div>
       </section>
 
-      {/* PLANS */}
-      <section className="px-4 py-16 md:py-20" id="planos">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-3">Escolha o plano ideal para você</h2>
-            <p className="text-gray-500">Todos os planos incluem acesso ao app e cartão digital</p>
-          </div>
+      {/* ===== PLANS ===== */}
+      <section className="px-4 sm:px-6 -mt-6 pb-16 md:pb-20 relative z-10" id="planos">
+        <div className="max-w-4xl mx-auto">
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : plans.length === 0 ? (
-            <div className="text-center py-20">
+            <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
               <Gift className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <h3 className="text-lg font-semibold mb-2">Nenhum plano disponível</h3>
-              <p className="text-sm text-gray-400 mb-4">Estamos preparando novos planos. Volte em breve!</p>
+              <p className="text-sm text-gray-400 mb-4">Estamos preparando novos planos.</p>
               <Button variant="outline" asChild><Link href="/">Voltar</Link></Button>
             </div>
           ) : (
-            <div className={`grid gap-8 items-start ${
-              plans.length === 1 ? 'max-w-sm mx-auto' :
+            <div className={`grid gap-6 items-start ${
+              plans.length === 1 ? 'max-w-md mx-auto' :
               plans.length === 2 ? 'md:grid-cols-2 max-w-3xl mx-auto' :
               'lg:grid-cols-3 max-w-5xl mx-auto'
             }`}>
@@ -147,96 +138,102 @@ export default function PlanosPublicPage() {
                 const isHighlight = index === highlightIndex
                 const benefits = getBenefits(plan)
                 const features = plan.features || []
+                const allItems = features.length > 0 ? features : benefits.map(b => b.name)
+                const fallbackItems = allItems.length === 0 ? ['Acesso ao app', 'Cartão digital QR Code', 'Suporte via WhatsApp'] : []
 
                 return (
-                  <div key={plan.id} className={`relative rounded-2xl transition-all duration-300 ${isHighlight ? 'md:-mt-4 md:mb-4' : ''}`}>
-                    {isHighlight && <div className="absolute -inset-0.5 bg-gradient-to-b from-primary to-blue-700 rounded-2xl" />}
+                  <div key={plan.id} className="relative group">
+                    {/* Glow para destaque */}
+                    {isHighlight && (
+                      <div className="absolute -inset-[2px] bg-gradient-to-b from-blue-500 via-blue-600 to-blue-700 rounded-[20px] shadow-xl shadow-blue-200/40" />
+                    )}
 
-                    <div className={`relative bg-white rounded-2xl overflow-hidden ${
+                    <div className={`relative bg-white rounded-[18px] overflow-hidden transition-all duration-300 ${
                       isHighlight
-                        ? 'shadow-2xl shadow-blue-200/50'
-                        : 'border border-gray-200 shadow-sm hover:shadow-lg hover:border-primary/40'
+                        ? 'shadow-none'
+                        : 'border border-gray-200/80 shadow-sm hover:shadow-xl hover:shadow-gray-200/60 hover:-translate-y-1'
                     }`}>
+                      {/* Popular ribbon */}
                       {isHighlight && (
-                        <div className="bg-primary text-white text-center py-2.5 text-xs font-bold tracking-[0.15em] uppercase flex items-center justify-center gap-1.5">
-                          <Star className="h-3.5 w-3.5 fill-white" /> Mais Popular
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-center py-2 text-[11px] font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-1.5">
+                          <Star className="h-3 w-3 fill-amber-300 text-amber-300" />
+                          Mais Popular
+                          <Star className="h-3 w-3 fill-amber-300 text-amber-300" />
                         </div>
                       )}
 
-                      <div className="p-6 md:p-8">
-                        <div className="mb-6">
-                          <h3 className="text-xl font-bold">{plan.name}</h3>
-                          {plan.description && <p className="text-sm text-gray-500 mt-1.5 leading-relaxed line-clamp-2">{plan.description}</p>}
-                        </div>
-
-                        <div className="mb-8">
-                          <div className="flex items-baseline gap-0.5">
-                            <span className="text-lg font-semibold text-gray-400">R$</span>
-                            <span className="text-5xl font-extrabold tracking-tight">{price.toFixed(2).replace('.', ',')}</span>
-                            <span className="text-base text-gray-400 ml-1">{periodLabel(plan.period)}</span>
+                      <div className="p-6 sm:p-7">
+                        {/* Header */}
+                        <div className="mb-5">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              isHighlight ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                            }`}>
+                              <Crown className="h-4 w-4" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
                           </div>
-                          {plan.period === 'MONTHLY' && <p className="text-xs text-gray-400 mt-1.5">Cobrado mensalmente · Cancele quando quiser</p>}
-                          {plan.period === 'YEARLY' && <p className="text-xs text-gray-400 mt-1.5">Cobrado anualmente · Economia de até 20%</p>}
+                          {plan.description && (
+                            <p className="text-[13px] text-gray-400 leading-relaxed line-clamp-2 pl-10">{plan.description}</p>
+                          )}
                         </div>
 
+                        {/* Price */}
+                        <div className={`rounded-xl p-4 mb-6 ${isHighlight ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50 border border-gray-100'}`}>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-sm font-medium text-gray-400">R$</span>
+                            <span className={`text-4xl font-extrabold tracking-tight ${isHighlight ? 'text-blue-700' : 'text-gray-900'}`}>
+                              {price.toFixed(2).replace('.', ',')}
+                            </span>
+                            <span className="text-sm text-gray-400 ml-0.5">{periodLabel(plan.period)}</span>
+                          </div>
+                          {plan.period === 'MONTHLY' && <p className="text-[11px] text-gray-400 mt-1">Cobrado mensalmente</p>}
+                          {plan.period === 'YEARLY' && <p className="text-[11px] text-green-600 font-medium mt-1">Economia de até 20%</p>}
+                        </div>
+
+                        {/* CTA */}
                         <Button
-                          className={`w-full h-12 text-base font-semibold rounded-xl ${
-                            isHighlight ? 'bg-primary hover:bg-primary/90 text-white shadow-lg shadow-blue-200/50' : ''
+                          className={`w-full h-11 text-sm font-semibold rounded-xl transition-all ${
+                            isHighlight
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200/50 hover:shadow-lg hover:shadow-blue-200/60'
+                              : 'bg-gray-900 hover:bg-gray-800 text-white'
                           }`}
-                          variant={isHighlight ? 'default' : 'outline'}
                           asChild
                         >
                           <Link href={getPlanUrl(plan)}>
-                            Assinar {plan.name} <ArrowRight className="h-4 w-4 ml-2" />
+                            Assinar {plan.name} <ArrowRight className="h-4 w-4 ml-1.5" />
                           </Link>
                         </Button>
 
-                        <Separator className="my-6" />
+                        {/* Features */}
+                        <div className="mt-6 space-y-2.5">
+                          <p className="text-[11px] font-semibold text-gray-300 uppercase tracking-[0.12em]">Incluso no plano</p>
 
-                        <div className="space-y-3">
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">O que está incluso</p>
-
-                          {features.map((f, i) => (
-                            <div key={`f-${i}`} className="flex items-start gap-3">
-                              <div className="mt-0.5 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                                <Check className="h-3 w-3 text-green-600" />
+                          {[...allItems, ...fallbackItems].map((item, i) => (
+                            <div key={i} className="flex items-start gap-2.5">
+                              <div className="mt-0.5 w-4 h-4 rounded-full bg-green-50 flex items-center justify-center shrink-0">
+                                <Check className="h-2.5 w-2.5 text-green-500" />
                               </div>
-                              <span className="text-sm text-gray-600 leading-snug">{f}</span>
+                              <span className="text-[13px] text-gray-500 leading-snug">{item}</span>
                             </div>
                           ))}
 
-                          {features.length === 0 && benefits.length > 0 && benefits.map((b, i) => (
-                            <div key={`b-${i}`} className="flex items-start gap-3">
-                              <div className="mt-0.5 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                                <Check className="h-3 w-3 text-green-600" />
-                              </div>
-                              <span className="text-sm text-gray-600 leading-snug">{b.name}</span>
-                            </div>
-                          ))}
-
+                          {/* Benefícios adicionais quando tem features + benefits */}
                           {features.length > 0 && benefits.length > 0 && (
                             <>
-                              <Separator className="my-3" />
-                              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Benefícios</p>
-                              {benefits.slice(0, 5).map((b, i) => (
-                                <div key={`bp-${i}`} className="flex items-center gap-3">
-                                  <Gift className="h-4 w-4 text-primary shrink-0" />
-                                  <span className="text-sm text-gray-600">{b.name}</span>
-                                </div>
-                              ))}
-                              {benefits.length > 5 && <p className="text-xs text-primary font-semibold pl-7">+{benefits.length - 5} benefício{benefits.length - 5 > 1 ? 's' : ''}</p>}
-                            </>
-                          )}
-
-                          {features.length === 0 && benefits.length === 0 && (
-                            ['Acesso ao app', 'Cartão digital QR Code', 'Suporte via WhatsApp'].map((item, i) => (
-                              <div key={`d-${i}`} className="flex items-start gap-3">
-                                <div className="mt-0.5 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                                  <Check className="h-3 w-3 text-green-600" />
-                                </div>
-                                <span className="text-sm text-gray-600 leading-snug">{item}</span>
+                              <div className="pt-2 mt-2 border-t border-gray-100">
+                                <p className="text-[11px] font-semibold text-gray-300 uppercase tracking-[0.12em] mb-2.5">Benefícios</p>
+                                {benefits.slice(0, 4).map((b, i) => (
+                                  <div key={`b-${i}`} className="flex items-center gap-2.5 mb-2">
+                                    <Gift className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                                    <span className="text-[13px] text-gray-500">{b.name}</span>
+                                  </div>
+                                ))}
+                                {benefits.length > 4 && (
+                                  <p className="text-[11px] text-blue-500 font-semibold pl-6">+{benefits.length - 4} mais</p>
+                                )}
                               </div>
-                            ))
+                            </>
                           )}
                         </div>
                       </div>
@@ -249,131 +246,125 @@ export default function PlanosPublicPage() {
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section className="py-16 md:py-20 bg-gray-50 px-4">
-        <div className="max-w-5xl mx-auto">
+      {/* ===== COMO FUNCIONA ===== */}
+      <section className="py-16 md:py-20 px-4 sm:px-6 bg-white">
+        <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="text-2xl md:text-3xl font-bold mb-3">Como funciona?</h2>
-            <p className="text-gray-500">3 passos simples para começar a economizar</p>
+            <p className="text-[11px] font-bold text-primary uppercase tracking-[0.2em] mb-2">Simples e rápido</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Como funciona?</h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-8 md:gap-12">
+          <div className="grid md:grid-cols-3 gap-10">
             {[
-              { step: '01', icon: Crown, title: 'Escolha seu plano', desc: 'Selecione o plano ideal e pague com PIX, cartão ou boleto.' },
-              { step: '02', icon: QrCode, title: 'Receba seu cartão', desc: 'Acesse o app e use seu QR Code digital nos parceiros.' },
-              { step: '03', icon: Percent, title: 'Economize sempre', desc: 'Apresente seu cartão e aproveite descontos e cashback.' },
+              { num: '01', icon: CreditCard, title: 'Assine seu plano', desc: 'Escolha o plano ideal e pague com PIX, cartão ou boleto.' },
+              { num: '02', icon: QrCode, title: 'Receba seu QR Code', desc: 'Acesse o app e use seu cartão digital nos parceiros.' },
+              { num: '03', icon: Percent, title: 'Economize sempre', desc: 'Apresente seu QR Code e ganhe descontos e cashback.' },
             ].map((item, i) => (
-              <div key={i} className="text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
-                  <span className="text-5xl font-black text-blue-100 leading-none">{item.step}</span>
-                  <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center">
-                    <item.icon className="h-6 w-6 text-primary" />
+              <div key={i} className="text-center">
+                <div className="relative w-16 h-16 mx-auto mb-5">
+                  <div className="absolute inset-0 bg-blue-100 rounded-2xl rotate-6" />
+                  <div className="relative w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center">
+                    <item.icon className="h-7 w-7 text-blue-600" />
                   </div>
+                  <span className="absolute -top-2 -right-2 w-7 h-7 bg-blue-600 text-white text-[11px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                    {item.num}
+                  </span>
                 </div>
-                <h3 className="font-bold text-lg mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                <h3 className="font-bold text-[15px] mb-1.5 text-gray-900">{item.title}</h3>
+                <p className="text-[13px] text-gray-400 leading-relaxed max-w-[220px] mx-auto">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* WHY UNICA */}
-      <section className="py-16 md:py-20 px-4">
-        <div className="max-w-5xl mx-auto">
+      {/* ===== VANTAGENS ===== */}
+      <section className="py-16 md:py-20 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-3">Por que escolher o UNICA?</h2>
-            <p className="text-gray-500">Vantagens reais que fazem diferença no seu dia a dia</p>
+            <p className="text-[11px] font-bold text-primary uppercase tracking-[0.2em] mb-2">Benefícios exclusivos</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Por que escolher o UNICA?</h2>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 gap-4">
             {[
-              { icon: Store, title: 'Parceiros locais', desc: 'Dezenas de estabelecimentos parceiros na sua região', color: 'bg-blue-50 text-blue-600' },
-              { icon: Percent, title: 'Descontos reais', desc: 'Economia de verdade que você sente no bolso', color: 'bg-green-50 text-green-600' },
-              { icon: Gift, title: 'Cashback', desc: 'Receba parte do valor de volta a cada compra', color: 'bg-amber-50 text-amber-600' },
-              { icon: Heart, title: 'Exclusividade', desc: 'Acesso a promoções e eventos especiais do clube', color: 'bg-rose-50 text-rose-600' },
+              { icon: Store, title: 'Parceiros locais', desc: 'Dezenas de estabelecimentos parceiros na sua região', bg: 'bg-blue-50', iconColor: 'text-blue-600' },
+              { icon: Percent, title: 'Descontos reais', desc: 'Economia de verdade que você sente no bolso', bg: 'bg-green-50', iconColor: 'text-green-600' },
+              { icon: Gift, title: 'Cashback', desc: 'Receba parte do valor de volta a cada compra', bg: 'bg-amber-50', iconColor: 'text-amber-600' },
+              { icon: Heart, title: 'Exclusividade', desc: 'Promoções e eventos especiais só para membros', bg: 'bg-rose-50', iconColor: 'text-rose-600' },
             ].map((item, i) => (
-              <div key={i} className="group p-6 rounded-2xl border border-gray-100 bg-white hover:shadow-lg hover:border-primary/30 transition-all">
-                <div className={`w-12 h-12 ${item.color} rounded-xl flex items-center justify-center mb-4`}>
-                  <item.icon className="h-6 w-6" />
+              <div key={i} className="flex items-start gap-4 p-5 rounded-xl bg-white border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all">
+                <div className={`w-11 h-11 ${item.bg} rounded-xl flex items-center justify-center shrink-0`}>
+                  <item.icon className={`h-5 w-5 ${item.iconColor}`} />
                 </div>
-                <h3 className="font-bold mb-1.5">{item.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                <div>
+                  <h3 className="font-semibold text-[14px] text-gray-900 mb-0.5">{item.title}</h3>
+                  <p className="text-[13px] text-gray-400 leading-relaxed">{item.desc}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="py-16 md:py-20 bg-gray-50 px-4">
+      {/* ===== FAQ ===== */}
+      <section className="py-16 md:py-20 px-4 sm:px-6 bg-white">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold mb-3">Dúvidas frequentes</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Perguntas frequentes</h2>
           </div>
           <div className="space-y-3">
             {[
               { q: 'Como funciona o clube?', a: 'Ao assinar, você recebe um cartão digital (QR Code) no app que dá acesso a descontos em parceiros da sua cidade.' },
               { q: 'Como uso meus benefícios?', a: 'Apresente seu QR Code nos parceiros. O desconto é aplicado na hora!' },
-              { q: 'Posso cancelar quando quiser?', a: 'Sim! Sem multa, sem burocracia. Cancele pelo app.' },
-              { q: 'O pagamento é seguro?', a: 'Totalmente. Processamos via Asaas com criptografia e certificação PCI-DSS.' },
+              { q: 'Posso cancelar quando quiser?', a: 'Sim! Sem multa e sem burocracia. Cancele direto pelo app.' },
+              { q: 'O pagamento é seguro?', a: 'Totalmente. Processamos via Asaas com criptografia PCI-DSS.' },
               { q: 'Quais formas de pagamento?', a: 'PIX (instantâneo), cartão de crédito e boleto bancário.' },
             ].map((faq, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-100 p-5">
-                <h3 className="font-semibold text-sm mb-1.5">{faq.q}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{faq.a}</p>
+              <div key={i} className="rounded-xl border border-gray-100 p-4 hover:border-gray-200 transition-colors">
+                <h3 className="font-semibold text-[13px] text-gray-800 mb-1">{faq.q}</h3>
+                <p className="text-[13px] text-gray-400 leading-relaxed">{faq.a}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* PAYMENT METHODS */}
-      <section className="py-12 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-xs text-gray-400 uppercase tracking-[0.15em] font-bold mb-5">Formas de pagamento</p>
-          <div className="flex flex-wrap items-center justify-center gap-8 mb-4">
-            {[
-              { icon: QrCode, label: 'PIX', sub: 'Instantâneo', color: 'text-green-600 bg-green-50' },
-              { icon: CreditCard, label: 'Cartão', sub: 'Crédito', color: 'text-blue-600 bg-blue-50' },
-              { icon: FileText, label: 'Boleto', sub: 'Bancário', color: 'text-amber-600 bg-amber-50' },
-            ].map((m, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg ${m.color} flex items-center justify-center`}>
-                  <m.icon className="h-5 w-5" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-gray-700">{m.label}</p>
-                  <p className="text-xs text-gray-400">{m.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
-            <div className="flex items-center gap-1"><Shield className="h-3.5 w-3.5 text-green-500" /><span>100% seguro</span></div>
-            <span className="text-gray-200">&middot;</span>
-            <div className="flex items-center gap-1"><Lock className="h-3.5 w-3.5 text-green-500" /><span>Criptografado</span></div>
-            <span className="text-gray-200">&middot;</span>
-            <div className="flex items-center gap-1"><BadgeCheck className="h-3.5 w-3.5 text-green-500" /><span>Asaas</span></div>
+      {/* ===== PAGAMENTO ===== */}
+      <section className="py-10 px-4">
+        <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-center gap-6">
+          {[
+            { icon: QrCode, label: 'PIX', color: 'text-green-600' },
+            { icon: CreditCard, label: 'Cartão', color: 'text-blue-600' },
+            { icon: FileText, label: 'Boleto', color: 'text-amber-600' },
+          ].map((m, i) => (
+            <div key={i} className="flex items-center gap-2 text-sm text-gray-400">
+              <m.icon className={`h-4 w-4 ${m.color}`} />
+              <span>{m.label}</span>
+            </div>
+          ))}
+          <span className="text-gray-200">|</span>
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            <Shield className="h-3.5 w-3.5 text-green-500" />
+            <span>Pagamento seguro &middot; Asaas</span>
           </div>
         </div>
       </section>
 
-      {/* CTA FINAL */}
-      <section className="py-16 px-4">
+      {/* ===== CTA FINAL ===== */}
+      <section className="px-4 sm:px-6 pb-16">
         <div className="max-w-2xl mx-auto">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-blue-700 to-primary p-8 md:p-14 text-center">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mt-20 -mr-20" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full -mb-16 -ml-16" />
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8 md:p-12 text-center">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mt-32 -mr-32" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl -mb-24 -ml-24" />
             <div className="relative">
-              <Crown className="h-10 w-10 mx-auto mb-5 text-white/80" />
               <h2 className="text-2xl md:text-3xl font-bold mb-3 text-white">Pronto para economizar?</h2>
-              <p className="text-blue-200 mb-8 max-w-md mx-auto leading-relaxed">
-                Junte-se a centenas de assinantes que já aproveitam benefícios exclusivos.
+              <p className="text-gray-400 mb-8 max-w-md mx-auto text-[15px] leading-relaxed">
+                Junte-se a centenas de assinantes aproveitando benefícios exclusivos.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button size="lg" className="bg-white text-primary hover:bg-blue-50 font-semibold shadow-lg h-12 px-8" asChild>
+                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold h-11 px-8 rounded-xl shadow-lg shadow-blue-500/25" asChild>
                   <a href="#planos"><Zap className="h-4 w-4 mr-2" /> Ver Planos</a>
                 </Button>
-                <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 font-semibold h-12 px-8 bg-transparent" asChild>
+                <Button size="lg" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white font-medium h-11 px-8 rounded-xl bg-transparent" asChild>
                   <Link href="/login">Já tenho conta</Link>
                 </Button>
               </div>
@@ -382,22 +373,16 @@ export default function PlanosPublicPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-gray-100 bg-white">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
-                <Crown className="h-3.5 w-3.5 text-white" />
-              </div>
-              <span className="font-semibold text-sm text-gray-700">UNICA Clube de Benefícios</span>
+      {/* ===== FOOTER ===== */}
+      <footer className="border-t border-gray-200 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span className="text-xs text-gray-400">&copy; {new Date().getFullYear()} UNICA Clube de Benefícios</span>
+            <div className="flex gap-5 text-xs">
+              <Link href="/termos" className="text-gray-400 hover:text-gray-600 transition-colors">Termos</Link>
+              <Link href="/privacidade" className="text-gray-400 hover:text-gray-600 transition-colors">Privacidade</Link>
+              <Link href="/aviso-legal" className="text-gray-400 hover:text-gray-600 transition-colors">Aviso Legal</Link>
             </div>
-            <div className="flex gap-6 text-sm">
-              <Link href="/termos" className="text-gray-400 hover:text-gray-700 transition-colors">Termos</Link>
-              <Link href="/privacidade" className="text-gray-400 hover:text-gray-700 transition-colors">Privacidade</Link>
-              <Link href="/aviso-legal" className="text-gray-400 hover:text-gray-700 transition-colors">Aviso Legal</Link>
-            </div>
-            <p className="text-xs text-gray-400">&copy; {new Date().getFullYear()} UNICA. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>
