@@ -1,7 +1,7 @@
-# Refatoração App Assinante - Fase 2: Home + Carteira + QuickActions
+# Refatoração App Assinante - Fase 2: Home + Carteira Banking + QuickActions
 
 **Data:** 2026-02-14  
-**Tipo:** Refatoração / UI
+**Tipo:** Refatoração / UI / Redesign
 
 ---
 
@@ -34,16 +34,24 @@ Problemas identificados no diagnóstico:
 - **Cores:** Todas explícitas (gray-900, gray-400, blue-600, green-600)
 - **Seção renomeada:** "Minha Conta" → "Acesso Rápido"
 
-### 3. `src/app/(app)/app/carteira/page.tsx` — REESCRITO (422 → ~330 linhas)
-- **Removidos imports mortos:** `useSession`, `Tabs/TabsContent/TabsList/TabsTrigger`, `CreditCard`, `Card/CardContent/CardHeader/CardTitle`
+### 3. `src/app/(app)/app/carteira/page.tsx` — REESCRITO: BANKING APP STYLE
+- **Removidos imports mortos:** `useSession`, `Tabs`, `CreditCard`, `Card` components
 - **Removida função morta:** `formatCPF` (nunca utilizada)
-- **Cartão digital:** Gradient `zinc-900/800` → navy `#0f172a/#1e293b` com decoração azul
-- **Logo:** "U" com `text-blue-600` (identidade)
-- **Saldo:** Cards brancos com borda em vez de `Card` genérico
-- **Transações:** Card branco com dividers em vez de `Card/CardHeader/CardContent`
-- **Ações:** Botões como `<button>` simples em vez de `<Button variant="outline">`
-- **Helpers:** Extraídos para fora do componente (melhora performance)
-- **Cores:** Todas explícitas, sem `primary`, `muted-foreground`, ou `dark:`
+- **Hero Banking Style:** Gradient navy `#0a1628/#0f1f3d` com blobs abstratos
+  - Avatar + nome + plano + status no topo
+  - Saldo cashback em destaque (32px/36px)
+  - Toggle Eye para ocultar/mostrar valores (privacidade)
+  - Cards glass-morphism para Pontos e Economia estimada
+  - Curva suave na transição hero → conteúdo (`rounded-b-3xl`)
+- **Ações rápidas:** Grid 4 colunas (QR Code, Enviar, Baixar, Extrato) com ícones coloridos
+- **Sistema de Tabs:**
+  - Tab Carteirinha: QR Code com card profissional + dados titular + plano badge
+  - Tab Extrato: Resumo do período (total + cashback ganho) + lista transações
+- **Código copiável:** Clique no código → copia com ícone Copy
+- **Valores privacidade:** Toggle oculta cashback, pontos, economia, transações
+- **Acessibilidade:** Botões com `title` atributo (ocultar valores, atualizar)
+- **Helpers:** Extraídos para fora do componente
+- **Cores:** Todas explícitas, zero `dark:` classes
 
 ---
 
