@@ -103,8 +103,8 @@ export function AppHeader() {
 
   return (
     <>
-      <header className="hidden lg:block sticky top-0 z-40 bg-white border-b border-gray-200 h-16">
-        <div className="flex items-center justify-between h-full px-4 sm:px-6 max-w-screen-2xl mx-auto">
+      <header className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-200 h-14">
+        <div className="flex items-center justify-between h-full px-4">
           {/* Logo */}
           <Link href="/app" className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm shadow-blue-200/60">

@@ -133,7 +133,7 @@ export default function AppHomePage() {
   // Loading
   if (isLoading) {
     return (
-      <div className="space-y-0 -mx-4 sm:-mx-6 -mt-6">
+      <div className="space-y-0 -mx-4 -mt-4 lg:-mx-8 lg:-mt-6">
         <Skeleton className="h-[240px] rounded-none" />
         <div className="px-4 sm:px-6 space-y-4 mt-4">
           <Skeleton className="h-40 rounded-2xl" />
@@ -235,7 +235,7 @@ export default function AppHomePage() {
   ) || []
 
   return (
-    <div className="space-y-0 -mx-4 sm:-mx-6 -mt-6 pb-24">
+    <div className="space-y-0 -mx-4 -mt-4 lg:-mx-8 lg:-mt-6 pb-24">
 
       {/* ╔══════════════════════════════════════╗ */}
       {/* ║          HERO - APP BANKING          ║ */}
@@ -246,7 +246,7 @@ export default function AppHomePage() {
           <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/[0.08] rounded-full blur-[100px] -translate-y-1/3 translate-x-1/4 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-blue-400/[0.06] rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
 
-          <div className="relative px-5 pt-5 pb-7">
+          <div className="relative px-5 pt-4 lg:pt-5 pb-7">
 
             {/* Mobile mini header (logo + ações) - só mobile */}
             <div className="flex items-center justify-between mb-5 lg:hidden">

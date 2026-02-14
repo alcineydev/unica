@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -22,6 +23,22 @@ const navItems = [
 export function AppSidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const [notifCount, setNotifCount] = useState(0)
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const res = await fetch('/api/app/notifications/count')
+        if (res.ok) {
+          const data = await res.json()
+          setNotifCount(data.count || 0)
+        }
+      } catch { /* silencioso */ }
+    }
+    fetchCount()
+    const interval = setInterval(fetchCount, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = session?.user as any
@@ -88,7 +105,12 @@ export function AppSidebar() {
             >
               <Icon className={`h-[18px] w-[18px] transition-transform group-hover:scale-110 ${isActive ? 'stroke-[2.5px]' : ''}`} />
               <span>{label}</span>
-              {isActive && <div className="ml-auto w-1 h-4 bg-blue-400 rounded-full" />}
+              {label === 'Notificações' && notifCount > 0 && (
+                <span className="ml-auto min-w-[18px] h-[18px] bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
+                  {notifCount > 99 ? '99+' : notifCount}
+                </span>
+              )}
+              {label !== 'Notificações' && isActive && <div className="ml-auto w-1 h-4 bg-blue-400 rounded-full" />}
             </Link>
           )
         })}
