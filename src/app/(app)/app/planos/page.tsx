@@ -1,442 +1,211 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Check,
-  Loader2,
-  Crown,
-  Sparkles,
-  Star,
-  Percent,
-  Gift,
-  Coins,
-  ChevronRight,
-  Zap,
-  ArrowLeft,
-  Shield,
-  CheckCircle2,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Crown, Zap, Check, ArrowRight, Loader2, Sparkles, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 
-// ==========================================
-// Tipos
-// ==========================================
-
-interface Benefit {
-  id: string
-  name: string
-  type: string
-  value: number
-  description?: string
+interface PlanBenefit {
+  benefit: { id: string; name: string; type: string }
 }
 
 interface Plan {
   id: string
   name: string
   slug: string | null
-  description?: string
+  description: string
   price: number
   priceMonthly: number | null
-  priceYearly: number | null
-  period: string
   features: string[]
-  benefits: Benefit[]
+  planBenefits: PlanBenefit[]
 }
 
-interface Subscription {
-  status: string
-  startDate: string | null
-  endDate: string | null
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }
 
-// ==========================================
-// Helpers
-// ==========================================
-
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(price)
-}
-
-function getPeriodLabel(period: string) {
-  switch (period) {
-    case 'MONTHLY': return '/mês'
-    case 'QUARTERLY': return '/trimestre'
-    case 'SEMIANNUAL': return '/semestre'
-    case 'YEARLY': return '/ano'
-    default: return '/mês'
-  }
-}
-
-function getBenefitIcon(type: string) {
-  switch (type) {
-    case 'DISCOUNT': return <Percent className="h-4 w-4 text-green-500" />
-    case 'CASHBACK': return <Coins className="h-4 w-4 text-yellow-500" />
-    case 'POINTS': return <Star className="h-4 w-4 text-blue-500" />
-    case 'FREEBIE': return <Gift className="h-4 w-4 text-purple-500" />
-    default: return <Check className="h-4 w-4 text-blue-600" />
-  }
-}
-
-function getBenefitText(benefit: Benefit) {
-  switch (benefit.type) {
-    case 'DISCOUNT': return `${benefit.value}% de desconto`
-    case 'CASHBACK': return `${benefit.value}% de cashback`
-    case 'POINTS': return `${benefit.value} pontos/compra`
-    case 'FREEBIE': return 'Brinde exclusivo'
-    default: return benefit.name
-  }
-}
-
-function getPlanIcon(index: number, isPopular: boolean) {
-  if (isPopular) return <Crown className="h-6 w-6" />
-  if (index === 0) return <Zap className="h-6 w-6" />
-  return <Sparkles className="h-6 w-6" />
-}
-
-// ==========================================
-// Componente Principal
-// ==========================================
-
-export default function PlanosPage() {
-  const router = useRouter()
-
+export default function PlanosAssinantePage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
-  const [subscription, setSubscription] = useState<Subscription | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [processingId, setProcessingId] = useState<string | null>(null)
-
-  // ==========================================
-  // Fetch planos
-  // ==========================================
-
-  const fetchPlans = useCallback(async () => {
-    try {
-      const response = await fetch('/api/app/planos', { cache: 'no-store' })
-      const data = await response.json()
-
-      // Filtrar planos gratuitos (price <= 0)
-      if (data.plans) {
-        const paidPlans = (data.plans as Plan[]).filter(
-          (p) => Number(p.priceMonthly || p.price) > 0
-        )
-        setPlans(paidPlans)
-      }
-      if (data.currentPlan?.id) setCurrentPlanId(data.currentPlan.id)
-      else if (data.currentPlanId) setCurrentPlanId(data.currentPlanId)
-      if (data.subscription) setSubscription(data.subscription)
-    } catch (error) {
-      console.error('Erro ao buscar planos:', error)
-      toast.error('Erro ao carregar planos')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchPlans()
-  }, [fetchPlans])
-
-  // ==========================================
-  // Ação de checkout
-  // ==========================================
-
-  const handleCheckout = async (plan: Plan) => {
-    setProcessingId(plan.id)
-
-    try {
-      const price = Number(plan.priceMonthly || plan.price)
-
-      // ---- Plano pago: redireciona para checkout Asaas ----
-      if (price > 0) {
-        if (plan.slug) {
-          // Redirect direto para checkout Asaas público
-          router.push(`/checkout/${plan.slug}`)
-          return
+    const fetchData = async () => {
+      try {
+        const res = await fetch('/api/app/home')
+        const result = await res.json()
+        if (result.data) {
+          setPlans(result.data.planosDisponiveis || [])
+          setCurrentPlanId(result.data.currentPlanId || null)
         }
-
-        // Plano pago sem slug → tenta via API
-        const response = await fetch('/api/app/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ planId: plan.id }),
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          toast.error(data.error || 'Erro ao processar checkout')
-          return
-        }
-
-        if (data.checkoutUrl) {
-          router.push(data.checkoutUrl)
-          return
-        }
-
-        toast.error('Checkout indisponível para este plano')
-        return
+      } catch {
+        toast.error('Erro ao carregar planos')
+      } finally {
+        setLoading(false)
       }
-
-      // Planos gratuitos não devem existir, mas por segurança
-      toast.error('Plano indisponível para assinatura')
-      return
-    } catch (error) {
-      console.error('Erro no checkout:', error)
-      toast.error('Erro ao processar. Tente novamente.')
-    } finally {
-      setProcessingId(null)
     }
-  }
+    fetchData()
+  }, [])
 
-  // ==========================================
-  // Loading state
-  // ==========================================
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="pb-24">
-        <div className="px-4 py-3">
-          <Skeleton className="h-6 w-48" />
-        </div>
-        <div className="px-4 py-6 space-y-4">
-          <Skeleton className="h-5 w-64 mx-auto" />
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-72 w-full rounded-xl" />
-          ))}
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
   }
 
-  // ==========================================
-  // Render
-  // ==========================================
+  const activePlans = plans.filter(p => Number(p.price) > 0)
+  const currentPlan = activePlans.find(p => p.id === currentPlanId)
+  const currentPrice = currentPlan ? Number(currentPlan.price) : 0
 
   return (
     <div className="pb-24">
       {/* Header */}
-      <div className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/app">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-lg font-bold">Escolha seu Plano</h1>
-            {subscription?.status === 'ACTIVE' && (
-              <p className="text-xs text-gray-500">
-                Gerencie ou troque seu plano
-              </p>
-            )}
-          </div>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-gray-900">Planos</h1>
+        <p className="text-sm text-gray-400 mt-0.5">Gerencie sua assinatura</p>
       </div>
 
-      <div className="px-4 py-6">
-        {/* Subtítulo */}
-        <p className="text-gray-500 text-center mb-8">
-          Aproveite os melhores benefícios e descontos exclusivos em nossos parceiros
-        </p>
-
-        {/* Sem planos */}
-        {plans.length === 0 ? (
-          <div className="text-center py-12">
-            <Sparkles className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-500">Nenhum plano disponível no momento.</p>
+      {/* Plano Atual */}
+      {currentPlan && (
+        <div className="mb-6 p-4 bg-gradient-to-br from-[#0f172a] to-[#1e293b] rounded-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-amber-400/15 flex items-center justify-center">
+                <Crown className="h-4 w-4 text-amber-400" />
+              </div>
+              <div>
+                <p className="text-xs text-white/40">Plano atual</p>
+                <p className="text-base font-bold text-white">{currentPlan.name}</p>
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1 mt-3">
+              <span className="text-2xl font-extrabold text-white">{formatCurrency(Number(currentPlan.price))}</span>
+              <span className="text-xs text-white/40">/mês</span>
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              <Shield className="h-3.5 w-3.5 text-green-400" />
+              <span className="text-[11px] text-green-400">Assinatura ativa</span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {currentPlan.planBenefits.slice(0, 4).map((pb) => (
+                <span key={pb.benefit.id} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.08] text-white/50">
+                  {pb.benefit.name}
+                </span>
+              ))}
+              {currentPlan.planBenefits.length > 4 && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.08] text-white/50">
+                  +{currentPlan.planBenefits.length - 4} mais
+                </span>
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="space-y-4 max-w-lg mx-auto">
-            {plans.map((plan, index) => {
-              const isCurrentPlan = plan.id === currentPlanId
-              const isPopular =
-                index === Math.floor(plans.length / 2) && plans.length > 1
-              const price = Number(plan.priceMonthly || plan.price)
+        </div>
+      )}
 
-              return (
-                <Card
-                  key={plan.id}
-                  className={cn(
-                    'relative transition-all duration-300',
-                    isPopular && !isCurrentPlan && 'border-primary shadow-lg',
-                    isCurrentPlan && 'ring-2 ring-green-500 border-green-200'
-                  )}
-                >
-                  {/* Badge Popular */}
-                  {isPopular && !isCurrentPlan && (
-                    <div className="absolute -top-3 left-4 z-10">
-                      <Badge className="bg-blue-600 text-white shadow-sm">
-                        Mais Popular
-                      </Badge>
-                    </div>
-                  )}
-
-                  {/* Badge Plano Atual */}
-                  {isCurrentPlan && (
-                    <div className="absolute -top-3 left-4 z-10">
-                      <Badge className="bg-green-500 text-white shadow-sm">
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                        Ativo
-                      </Badge>
-                    </div>
-                  )}
-
-                  <CardHeader
-                    className={cn(
-                      'pb-2',
-                      (isPopular || isCurrentPlan) && 'pt-6'
-                    )}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={cn(
-                            'w-12 h-12 rounded-xl flex items-center justify-center',
-                            isCurrentPlan
-                              ? 'bg-green-100 text-green-600'
-                              : isPopular
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-500'
-                          )}
-                        >
-                          {getPlanIcon(index, isPopular)}
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">{plan.name}</CardTitle>
-                          {plan.description && (
-                            <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">
-                              {plan.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold">
-                          {formatPrice(price)}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {getPeriodLabel(plan.period)}
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="space-y-4">
-                    {/* Benefícios */}
-                    {plan.benefits && plan.benefits.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          Benefícios inclusos
-                        </p>
-                        <ul className="space-y-2">
-                          {plan.benefits.map((benefit) => (
-                            <li
-                              key={benefit.id}
-                              className="flex items-start gap-3"
-                            >
-                              <div className="mt-0.5">
-                                {getBenefitIcon(benefit.type)}
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-sm font-medium">
-                                  {benefit.name}
-                                </p>
-                                <p className="text-xs text-green-600">
-                                  {getBenefitText(benefit)}
-                                </p>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Features extras */}
-                    {plan.features && plan.features.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          Vantagens
-                        </p>
-                        <ul className="space-y-1">
-                          {(plan.features as string[]).map(
-                            (feature: string, i: number) => (
-                              <li
-                                key={i}
-                                className="flex items-center gap-2 text-sm"
-                              >
-                                <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                                <span>{feature}</span>
-                              </li>
-                            )
-                          )}
-                        </ul>
-                      </div>
-                    )}
-                  </CardContent>
-
-                  <CardFooter className="pt-2">
-                    <Button
-                      className={cn(
-                        'w-full h-12',
-                        isPopular &&
-                          !isCurrentPlan &&
-                          'bg-blue-600 hover:bg-blue-700'
-                      )}
-                      variant={
-                        isCurrentPlan
-                          ? 'outline'
-                          : isPopular
-                            ? 'default'
-                            : 'secondary'
-                      }
-                      disabled={isCurrentPlan || processingId === plan.id}
-                      onClick={() => handleCheckout(plan)}
-                    >
-                      {processingId === plan.id ? (
-                        <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          Processando...
-                        </>
-                      ) : isCurrentPlan ? (
-                        <>
-                          <CheckCircle2 className="mr-2 h-5 w-5 text-green-500" />
-                          Plano Atual
-                        </>
-                      ) : (
-                        <>
-                          Assinar Plano
-                          <ChevronRight className="ml-2 h-5 w-5" />
-                        </>
-                      )}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              )
-            })}
+      {/* Outros planos */}
+      <div className="space-y-3">
+        {!currentPlan && (
+          <div className="text-center py-6 mb-4">
+            <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <Crown className="h-7 w-7 text-blue-600" />
+            </div>
+            <h2 className="font-bold text-gray-900 mb-1">Escolha seu Plano</h2>
+            <p className="text-sm text-gray-400">Assine para acessar benefícios exclusivos</p>
           </div>
         )}
 
-        {/* Informações adicionais */}
-        <div className="mt-8 text-center space-y-2">
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-            <Shield className="h-4 w-4" />
-            Pagamento seguro via Asaas
-          </div>
-          <p className="text-xs text-gray-500">
-            Cancele quando quiser - sem fidelidade
-          </p>
-        </div>
+        {activePlans
+          .filter(p => p.id !== currentPlanId)
+          .sort((a, b) => Number(a.price) - Number(b.price))
+          .map((plan, index) => {
+            const isUpgrade = Number(plan.price) > currentPrice
+            const isDowngrade = Number(plan.price) < currentPrice && currentPlanId !== null
+            const isBestValue = index === 0 && !currentPlanId
+
+            return (
+              <div
+                key={plan.id}
+                className={`relative rounded-2xl border overflow-hidden transition-all ${
+                  isBestValue
+                    ? 'border-blue-200 shadow-md shadow-blue-100/40'
+                    : 'border-gray-200 hover:border-blue-200 hover:shadow-sm'
+                }`}
+              >
+                {isBestValue && (
+                  <div className="bg-blue-600 text-white text-[10px] font-bold text-center py-1 uppercase tracking-wider">
+                    Mais Popular
+                  </div>
+                )}
+
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="font-bold text-gray-900">{plan.name}</h3>
+                      <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{plan.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-extrabold text-gray-900">{formatCurrency(Number(plan.price))}</p>
+                      <p className="text-[10px] text-gray-400">/mês</p>
+                    </div>
+                  </div>
+
+                  {/* Benefícios */}
+                  <div className="space-y-1.5 mb-4">
+                    {plan.planBenefits.slice(0, 5).map((pb) => (
+                      <div key={pb.benefit.id} className="flex items-center gap-2">
+                        <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                        <span className="text-xs text-gray-600">{pb.benefit.name}</span>
+                      </div>
+                    ))}
+                    {plan.planBenefits.length > 5 && (
+                      <p className="text-[11px] text-gray-400 ml-5">+{plan.planBenefits.length - 5} benefícios</p>
+                    )}
+                  </div>
+
+                  {/* Features */}
+                  {plan.features && plan.features.length > 0 && (
+                    <div className="space-y-1 mb-4">
+                      {plan.features.slice(0, 3).map((feat, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <Sparkles className="h-3 w-3 text-blue-400 shrink-0" />
+                          <span className="text-[11px] text-gray-500">{feat}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* CTA */}
+                  <Link href={`/checkout/${plan.slug || plan.id}`}>
+                    <button className={`w-full py-3 rounded-xl font-semibold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+                      isUpgrade || !currentPlanId
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200/40'
+                        : isDowngrade
+                          ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}>
+                      {isUpgrade ? (
+                        <><Zap className="h-4 w-4" /> Fazer Upgrade</>
+                      ) : isDowngrade ? (
+                        <>Trocar para este plano</>
+                      ) : (
+                        <><ArrowRight className="h-4 w-4" /> Assinar agora</>
+                      )}
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            )
+          })}
+      </div>
+
+      {/* Info */}
+      <div className="mt-6 text-center">
+        <p className="text-[10px] text-gray-300">
+          Ao assinar você concorda com nossos termos de uso. Cobranças recorrentes via Asaas.
+        </p>
       </div>
     </div>
   )

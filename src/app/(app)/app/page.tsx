@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   Store, ChevronRight, Crown, Zap, ArrowRight, Wallet,
   Eye, EyeOff, Coins, TrendingUp, Sparkles, Star,
-  Building2
+  Building2, Bell
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CarouselDestaques, RecentTransactions } from '@/components/app/home'
@@ -192,7 +192,7 @@ export default function AppHomePage() {
           <div className="mt-10 w-full max-w-md space-y-3">
             <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Planos disponíveis</h2>
             {data.planosDisponiveis.filter(p => Number(p.price) > 0).map((plan, i) => (
-              <Link key={plan.id} href={`/checkout/${plan.slug || plan.id}`} className="block">
+              <Link key={plan.id} href="/app/planos" className="block">
                 <div className={`flex items-center justify-between p-4 rounded-xl bg-white border transition-all hover:shadow-md ${
                   i === 0 ? 'border-blue-200 shadow-sm' : 'border-gray-200'
                 }`}>
@@ -237,21 +237,42 @@ export default function AppHomePage() {
   return (
     <div className="space-y-0 -mx-4 sm:-mx-6 -mt-6 pb-24">
 
-      {/* ===== HERO - APP BANKING ===== */}
+      {/* ╔══════════════════════════════════════╗ */}
+      {/* ║          HERO - APP BANKING          ║ */}
+      {/* ╚══════════════════════════════════════╝ */}
       <div className="relative overflow-hidden">
         <div className="bg-gradient-to-br from-[#0a1628] via-[#0f1f3d] to-[#0a1628]">
           {/* Decoração */}
           <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/[0.08] rounded-full blur-[100px] -translate-y-1/3 translate-x-1/4 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-blue-400/[0.06] rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
 
-          <div className="relative px-5 pt-6 pb-7">
-            {/* Topo: saudação + toggle */}
+          <div className="relative px-5 pt-5 pb-7">
+
+            {/* Mobile mini header (logo + ações) - só mobile */}
+            <div className="flex items-center justify-between mb-5 lg:hidden">
+              <Link href="/app" className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+                  <span className="text-white font-extrabold text-[11px]">U</span>
+                </div>
+              </Link>
+              <div className="flex items-center gap-1">
+                <Link href="/app/notificacoes" className="relative p-2 rounded-full text-white/50 hover:text-white/80 hover:bg-white/5 transition-all">
+                  <Bell className="h-5 w-5" />
+                </Link>
+                <Link href="/app/perfil" className="p-1">
+                  <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center border border-white/10">
+                    <span className="text-white/70 font-semibold text-[10px]">{user.firstName?.charAt(0)?.toUpperCase()}</span>
+                  </div>
+                </Link>
+              </div>
+            </div>
+
+            {/* Saudação */}
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 bg-white/10 rounded-full flex items-center justify-center border border-white/10">
-                  <span className="text-white font-bold text-sm">
-                    {user.firstName?.charAt(0)?.toUpperCase()}
-                  </span>
+                {/* Avatar: desktop only (mobile tem no mini header) */}
+                <div className="hidden lg:flex w-11 h-11 bg-white/10 rounded-full items-center justify-center border border-white/10">
+                  <span className="text-white font-bold text-sm">{user.firstName?.charAt(0)?.toUpperCase()}</span>
                 </div>
                 <div>
                   <p className="text-white font-semibold text-base">Olá, {user.firstName}</p>
@@ -294,10 +315,7 @@ export default function AppHomePage() {
                 </p>
                 <p className="text-[9px] text-white/30">Economia</p>
               </div>
-              <Link
-                href="/app/carteira"
-                className="bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-xl p-3 text-center hover:bg-white/[0.1] transition-colors"
-              >
+              <Link href="/app/carteira" className="bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-xl p-3 text-center hover:bg-white/[0.1] transition-colors">
                 <Wallet className="h-4 w-4 text-blue-400 mx-auto mb-1" />
                 <p className="text-[10px] font-semibold text-white">Carteira</p>
                 <p className="text-[9px] text-white/30">QR Code</p>
@@ -397,11 +415,42 @@ export default function AppHomePage() {
           <p className="text-[11px] text-gray-400 -mt-1.5 mb-3">
             Empresas com benefícios para o plano {assinante.plan?.name}
           </p>
-          <div className="space-y-2.5">
+
+          {/* Mobile: grid 3 colunas */}
+          <div className="grid grid-cols-3 gap-2 lg:hidden">
+            {parceiros.slice(0, 9).map((p) => {
+              const mainBenefit = p.benefits[0]
+              const badge = mainBenefit ? getBenefitBadge(mainBenefit.type, mainBenefit.value) : null
+              return (
+                <Link key={p.id} href={`/app/parceiros/${p.id}`}>
+                  <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-sm transition-all active:scale-[0.97] p-2.5 text-center">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 mx-auto mb-1.5">
+                      {p.logo ? (
+                        <Image src={p.logo} alt={p.tradeName || p.companyName} width={48} height={48} className="object-cover w-full h-full" unoptimized />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+                          <Building2 className="h-5 w-5 text-blue-300" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[11px] font-semibold text-gray-900 truncate">{p.tradeName || p.companyName}</p>
+                    <p className="text-[9px] text-gray-400 truncate">{p.city?.name || p.category}</p>
+                    {badge && (
+                      <span className={`inline-block mt-1 text-[8px] font-bold px-1.5 py-0.5 rounded ${badge.color}`}>
+                        {badge.text}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+
+          {/* Desktop: lista detalhada */}
+          <div className="hidden lg:block space-y-2.5">
             {parceiros.slice(0, 8).map((p) => (
               <Link key={p.id} href={`/app/parceiros/${p.id}`}>
                 <div className="flex items-center gap-3.5 p-3 bg-white rounded-xl border border-gray-100 hover:border-blue-100 hover:shadow-sm transition-all">
-                  {/* Logo */}
                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100">
                     {p.logo ? (
                       <Image src={p.logo} alt={p.tradeName || p.companyName} width={48} height={48} className="object-cover w-full h-full" unoptimized />
@@ -411,7 +460,6 @@ export default function AppHomePage() {
                       </div>
                     )}
                   </div>
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-sm text-gray-900 truncate">{p.tradeName || p.companyName}</p>
@@ -423,10 +471,8 @@ export default function AppHomePage() {
                       )}
                     </div>
                     <p className="text-[11px] text-gray-400 truncate">
-                      {p.category}
-                      {p.city && <> · {p.city.name}</>}
+                      {p.category}{p.city && <> · {p.city.name}</>}
                     </p>
-                    {/* Badges de benefícios */}
                     {p.benefits.length > 0 && (
                       <div className="flex gap-1 mt-1.5 flex-wrap">
                         {p.benefits.slice(0, 3).map((b) => {
@@ -469,7 +515,7 @@ export default function AppHomePage() {
 
               <div className="space-y-2.5">
                 {planosUpgrade.map((plan) => (
-                  <Link key={plan.id} href={`/checkout/${plan.slug || plan.id}`}>
+                  <Link key={plan.id} href="/app/planos">
                     <div className="flex items-center justify-between p-3 bg-white/[0.07] border border-white/10 rounded-xl hover:bg-white/[0.12] transition-all">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-lg bg-amber-400/15 flex items-center justify-center">
