@@ -1,51 +1,29 @@
 import { Skeleton } from '@/components/ui/skeleton'
 
-export default function Loading() {
+export default function ParceirosLoading() {
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-20">
-      {/* Header skeleton */}
-      <div className="sticky top-0 z-50 bg-[#f8fafc] border-b p-4">
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-10 rounded" />
-          <Skeleton className="h-6 w-32" />
-        </div>
+    <div className="px-4 pt-4 lg:px-10 lg:pt-8 space-y-4">
+      {/* Title */}
+      <div className="space-y-2">
+        <Skeleton className="h-7 w-40" />
+        <Skeleton className="h-4 w-56" />
       </div>
 
-      <div className="container py-4 space-y-4">
-        {/* Search skeleton */}
-        <Skeleton className="h-10 w-full rounded-lg" />
+      {/* Search */}
+      <Skeleton className="h-11 w-full rounded-xl" />
 
-        {/* Categories filter skeleton */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-8 w-24 rounded-full flex-shrink-0" />
-          ))}
-        </div>
+      {/* Filter pills */}
+      <div className="flex gap-2">
+        {[1, 2, 3, 4].map(i => (
+          <Skeleton key={i} className="h-8 w-20 rounded-full" />
+        ))}
+      </div>
 
-        {/* Results count skeleton */}
-        <Skeleton className="h-4 w-40" />
-
-        {/* Cards grid skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="border rounded-lg overflow-hidden bg-white">
-              <Skeleton className="h-40 w-full" />
-              <div className="p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="flex-1 space-y-1">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-6 w-16 rounded-full" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Cards */}
+      <div className="space-y-2 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-3 lg:space-y-0">
+        {[1, 2, 3, 4, 5, 6].map(i => (
+          <Skeleton key={i} className="h-20 rounded-xl" />
+        ))}
       </div>
     </div>
   )
