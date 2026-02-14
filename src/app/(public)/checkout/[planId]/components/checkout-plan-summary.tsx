@@ -9,7 +9,7 @@ interface Plan {
   price: number
   period: string
   features?: string[]
-  planBenefits?: { benefit: { name: string } }[]
+  planBenefits?: { benefit?: { name?: string } }[]
 }
 
 interface Props {
@@ -21,7 +21,7 @@ export default function CheckoutPlanSummary({ plan }: Props) {
   const periodLabel = plan.period === 'YEARLY' ? '/ano' : plan.period === 'SINGLE' ? ' único' : '/mês'
 
   const features = plan.features || []
-  const benefitNames = plan.planBenefits?.map(pb => pb.benefit.name) || []
+  const benefitNames = plan.planBenefits?.map(pb => pb.benefit?.name).filter((n): n is string => !!n) || []
   const allItems = features.length > 0 ? features : benefitNames
   const displayItems = allItems.length > 0 ? allItems : ['Acesso ao app', 'Cartão digital QR Code', 'Suporte via WhatsApp']
 
