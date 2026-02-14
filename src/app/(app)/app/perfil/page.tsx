@@ -776,11 +776,11 @@ export default function PerfilPage() {
 
         {/* Botão Salvar fixo no mobile */}
         {hasChanges && (
-          <div className="fixed bottom-16 left-0 right-0 md:static md:mt-6 p-4 md:p-0 bg-white/95 backdrop-blur-sm border-t md:border-0 z-40">
+          <div className="fixed bottom-16 left-0 right-0 md:static md:mt-6 p-4 md:p-0 bg-[#f8fafc]/95 backdrop-blur-sm border-t border-gray-200 md:border-0 z-40">
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="w-full"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md shadow-blue-200/40"
               size="lg"
             >
               {saving ? (
@@ -799,7 +799,7 @@ export default function PerfilPage() {
         )}
 
         {/* Info da Conta */}
-        <Card className="mt-4 mb-4">
+        <Card className="mt-4 mb-4 border-gray-100">
           <CardContent className="pt-4 pb-3">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
