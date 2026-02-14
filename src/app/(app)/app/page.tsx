@@ -2,19 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Store,
-  ChevronRight,
-  Crown,
-  Zap,
-  ArrowRight,
-  Wallet
+  Store, ChevronRight, Crown, Zap, ArrowRight, Wallet
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { CarouselDestaques, CategoriesList, ParceiroCardGrid, SectionHeader, QuickActions, OfertasBanner } from '@/components/app/home'
+import {
+  CarouselDestaques, CategoriesList, ParceiroCardGrid,
+  SectionHeader, QuickActions, OfertasBanner
+} from '@/components/app/home'
+
+// ==========================================
+// Tipos
+// ==========================================
 
 interface Plan {
   id: string
@@ -23,13 +24,7 @@ interface Plan {
   description: string
   price: number
   priceMonthly: number | null
-  planBenefits: Array<{
-    benefit: {
-      id: string
-      name: string
-      type: string
-    }
-  }>
+  planBenefits: Array<{ benefit: { id: string; name: string; type: string } }>
 }
 
 interface Category {
@@ -60,11 +55,7 @@ interface ParceiroDestaque {
 }
 
 interface HomeData {
-  user: {
-    name: string
-    firstName: string
-    planName: string | null
-  }
+  user: { name: string; firstName: string; planName: string | null }
   assinante: {
     name: string
     points: number
@@ -75,13 +66,7 @@ interface HomeData {
     planEndDate: string | null
     plan: {
       name: string
-      planBenefits: Array<{
-        benefit: {
-          id: string
-          name: string
-          type: string
-        }
-      }>
+      planBenefits: Array<{ benefit: { id: string; name: string; type: string } }>
     } | null
   }
   categories: Category[]
@@ -90,6 +75,21 @@ interface HomeData {
   novidades: ParceiroDestaque[]
   planosDisponiveis?: Plan[]
 }
+
+// ==========================================
+// Helpers
+// ==========================================
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value)
+}
+
+// ==========================================
+// Componente Principal
+// ==========================================
 
 export default function AppHomePage() {
   const [data, setData] = useState<HomeData | null>(null)
@@ -118,30 +118,25 @@ export default function AppHomePage() {
     }
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value)
-  }
+  // ==========================================
+  // Loading
+  // ==========================================
 
-  // Loading State
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div className="flex items-center justify-between">
-          <Skeleton className="h-10 w-32" />
-          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-12 w-40" />
+          <Skeleton className="h-10 w-28 rounded-xl" />
         </div>
-        <Skeleton className="h-40 w-full rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
         <div className="flex gap-3 overflow-hidden">
-          {[1, 2, 3, 4, 5].map(i => (
+          {[1, 2, 3, 4, 5].map((i) => (
             <Skeleton key={i} className="h-20 w-20 rounded-xl flex-shrink-0" />
           ))}
         </div>
-        <Skeleton className="h-6 w-32" />
         <div className="grid grid-cols-2 gap-3">
-          {[1, 2, 3, 4].map(i => (
+          {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-48 rounded-xl" />
           ))}
         </div>
@@ -149,110 +144,132 @@ export default function AppHomePage() {
     )
   }
 
-  // Verifica se tem plano ativo
-  const isPlanActive = data?.assinante?.planId && data?.assinante?.subscriptionStatus === 'ACTIVE'
+  const isPlanActive =
+    data?.assinante?.planId && data?.assinante?.subscriptionStatus === 'ACTIVE'
 
-  // Sem plano ativo - Tela de escolha de plano
+  // ==========================================
+  // Sem plano ativo
+  // ==========================================
+
   if (!isPlanActive) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center">
-        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-          <Crown className="h-10 w-10 text-primary" />
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+        <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mb-6">
+          <Crown className="h-10 w-10 text-blue-600" />
         </div>
-        <h1 className="text-2xl font-bold mb-2">Escolha seu Plano</h1>
-        <p className="text-muted-foreground mb-6 max-w-md">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Escolha seu Plano</h1>
+        <p className="text-gray-500 mb-8 max-w-sm">
           Assine um plano para ter acesso a descontos exclusivos em centenas de parceiros.
         </p>
-        <Button size="lg" className="px-8" asChild>
+        <Button
+          size="lg"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-8 rounded-xl shadow-md shadow-blue-200/40"
+          asChild
+        >
           <Link href="/app/planos">
-            Ver Planos Disponíveis
-            <ChevronRight className="h-4 w-4 ml-2" />
+            Ver Planos <ChevronRight className="h-4 w-4 ml-1" />
           </Link>
         </Button>
 
         {/* Preview de benefícios */}
-        <div className="mt-12 grid grid-cols-3 gap-6 text-center">
-          <div>
-            <div className="text-3xl font-bold text-primary">500+</div>
-            <div className="text-sm text-muted-foreground">Parceiros</div>
-          </div>
-          <div>
-            <div className="text-3xl font-bold text-primary">50%</div>
-            <div className="text-sm text-muted-foreground">Desconto max.</div>
-          </div>
-          <div>
-            <div className="text-3xl font-bold text-primary">5%</div>
-            <div className="text-sm text-muted-foreground">Cashback</div>
-          </div>
+        <div className="mt-12 grid grid-cols-3 gap-8 text-center">
+          {[
+            { value: '500+', label: 'Parceiros' },
+            { value: '50%', label: 'Desconto max.' },
+            { value: '5%', label: 'Cashback' },
+          ].map((s, i) => (
+            <div key={i}>
+              <div className="text-2xl font-extrabold text-blue-600">{s.value}</div>
+              <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
+            </div>
+          ))}
         </div>
 
         {/* Planos disponíveis */}
         {data?.planosDisponiveis && data.planosDisponiveis.length > 0 && (
-          <div className="mt-12 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-4">Planos Disponíveis</h2>
-            <div className="space-y-3">
-              {data.planosDisponiveis.map((plan, index) => (
-                <Card
+          <div className="mt-10 w-full max-w-md space-y-3">
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+              Planos disponíveis
+            </h2>
+            {data.planosDisponiveis
+              .filter((p) => Number(p.price) > 0)
+              .map((plan, i) => (
+                <Link
                   key={plan.id}
-                  className={index === 0 ? 'border-primary border-2' : ''}
+                  href={`/checkout/${plan.slug || plan.id}`}
+                  className="block"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          index === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                        }`}>
-                          {index === 0 ? <Crown className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">{plan.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {plan.planBenefits.length} benefícios
-                          </p>
-                        </div>
+                  <div
+                    className={`flex items-center justify-between p-4 rounded-xl bg-white border transition-all hover:shadow-md ${
+                      i === 0
+                        ? 'border-blue-200 shadow-sm'
+                        : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                          i === 0
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-500'
+                        }`}
+                      >
+                        {i === 0 ? (
+                          <Crown className="h-5 w-5" />
+                        ) : (
+                          <Zap className="h-5 w-5" />
+                        )}
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold">{formatCurrency(plan.price)}</div>
-                        <div className="text-xs text-muted-foreground">/mês</div>
+                      <div>
+                        <h3 className="font-semibold text-sm text-gray-900">
+                          {plan.name}
+                        </h3>
+                        <p className="text-xs text-gray-400">
+                          {plan.planBenefits.length} benefícios
+                        </p>
                       </div>
                     </div>
-                    <Button
-                      className="w-full mt-3"
-                      variant={index === 0 ? 'default' : 'outline'}
-                      asChild
-                    >
-                      <Link href="/app/planos">
-                        Assinar
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
+                    <div className="text-right flex items-center gap-2">
+                      <div>
+                        <div className="font-bold text-sm text-gray-900">
+                          {formatCurrency(plan.price)}
+                        </div>
+                        <div className="text-[10px] text-gray-400">/mês</div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-gray-300" />
+                    </div>
+                  </div>
+                </Link>
               ))}
-            </div>
           </div>
         )}
       </div>
     )
   }
 
+  // ==========================================
   // Home com plano ativo
-  const { user, assinante, categories, destaques, parceirosDestaque, novidades } = data!
+  // ==========================================
+
+  const { user, assinante, categories, destaques, parceirosDestaque, novidades } =
+    data!
 
   return (
     <div className="space-y-6 pb-24">
-      {/* Header com saudação e cashback */}
+      {/* Header: saudação + cashback */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-muted-foreground text-sm">Olá,</p>
-          <h1 className="text-xl font-bold">{user.firstName}</h1>
+          <p className="text-sm text-gray-400">Olá,</p>
+          <h1 className="text-xl font-bold text-gray-900">{user.firstName}</h1>
         </div>
         <Link href="/app/carteira">
-          <div className="flex items-center gap-2 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 px-3 py-2 rounded-lg hover:bg-green-100 dark:hover:bg-green-950/50 transition-colors">
-            <Wallet className="h-4 w-4" />
+          <div className="flex items-center gap-2.5 bg-white border border-gray-200 px-3.5 py-2 rounded-xl hover:shadow-md hover:border-blue-200 transition-all">
+            <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+              <Wallet className="h-4 w-4 text-green-600" />
+            </div>
             <div className="text-right">
-              <p className="text-[10px] leading-tight">Cashback</p>
-              <p className="font-bold text-sm">
+              <p className="text-[10px] text-gray-400 leading-tight">Cashback</p>
+              <p className="font-bold text-sm text-green-600">
                 {formatCurrency(assinante.cashback)}
               </p>
             </div>
@@ -260,10 +277,25 @@ export default function AppHomePage() {
         </Link>
       </div>
 
+      {/* Plano ativo - mini card */}
+      <div className="flex items-center gap-3 p-3 bg-white border border-blue-100 rounded-xl">
+        <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center">
+          <Crown className="h-4 w-4 text-blue-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-gray-400">Plano ativo</p>
+          <p className="text-sm font-semibold text-gray-900 truncate">
+            {assinante.plan?.name || 'Plano'}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-green-600 font-medium bg-green-50 px-2 py-1 rounded-md">
+          <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+          Ativo
+        </div>
+      </div>
+
       {/* Carrossel de Destaques */}
-      {destaques.length > 0 && (
-        <CarouselDestaques destaques={destaques} />
-      )}
+      {destaques.length > 0 && <CarouselDestaques destaques={destaques} />}
 
       {/* Categorias */}
       {categories.length > 0 && (
@@ -303,22 +335,18 @@ export default function AppHomePage() {
         </section>
       )}
 
-      {/* Minha Conta - Atalhos Rápidos */}
+      {/* Ações Rápidas */}
       <section className="space-y-3">
-        <SectionHeader title="Minha Conta" />
+        <SectionHeader title="Acesso Rápido" />
         <QuickActions />
       </section>
 
-      {/* Se não houver nenhum conteúdo */}
+      {/* Fallback vazio */}
       {!destaques.length && !parceirosDestaque.length && !novidades.length && (
         <div className="text-center py-12">
-          <Store className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">
-            Nenhum parceiro disponível no momento.
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Novos parceiros em breve!
-          </p>
+          <Store className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+          <p className="text-gray-400">Nenhum parceiro disponível no momento.</p>
+          <p className="text-xs text-gray-300 mt-1">Novos parceiros em breve!</p>
         </div>
       )}
     </div>
