@@ -110,6 +110,16 @@ export async function POST(request: NextRequest) {
     // Parsear payload
     const payload: AsaasWebhookPayload = await request.json()
 
+    // DEBUG LOG DETALHADO
+    console.log('🔔 WEBHOOK ASAAS RECEBIDO:', JSON.stringify({
+      event: payload.event,
+      paymentId: payload.payment?.id,
+      paymentStatus: payload.payment?.status,
+      customerId: payload.payment?.customer,
+      externalRef: payload.payment?.externalReference,
+      value: payload.payment?.value,
+    }))
+
     logger.info('[WEBHOOK ASAAS] Evento:', payload.event)
     if (payload.payment) {
       logger.info('[WEBHOOK ASAAS] Payment ID:', payload.payment.id, '| Status:', payload.payment.status)
@@ -211,6 +221,15 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     include: { user: true, plan: true }
   })
 
+  // DEBUG LOG - Resultado da busca
+  console.log('🔍 BUSCA ASSINANTE:', JSON.stringify({
+    found: !!assinante,
+    assinanteId: assinante?.id,
+    currentStatus: assinante?.subscriptionStatus,
+    asaasPaymentId: assinante?.asaasPaymentId,
+    asaasCustomerId: assinante?.asaasCustomerId,
+  }))
+
   // Se encontrou assinante criado no checkout, ativar
   if (assinante) {
     logger.info('[WEBHOOK ASAAS] Assinante encontrado (criado no checkout):', assinante.id)
@@ -257,6 +276,7 @@ async function handlePaymentConfirmed(payment: AsaasPaymentData) {
     })
 
     logger.info('[WEBHOOK ASAAS] Assinante e usuário ativados:', assinante.id)
+    console.log('✅ ASSINANTE ATIVADO:', assinante.id)
 
     // Registrar transação
     await prisma.transaction.create({
