@@ -66,26 +66,6 @@ export function AppSidebar() {
         </Link>
       </div>
 
-      {/* Perfil mini */}
-      <div className="relative px-4 pb-4">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-white/10 border border-white/10 shrink-0 flex items-center justify-center">
-            {displayAvatar ? (
-              <Image src={displayAvatar} alt={firstName} width={40} height={40} className="w-full h-full object-cover" unoptimized />
-            ) : (
-              <span className="text-white/70 font-semibold text-xs">{initials}</span>
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-white truncate">{firstName}</p>
-            <div className="flex items-center gap-1">
-              <Crown className="h-3 w-3 text-amber-400/70" />
-              <span className="text-[10px] text-white/30">Assinante</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Navegação */}
       <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto relative">
         {navItems.map(({ icon: Icon, label, href }) => {
@@ -116,15 +96,35 @@ export function AppSidebar() {
         })}
       </nav>
 
-      {/* Sair */}
-      <div className="px-3 pb-5 relative">
-        <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-all w-full"
-        >
-          <LogOut className="h-[18px] w-[18px]" />
-          <span>Sair</span>
-        </button>
+      {/* Bloco inferior: Perfil + Sair */}
+      <div className="relative border-t border-white/[0.06]">
+        <Link href="/app/perfil" className="block">
+          <div className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.04] transition-all">
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-white/10 border border-white/10 shrink-0 flex items-center justify-center">
+              {displayAvatar ? (
+                <Image src={displayAvatar} alt={firstName} width={36} height={36} className="w-full h-full object-cover" unoptimized />
+              ) : (
+                <span className="text-white/70 font-semibold text-xs">{initials}</span>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white truncate">{firstName}</p>
+              <div className="flex items-center gap-1">
+                <Crown className="h-3 w-3 text-amber-400/70" />
+                <span className="text-[10px] text-white/30">Assinante</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+        <div className="px-3 pb-4">
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-all w-full"
+          >
+            <LogOut className="h-[18px] w-[18px]" />
+            <span>Sair</span>
+          </button>
+        </div>
       </div>
     </aside>
   )
