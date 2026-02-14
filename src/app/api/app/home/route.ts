@@ -295,11 +295,14 @@ export async function GET() {
       categorias = categoriasDb.map(c => c.category).filter(Boolean).sort()
     }
 
-    // Busca planos disponíveis (para upgrade ou assinatura)
+    // Busca planos disponíveis (para upgrade ou assinatura — ocultar Convite)
     let planosDisponiveis = null
     {
       const planos = await prisma.plan.findMany({
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          NOT: { slug: 'convite' },
+        },
         orderBy: { price: 'asc' },
         include: {
           planBenefits: {

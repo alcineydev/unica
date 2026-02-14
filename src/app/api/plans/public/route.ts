@@ -4,7 +4,10 @@ import prisma from '@/lib/prisma'
 export async function GET() {
   try {
     const plans = await prisma.plan.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        NOT: { slug: 'convite' },
+      },
       include: {
         planBenefits: {
           include: {

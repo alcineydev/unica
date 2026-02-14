@@ -101,6 +101,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Plano não encontrado ou inativo' }, { status: 404 })
     }
 
+    // Bloquear checkout do plano Convite (atribuído apenas pelo admin)
+    if (plan.slug === 'convite') {
+      return NextResponse.json({ error: 'Este plano não está disponível para compra' }, { status: 403 })
+    }
+
     const price = Number(plan.price)
     console.log('[CHECKOUT] Plano:', plan.id, plan.name, 'R$', price)
 

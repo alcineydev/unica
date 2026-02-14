@@ -120,7 +120,7 @@ const STATUS_MAP: Record<
   SUSPENDED: { label: 'Suspenso', variant: 'destructive' },
   CANCELED: { label: 'Cancelado', variant: 'destructive' },
   EXPIRED: { label: 'Expirado', variant: 'outline' },
-  GUEST: { label: 'Convidado', variant: 'secondary' },
+  GUEST: { label: 'Convidado (legado)', variant: 'secondary' },
 }
 
 // ─── Helpers ─────────────────────────────────────────────

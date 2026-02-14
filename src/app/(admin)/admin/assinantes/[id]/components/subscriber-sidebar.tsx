@@ -69,7 +69,7 @@ const STATUS_MAP: Record<
   SUSPENDED: { label: 'Suspenso', variant: 'destructive' },
   CANCELED: { label: 'Cancelado', variant: 'destructive' },
   EXPIRED: { label: 'Expirado', variant: 'outline' },
-  GUEST: { label: 'Convidado', variant: 'secondary' },
+  GUEST: { label: 'Convidado (legado)', variant: 'secondary' },
 }
 
 export default function SubscriberSidebar({
@@ -245,7 +245,6 @@ export default function SubscriberSidebar({
                 <SelectItem value="SUSPENDED">Suspenso</SelectItem>
                 <SelectItem value="CANCELED">Cancelado</SelectItem>
                 <SelectItem value="EXPIRED">Expirado</SelectItem>
-                <SelectItem value="GUEST">Convidado</SelectItem>
               </SelectContent>
             </Select>
           </div>

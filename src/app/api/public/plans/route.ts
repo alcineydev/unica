@@ -10,7 +10,10 @@ export async function GET(request: NextRequest) {
     logger.debug('[API PLANS] Buscando planos...')
 
     const plans = await prisma.plan.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        NOT: { slug: 'convite' },
+      },
       orderBy: { price: 'asc' },
       include: {
         planBenefits: {

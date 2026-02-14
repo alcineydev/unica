@@ -318,7 +318,6 @@ export default function NovoAssinantePage() {
                     <SelectContent>
                       <SelectItem value="PENDING">Pendente</SelectItem>
                       <SelectItem value="ACTIVE">Ativo</SelectItem>
-                      <SelectItem value="GUEST">Convidado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

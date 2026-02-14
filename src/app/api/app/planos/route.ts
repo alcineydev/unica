@@ -22,9 +22,12 @@ export async function GET() {
       },
     })
 
-    // Buscar planos ativos com benefícios
+    // Buscar planos ativos com benefícios (ocultar Convite)
     const plans = await prisma.plan.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        NOT: { slug: 'convite' },
+      },
       include: {
         planBenefits: {
           include: {

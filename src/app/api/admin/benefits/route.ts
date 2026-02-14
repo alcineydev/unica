@@ -89,6 +89,27 @@ export async function POST(request: Request) {
       },
     })
 
+    // Auto-vincular ao plano Convite (tem todos os benefícios)
+    const convitePlan = await prisma.plan.findUnique({
+      where: { slug: 'convite' }
+    })
+
+    if (convitePlan) {
+      await prisma.planBenefit.upsert({
+        where: {
+          planId_benefitId: {
+            planId: convitePlan.id,
+            benefitId: benefit.id,
+          },
+        },
+        update: {},
+        create: {
+          planId: convitePlan.id,
+          benefitId: benefit.id,
+        },
+      })
+    }
+
     return NextResponse.json(
       { message: 'Benefício criado com sucesso', data: benefit },
       { status: 201 }
