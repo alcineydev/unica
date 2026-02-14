@@ -71,10 +71,14 @@ export function NotificationPermissionModal() {
       }
     }
 
-    // Aguardar um pouco antes de mostrar (melhor UX)
+    // Delay maior para não conflitar com notification modal
     setTimeout(() => {
-      setIsOpen(true)
-    }, 2000)
+      // Só abrir se não houver outro dialog aberto
+      const hasOpenDialog = document.querySelector('[data-state="open"][role="dialog"]')
+      if (!hasOpenDialog) {
+        setIsOpen(true)
+      }
+    }, 5000)
   }
 
   const handleRequestPermission = async () => {
@@ -191,33 +195,33 @@ export function NotificationPermissionModal() {
 
         {/* Benefícios */}
         <div className="space-y-3 my-4">
-          <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
             <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
               <Tag className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="font-medium text-green-800 dark:text-green-200">Promoções Exclusivas</p>
-              <p className="text-sm text-green-600 dark:text-green-400">Seja o primeiro a saber dos descontos</p>
+              <p className="font-medium text-green-800">Promoções Exclusivas</p>
+              <p className="text-sm text-green-600">Seja o primeiro a saber dos descontos</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
             <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
               <Gift className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="font-medium text-blue-800 dark:text-blue-200">Novos Benefícios</p>
-              <p className="text-sm text-blue-600 dark:text-blue-400">Saiba quando novos parceiros entrarem</p>
+              <p className="font-medium text-blue-800">Novos Benefícios</p>
+              <p className="text-sm text-blue-600">Saiba quando novos parceiros entrarem</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
             <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
               <Calendar className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="font-medium text-purple-800 dark:text-purple-200">Lembretes</p>
-              <p className="text-sm text-purple-600 dark:text-purple-400">Vencimento do plano e cashback</p>
+              <p className="font-medium text-purple-800">Lembretes</p>
+              <p className="text-sm text-purple-600">Vencimento do plano e cashback</p>
             </div>
           </div>
         </div>

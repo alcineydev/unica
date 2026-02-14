@@ -125,7 +125,13 @@ export default function PlanosPage() {
       const response = await fetch('/api/app/planos', { cache: 'no-store' })
       const data = await response.json()
 
-      if (data.plans) setPlans(data.plans)
+      // Filtrar planos gratuitos (price <= 0)
+      if (data.plans) {
+        const paidPlans = (data.plans as Plan[]).filter(
+          (p) => Number(p.priceMonthly || p.price) > 0
+        )
+        setPlans(paidPlans)
+      }
       if (data.currentPlan?.id) setCurrentPlanId(data.currentPlan.id)
       else if (data.currentPlanId) setCurrentPlanId(data.currentPlanId)
       if (data.subscription) setSubscription(data.subscription)
@@ -182,22 +188,9 @@ export default function PlanosPage() {
         return
       }
 
-      // ---- Plano gratuito: ativa direto via API ----
-      const response = await fetch('/api/app/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId: plan.id }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        toast.error(data.error || 'Erro ao ativar plano')
-        return
-      }
-
-      toast.success(data.message || 'Plano ativado com sucesso!')
-      router.push(data.redirect || '/app')
+      // Planos gratuitos não devem existir, mas por segurança
+      toast.error('Plano indisponível para assinatura')
+      return
     } catch (error) {
       console.error('Erro no checkout:', error)
       toast.error('Erro ao processar. Tente novamente.')
@@ -212,8 +205,8 @@ export default function PlanosPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background pb-24">
-        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b px-4 py-3">
+      <div className="pb-24">
+        <div className="px-4 py-3">
           <Skeleton className="h-6 w-48" />
         </div>
         <div className="px-4 py-6 space-y-4">
@@ -231,9 +224,9 @@ export default function PlanosPage() {
   // ==========================================
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background pb-24">
+    <div className="pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-4 py-3">
+      <div className="px-4 py-3">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/app">
@@ -270,7 +263,6 @@ export default function PlanosPage() {
               const isPopular =
                 index === Math.floor(plans.length / 2) && plans.length > 1
               const price = Number(plan.priceMonthly || plan.price)
-              const isFree = price <= 0
 
               return (
                 <Card
@@ -312,7 +304,7 @@ export default function PlanosPage() {
                           className={cn(
                             'w-12 h-12 rounded-xl flex items-center justify-center',
                             isCurrentPlan
-                              ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                              ? 'bg-green-100 text-green-600'
                               : isPopular
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-muted text-muted-foreground'
@@ -330,20 +322,12 @@ export default function PlanosPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        {isFree ? (
-                          <div className="text-2xl font-bold text-green-600">
-                            Grátis
-                          </div>
-                        ) : (
-                          <>
-                            <div className="text-2xl font-bold">
-                              {formatPrice(price)}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {getPeriodLabel(plan.period)}
-                            </div>
-                          </>
-                        )}
+                        <div className="text-2xl font-bold">
+                          {formatPrice(price)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {getPeriodLabel(plan.period)}
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
@@ -428,11 +412,6 @@ export default function PlanosPage() {
                         <>
                           <CheckCircle2 className="mr-2 h-5 w-5 text-green-500" />
                           Plano Atual
-                        </>
-                      ) : isFree ? (
-                        <>
-                          Ativar Grátis
-                          <ChevronRight className="ml-2 h-5 w-5" />
                         </>
                       ) : (
                         <>

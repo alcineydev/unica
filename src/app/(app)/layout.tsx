@@ -22,30 +22,19 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Toaster position="top-center" richColors />
-
-      {/* Header */}
+    <div className="min-h-screen bg-[#f8fafc]">
       <AppHeader />
-
-      {/* Container com Sidebar + Conteudo */}
       <div className="flex">
-        {/* Sidebar - apenas desktop (lg+) */}
         <AppSidebar />
-
-        {/* Conteudo Principal */}
-        <main className="flex-1 w-full">
-          <div className="max-w-4xl mx-auto px-4 py-6 pb-24 lg:pb-6">
+        <main className="flex-1 min-h-[calc(100vh-64px)] pb-20 lg:pb-6">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
             {children}
           </div>
         </main>
       </div>
-
-      {/* Bottom Nav - apenas mobile/tablet (< lg) */}
       <BottomNav />
-
-      {/* Modal de Permissão de Notificações */}
       <NotificationPermissionModal />
+      <Toaster position="top-right" richColors />
     </div>
   )
 }

@@ -1,68 +1,61 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 import {
-  Home,
-  CreditCard,
-  Star,
-  User,
-  LogOut
+  Home, Search, CreditCard, Store, Star,
+  Bell, User, LogOut
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
-const menuItems = [
-  { href: '/app', label: 'Início', icon: Home },
-  { href: '/app/carteira', label: 'Carteira', icon: CreditCard },
-  { href: '/app/minhas-avaliacoes', label: 'Minhas Avaliações', icon: Star },
-  { href: '/app/perfil', label: 'Meu Perfil', icon: User },
+const navItems = [
+  { icon: Home, label: 'Início', href: '/app' },
+  { icon: Search, label: 'Buscar', href: '/app/buscar' },
+  { icon: CreditCard, label: 'Carteira', href: '/app/carteira' },
+  { icon: Store, label: 'Parceiros', href: '/app/parceiros' },
+  { icon: Star, label: 'Avaliações', href: '/app/minhas-avaliacoes' },
+  { icon: Bell, label: 'Notificações', href: '/app/notificacoes' },
+  { icon: User, label: 'Meu Perfil', href: '/app/perfil' },
 ]
 
 export function AppSidebar() {
   const pathname = usePathname()
 
-  const handleLogout = async () => {
-    await signOut({ callbackUrl: '/login' })
-  }
-
   return (
-    <aside className="hidden lg:flex w-64 flex-col h-[calc(100vh-56px)] sticky top-14 border-r bg-zinc-50/50 dark:bg-zinc-900/50">
-      {/* Menu Items */}
-      <div className="flex-1 py-4 overflow-y-auto">
-        <nav className="space-y-1 px-3">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href ||
-              (item.href !== '/app' && pathname.startsWith(item.href))
+    <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r border-gray-200 bg-white h-[calc(100vh-64px)] sticky top-16">
+      <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
+        {navItems.map(({ icon: Icon, label, href }) => {
+          const isActive = href === '/app'
+            ? pathname === '/app'
+            : pathname.startsWith(href)
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            )
-          })}
-        </nav>
-      </div>
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                isActive
+                  ? 'bg-blue-50 text-blue-600 font-semibold'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+              }`}
+            >
+              <Icon className={`h-[18px] w-[18px] ${isActive ? 'stroke-[2.5px]' : ''}`} />
+              <span>{label}</span>
+            </Link>
+          )
+        })}
+      </nav>
 
-      {/* Botão Sair - Fixo na parte inferior */}
-      <div className="p-3 border-t mt-auto">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
+      <div className="p-3 border-t border-gray-100">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 px-3 py-2.5 text-sm text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl"
+          onClick={() => signOut({ callbackUrl: '/login' })}
         >
-          <LogOut className="h-5 w-5" />
-          Sair
-        </button>
+          <LogOut className="h-[18px] w-[18px]" />
+          <span>Sair</span>
+        </Button>
       </div>
     </aside>
   )

@@ -1,61 +1,42 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { Home, Search, Store, Wallet, User } from 'lucide-react'
+import Link from 'next/link'
+import { Home, Search, CreditCard, Store, User } from 'lucide-react'
 
-const navItems = [
-  {
-    title: 'Início',
-    href: '/app',
-    icon: Home,
-  },
-  {
-    title: 'Buscar',
-    href: '/app/buscar',
-    icon: Search,
-  },
-  {
-    title: 'Parceiros',
-    href: '/app/parceiros',
-    icon: Store,
-  },
-  {
-    title: 'Carteira',
-    href: '/app/carteira',
-    icon: Wallet,
-  },
-  {
-    title: 'Conta',
-    href: '/app/perfil',
-    icon: User,
-  },
+const items = [
+  { icon: Home, label: 'Início', href: '/app' },
+  { icon: Search, label: 'Buscar', href: '/app/buscar' },
+  { icon: CreditCard, label: 'Carteira', href: '/app/carteira' },
+  { icon: Store, label: 'Parceiros', href: '/app/parceiros' },
+  { icon: User, label: 'Perfil', href: '/app/perfil' },
 ]
 
 export function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 max-w-full overflow-hidden lg:hidden safe-area-bottom">
-      <div className="flex h-16 items-center justify-around max-w-lg mx-auto overflow-hidden px-2">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href ||
-            (item.href !== '/app' && pathname.startsWith(item.href))
+    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white border-t border-gray-200 safe-area-bottom">
+      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+        {items.map(({ icon: Icon, label, href }) => {
+          const isActive = href === '/app'
+            ? pathname === '/app'
+            : pathname.startsWith(href)
 
           return (
             <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex flex-col items-center justify-center gap-1 flex-1 min-w-0 py-2 text-[10px] transition-colors',
+              key={href}
+              href={href}
+              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1 rounded-lg transition-colors ${
                 isActive
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
+                  ? 'text-blue-600'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
             >
-              <item.icon className={cn('h-5 w-5 flex-shrink-0', isActive && 'fill-primary/20')} />
-              <span className="font-medium truncate">{item.title}</span>
+              <Icon className={`h-5 w-5 ${isActive ? 'stroke-[2.5px]' : ''}`} />
+              <span className={`text-[10px] leading-none ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                {label}
+              </span>
             </Link>
           )
         })}
@@ -63,4 +44,3 @@ export function BottomNav() {
     </nav>
   )
 }
-
