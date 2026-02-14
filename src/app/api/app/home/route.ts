@@ -289,9 +289,9 @@ export async function GET() {
       categorias = categoriasDb.map(c => c.category).filter(Boolean).sort()
     }
 
-    // Se não tem plano ativo, busca planos disponíveis
+    // Busca planos disponíveis (para upgrade ou assinatura)
     let planosDisponiveis = null
-    if (!temPlanoAtivo) {
+    {
       const planos = await prisma.plan.findMany({
         where: { isActive: true },
         orderBy: { price: 'asc' },
@@ -353,6 +353,7 @@ export async function GET() {
         totalBeneficios: temPlanoAtivo ? (assinante.plan?.planBenefits.length || 0) : 0,
         categorias,
         planosDisponiveis,
+        currentPlanId: assinante.planId || null,
       },
     })
   } catch (error) {

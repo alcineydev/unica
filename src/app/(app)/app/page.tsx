@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Store, ChevronRight, Crown, Zap, ArrowRight, Wallet
+  Store, ChevronRight, Crown, Zap, ArrowRight, Wallet,
+  Eye, EyeOff, Coins, TrendingUp, Sparkles, Star,
+  Building2
 } from 'lucide-react'
 import { toast } from 'sonner'
-import {
-  CarouselDestaques, CategoriesList, ParceiroCardGrid,
-  SectionHeader, QuickActions, OfertasBanner
-} from '@/components/app/home'
+import { CarouselDestaques } from '@/components/app/home'
 
 // ==========================================
 // Tipos
@@ -42,6 +42,18 @@ interface Destaque {
   logo: string | null
 }
 
+interface ParceiroPlano {
+  id: string
+  companyName: string
+  tradeName: string | null
+  logo: string | null
+  category: string
+  description: string | null
+  city: { name: string } | null
+  avaliacoes: { media: number; total: number }
+  benefits: Array<{ id: string; name: string; type: string; value: number }>
+}
+
 interface ParceiroDestaque {
   id: string
   nomeFantasia: string
@@ -57,22 +69,17 @@ interface ParceiroDestaque {
 interface HomeData {
   user: { name: string; firstName: string; planName: string | null }
   assinante: {
-    name: string
-    points: number
-    cashback: number
-    planId: string | null
-    subscriptionStatus: string
-    planStartDate: string | null
-    planEndDate: string | null
-    plan: {
-      name: string
-      planBenefits: Array<{ benefit: { id: string; name: string; type: string } }>
-    } | null
+    name: string; points: number; cashback: number
+    planId: string | null; subscriptionStatus: string
+    planStartDate: string | null; planEndDate: string | null
+    plan: { name: string; planBenefits: Array<{ benefit: { id: string; name: string; type: string } }> } | null
   }
   categories: Category[]
   destaques: Destaque[]
   parceirosDestaque: ParceiroDestaque[]
   novidades: ParceiroDestaque[]
+  parceiros: ParceiroPlano[]
+  currentPlanId: string | null
   planosDisponiveis?: Plan[]
 }
 
@@ -81,19 +88,26 @@ interface HomeData {
 // ==========================================
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value)
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
+function getBenefitBadge(type: string, value: number) {
+  switch (type) {
+    case 'DESCONTO': return { text: `${value}% OFF`, color: 'bg-green-100 text-green-700' }
+    case 'CASHBACK': return { text: `${value}% Cash`, color: 'bg-amber-100 text-amber-700' }
+    case 'PONTOS': return { text: `${value} pts`, color: 'bg-blue-100 text-blue-700' }
+    default: return { text: 'Exclusivo', color: 'bg-violet-100 text-violet-700' }
+  }
 }
 
 // ==========================================
-// Componente Principal
+// Componente
 // ==========================================
 
 export default function AppHomePage() {
   const [data, setData] = useState<HomeData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [showValues, setShowValues] = useState(true)
 
   useEffect(() => {
     fetchHomeData()
@@ -103,12 +117,10 @@ export default function AppHomePage() {
     try {
       const response = await fetch('/api/app/home')
       const result = await response.json()
-
       if (result.error) {
         toast.error(result.error)
         return
       }
-
       setData(result.data)
     } catch (error) {
       console.error('Erro ao carregar home:', error)
@@ -118,39 +130,31 @@ export default function AppHomePage() {
     }
   }
 
-  // ==========================================
   // Loading
-  // ==========================================
-
   if (isLoading) {
     return (
-      <div className="space-y-5">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-12 w-40" />
-          <Skeleton className="h-10 w-28 rounded-xl" />
-        </div>
-        <Skeleton className="h-40 w-full rounded-2xl" />
-        <div className="flex gap-3 overflow-hidden">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-20 w-20 rounded-xl flex-shrink-0" />
-          ))}
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-48 rounded-xl" />
-          ))}
+      <div className="space-y-0 -mx-4 sm:-mx-6 -mt-6">
+        <Skeleton className="h-[240px] rounded-none" />
+        <div className="px-4 sm:px-6 space-y-4 mt-4">
+          <Skeleton className="h-40 rounded-2xl" />
+          <div className="flex gap-3 overflow-hidden">
+            {[1, 2, 3, 4, 5].map(i => (
+              <Skeleton key={i} className="h-20 w-20 rounded-xl flex-shrink-0" />
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4].map(i => (
+              <Skeleton key={i} className="h-36 rounded-xl" />
+            ))}
+          </div>
         </div>
       </div>
     )
   }
 
-  const isPlanActive =
-    data?.assinante?.planId && data?.assinante?.subscriptionStatus === 'ACTIVE'
+  const isPlanActive = data?.assinante?.planId && data?.assinante?.subscriptionStatus === 'ACTIVE'
 
-  // ==========================================
-  // Sem plano ativo
-  // ==========================================
-
+  // ===== SEM PLANO ATIVO =====
   if (!isPlanActive) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
@@ -171,7 +175,6 @@ export default function AppHomePage() {
           </Link>
         </Button>
 
-        {/* Preview de benefícios */}
         <div className="mt-12 grid grid-cols-3 gap-8 text-center">
           {[
             { value: '500+', label: 'Parceiros' },
@@ -185,165 +188,309 @@ export default function AppHomePage() {
           ))}
         </div>
 
-        {/* Planos disponíveis */}
         {data?.planosDisponiveis && data.planosDisponiveis.length > 0 && (
           <div className="mt-10 w-full max-w-md space-y-3">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-              Planos disponíveis
-            </h2>
-            {data.planosDisponiveis
-              .filter((p) => Number(p.price) > 0)
-              .map((plan, i) => (
-                <Link
-                  key={plan.id}
-                  href={`/checkout/${plan.slug || plan.id}`}
-                  className="block"
-                >
-                  <div
-                    className={`flex items-center justify-between p-4 rounded-xl bg-white border transition-all hover:shadow-md ${
-                      i === 0
-                        ? 'border-blue-200 shadow-sm'
-                        : 'border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          i === 0
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {i === 0 ? (
-                          <Crown className="h-5 w-5" />
-                        ) : (
-                          <Zap className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-sm text-gray-900">
-                          {plan.name}
-                        </h3>
-                        <p className="text-xs text-gray-400">
-                          {plan.planBenefits.length} benefícios
-                        </p>
-                      </div>
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Planos disponíveis</h2>
+            {data.planosDisponiveis.filter(p => Number(p.price) > 0).map((plan, i) => (
+              <Link key={plan.id} href={`/checkout/${plan.slug || plan.id}`} className="block">
+                <div className={`flex items-center justify-between p-4 rounded-xl bg-white border transition-all hover:shadow-md ${
+                  i === 0 ? 'border-blue-200 shadow-sm' : 'border-gray-200'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      i === 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {i === 0 ? <Crown className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
                     </div>
-                    <div className="text-right flex items-center gap-2">
-                      <div>
-                        <div className="font-bold text-sm text-gray-900">
-                          {formatCurrency(plan.price)}
-                        </div>
-                        <div className="text-[10px] text-gray-400">/mês</div>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-gray-300" />
+                    <div>
+                      <h3 className="font-semibold text-sm text-gray-900">{plan.name}</h3>
+                      <p className="text-xs text-gray-400">{plan.planBenefits.length} benefícios</p>
                     </div>
                   </div>
-                </Link>
-              ))}
+                  <div className="text-right flex items-center gap-2">
+                    <div>
+                      <div className="font-bold text-sm text-gray-900">{formatCurrency(plan.price)}</div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-gray-300" />
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         )}
       </div>
     )
   }
 
-  // ==========================================
-  // Home com plano ativo
-  // ==========================================
+  // ===== HOME COM PLANO ATIVO =====
+  const {
+    user, assinante, categories, destaques,
+    parceirosDestaque, parceiros, planosDisponiveis, currentPlanId
+  } = data!
 
-  const { user, assinante, categories, destaques, parceirosDestaque, novidades } =
-    data!
+  // Planos de upgrade (excluir plano atual, só preço maior)
+  const currentPlanPrice = planosDisponiveis?.find(p => p.id === currentPlanId)?.price || 0
+  const planosUpgrade = planosDisponiveis?.filter(p =>
+    p.id !== currentPlanId && Number(p.price) > Number(currentPlanPrice) && Number(p.price) > 0
+  ) || []
 
   return (
-    <div className="space-y-6 pb-24">
-      {/* Header: saudação + cashback */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-400">Olá,</p>
-          <h1 className="text-xl font-bold text-gray-900">{user.firstName}</h1>
-        </div>
-        <Link href="/app/carteira">
-          <div className="flex items-center gap-2.5 bg-white border border-gray-200 px-3.5 py-2 rounded-xl hover:shadow-md hover:border-blue-200 transition-all">
-            <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
-              <Wallet className="h-4 w-4 text-green-600" />
+    <div className="space-y-0 -mx-4 sm:-mx-6 -mt-6 pb-24">
+
+      {/* ===== HERO - APP BANKING ===== */}
+      <div className="relative overflow-hidden">
+        <div className="bg-gradient-to-br from-[#0a1628] via-[#0f1f3d] to-[#0a1628]">
+          {/* Decoração */}
+          <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/[0.08] rounded-full blur-[100px] -translate-y-1/3 translate-x-1/4 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-56 h-56 bg-blue-400/[0.06] rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+
+          <div className="relative px-5 pt-6 pb-7">
+            {/* Topo: saudação + toggle */}
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 bg-white/10 rounded-full flex items-center justify-center border border-white/10">
+                  <span className="text-white font-bold text-sm">
+                    {user.firstName?.charAt(0)?.toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-base">Olá, {user.firstName}</p>
+                  <div className="flex items-center gap-1.5">
+                    <Crown className="h-3 w-3 text-blue-300/70" />
+                    <span className="text-[11px] text-blue-300/60">{assinante.plan?.name || 'Plano'}</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowValues(!showValues)}
+                className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
+                title={showValues ? 'Ocultar valores' : 'Mostrar valores'}
+              >
+                {showValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </button>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] text-gray-400 leading-tight">Cashback</p>
-              <p className="font-bold text-sm text-green-600">
-                {formatCurrency(assinante.cashback)}
-              </p>
+
+            {/* Saldo */}
+            <div className="mb-5">
+              <p className="text-[10px] text-blue-300/40 uppercase tracking-widest mb-1">Saldo disponível</p>
+              <h1 className="text-[28px] sm:text-[32px] font-extrabold text-white tracking-tight">
+                {showValues ? formatCurrency(assinante.cashback || 0) : 'R$ •••••'}
+              </h1>
+            </div>
+
+            {/* Métricas */}
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-xl p-3 text-center">
+                <Coins className="h-4 w-4 text-amber-400 mx-auto mb-1" />
+                <p className="text-base font-bold text-white">
+                  {showValues ? Number(assinante.points || 0).toLocaleString('pt-BR') : '•••'}
+                </p>
+                <p className="text-[9px] text-white/30">Pontos</p>
+              </div>
+              <div className="bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-xl p-3 text-center">
+                <TrendingUp className="h-4 w-4 text-green-400 mx-auto mb-1" />
+                <p className="text-base font-bold text-white">
+                  {showValues ? formatCurrency((assinante.cashback || 0) + (assinante.points || 0) * 0.01) : '•••'}
+                </p>
+                <p className="text-[9px] text-white/30">Economia</p>
+              </div>
+              <Link
+                href="/app/carteira"
+                className="bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-xl p-3 text-center hover:bg-white/[0.1] transition-colors"
+              >
+                <Wallet className="h-4 w-4 text-blue-400 mx-auto mb-1" />
+                <p className="text-[10px] font-semibold text-white">Carteira</p>
+                <p className="text-[9px] text-white/30">QR Code</p>
+              </Link>
             </div>
           </div>
-        </Link>
+        </div>
+        <div className="h-4 bg-gradient-to-b from-[#0a1628] to-transparent rounded-b-[20px]" />
       </div>
 
-      {/* Plano ativo - mini card */}
-      <div className="flex items-center gap-3 p-3 bg-white border border-blue-100 rounded-xl">
-        <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center">
-          <Crown className="h-4 w-4 text-blue-600" />
+      {/* ===== CARROSSEL DESTAQUES ===== */}
+      {destaques.length > 0 && (
+        <div className="px-4 sm:px-6 -mt-1">
+          <CarouselDestaques destaques={destaques} />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs text-gray-400">Plano ativo</p>
-          <p className="text-sm font-semibold text-gray-900 truncate">
-            {assinante.plan?.name || 'Plano'}
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5 text-[11px] text-green-600 font-medium bg-green-50 px-2 py-1 rounded-md">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-          Ativo
-        </div>
-      </div>
-
-      {/* Carrossel de Destaques */}
-      {destaques.length > 0 && <CarouselDestaques destaques={destaques} />}
-
-      {/* Categorias */}
-      {categories.length > 0 && (
-        <section className="space-y-3">
-          <SectionHeader title="Categorias" href="/app/parceiros" />
-          <CategoriesList categories={categories} />
-        </section>
       )}
 
-      {/* Parceiros em Destaque */}
+      {/* ===== PARCEIROS EM DESTAQUE ===== */}
       {parceirosDestaque.length > 0 && (
-        <section className="space-y-3">
-          <SectionHeader title="Em Destaque" href="/app/parceiros?destaque=true" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {parceirosDestaque.slice(0, 6).map((parceiro) => (
-              <ParceiroCardGrid key={parceiro.id} parceiro={parceiro} />
+        <div className="px-4 sm:px-6 mt-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+              <Sparkles className="h-4 w-4 text-blue-600" /> Em Destaque
+            </h2>
+            <Link href="/app/parceiros?destaque=true" className="text-xs font-medium text-blue-600 hover:text-blue-700">
+              Ver todos →
+            </Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+            {parceirosDestaque.slice(0, 8).map((p) => (
+              <Link key={p.id} href={`/app/parceiros/${p.id}`} className="flex-shrink-0 w-[140px]">
+                <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md hover:border-blue-100 transition-all">
+                  <div className="h-16 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+                    {p.logo ? (
+                      <Image src={p.logo} alt={p.nomeFantasia} width={48} height={48} className="object-contain rounded-lg" unoptimized />
+                    ) : (
+                      <Building2 className="h-6 w-6 text-blue-300" />
+                    )}
+                  </div>
+                  <div className="p-2.5">
+                    <p className="text-xs font-semibold text-gray-900 truncate">{p.nomeFantasia}</p>
+                    <p className="text-[10px] text-gray-400 truncate">{p.category}</p>
+                    {p.desconto && (
+                      <span className="inline-block mt-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-green-100 text-green-700">
+                        {p.desconto}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
-        </section>
+        </div>
       )}
 
-      {/* Ofertas Próximas */}
-      <section className="space-y-3">
-        <SectionHeader title="Ofertas Próximas" />
-        <OfertasBanner />
-      </section>
-
-      {/* Novidades */}
-      {novidades.length > 0 && (
-        <section className="space-y-3">
-          <SectionHeader title="Novidades" href="/app/parceiros?novidades=true" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {novidades.slice(0, 6).map((parceiro) => (
-              <ParceiroCardGrid key={parceiro.id} parceiro={parceiro} />
+      {/* ===== CATEGORIAS ===== */}
+      {categories.length > 0 && (
+        <div className="px-4 sm:px-6 mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900">Categorias</h2>
+            <Link href="/app/categorias" className="text-xs font-medium text-blue-600 hover:text-blue-700">
+              Ver todas →
+            </Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+            {categories.map((cat) => (
+              <Link key={cat.id} href={`/app/categoria/${cat.slug}`} className="flex-shrink-0">
+                <div className="flex flex-col items-center gap-1.5 w-[72px]">
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-white">
+                    {cat.banner ? (
+                      <Image src={cat.banner} alt={cat.name} width={56} height={56} className="object-cover w-full h-full" unoptimized />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+                        <Store className="h-5 w-5 text-blue-400" />
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[10px] font-medium text-gray-600 text-center leading-tight line-clamp-2">{cat.name}</p>
+                </div>
+              </Link>
             ))}
           </div>
-        </section>
+        </div>
       )}
 
-      {/* Ações Rápidas */}
-      <section className="space-y-3">
-        <SectionHeader title="Acesso Rápido" />
-        <QuickActions />
-      </section>
+      {/* ===== PARCEIROS DO SEU PLANO ===== */}
+      {parceiros.length > 0 && (
+        <div className="px-4 sm:px-6 mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+              <Crown className="h-4 w-4 text-blue-600" /> Parceiros do seu Plano
+            </h2>
+            <Link href="/app/parceiros" className="text-xs font-medium text-blue-600 hover:text-blue-700">
+              Ver todos →
+            </Link>
+          </div>
+          <p className="text-[11px] text-gray-400 -mt-1.5 mb-3">
+            Empresas com benefícios para o plano {assinante.plan?.name}
+          </p>
+          <div className="space-y-2.5">
+            {parceiros.slice(0, 8).map((p) => (
+              <Link key={p.id} href={`/app/parceiros/${p.id}`}>
+                <div className="flex items-center gap-3.5 p-3 bg-white rounded-xl border border-gray-100 hover:border-blue-100 hover:shadow-sm transition-all">
+                  {/* Logo */}
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100">
+                    {p.logo ? (
+                      <Image src={p.logo} alt={p.tradeName || p.companyName} width={48} height={48} className="object-cover w-full h-full" unoptimized />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+                        <Building2 className="h-5 w-5 text-blue-300" />
+                      </div>
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-sm text-gray-900 truncate">{p.tradeName || p.companyName}</p>
+                      {p.avaliacoes.total > 0 && (
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          <span className="text-[11px] font-medium text-gray-500">{p.avaliacoes.media.toFixed(1)}</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-400 truncate">
+                      {p.category}
+                      {p.city && <> · {p.city.name}</>}
+                    </p>
+                    {/* Badges de benefícios */}
+                    {p.benefits.length > 0 && (
+                      <div className="flex gap-1 mt-1.5 flex-wrap">
+                        {p.benefits.slice(0, 3).map((b) => {
+                          const badge = getBenefitBadge(b.type, b.value)
+                          return (
+                            <span key={b.id} className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${badge.color}`}>
+                              {badge.text}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-gray-300 shrink-0" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* Fallback vazio */}
-      {!destaques.length && !parceirosDestaque.length && !novidades.length && (
-        <div className="text-center py-12">
+      {/* ===== UPGRADE DE PLANO ===== */}
+      {planosUpgrade.length > 0 && (
+        <div className="px-4 sm:px-6 mt-6">
+          <div className="p-4 bg-gradient-to-br from-[#0f172a] to-[#1e293b] rounded-2xl overflow-hidden relative">
+            {/* Decoração */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Zap className="h-4 w-4 text-amber-400" />
+                <h2 className="text-sm font-bold text-white">Faça Upgrade</h2>
+              </div>
+              <p className="text-[11px] text-white/50 mb-4">Desbloqueie mais benefícios e parceiros</p>
+
+              <div className="space-y-2.5">
+                {planosUpgrade.map((plan) => (
+                  <Link key={plan.id} href={`/checkout/${plan.slug || plan.id}`}>
+                    <div className="flex items-center justify-between p-3 bg-white/[0.07] border border-white/10 rounded-xl hover:bg-white/[0.12] transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-amber-400/15 flex items-center justify-center">
+                          <Crown className="h-4 w-4 text-amber-400" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-white">{plan.name}</p>
+                          <p className="text-[10px] text-white/40">{plan.planBenefits.length} benefícios</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-sm text-white">{formatCurrency(plan.price)}</p>
+                        <ArrowRight className="h-4 w-4 text-white/30" />
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== FALLBACK VAZIO ===== */}
+      {!destaques.length && !parceirosDestaque.length && !parceiros.length && (
+        <div className="px-4 sm:px-6 text-center py-12">
           <Store className="h-12 w-12 mx-auto text-gray-300 mb-3" />
           <p className="text-gray-400">Nenhum parceiro disponível no momento.</p>
           <p className="text-xs text-gray-300 mt-1">Novos parceiros em breve!</p>
