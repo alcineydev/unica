@@ -37,7 +37,7 @@ export function CarouselDestaques({ destaques }: CarouselDestaquesProps) {
   const next = () => setCurrent((c) => (c + 1) % destaques.length)
 
   return (
-    <div className="relative w-full aspect-[2/1] rounded-xl overflow-hidden bg-muted">
+    <div className="relative w-full aspect-[2/1] rounded-xl overflow-hidden bg-gray-100">
       {/* Slides */}
       {destaques.map((destaque, index) => (
         <Link
@@ -58,7 +58,7 @@ export function CarouselDestaques({ destaques }: CarouselDestaquesProps) {
               unoptimized
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-r from-blue-600 to-blue-500 flex items-center justify-center">
               <span className="text-white text-xl font-bold">{destaque.nomeFantasia}</span>
             </div>
           )}
@@ -79,12 +79,14 @@ export function CarouselDestaques({ destaques }: CarouselDestaquesProps) {
           <button
             onClick={(e) => { e.preventDefault(); prev(); }}
             className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/30 text-white hover:bg-black/50 transition z-10"
+            title="Anterior"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             onClick={(e) => { e.preventDefault(); next(); }}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/30 text-white hover:bg-black/50 transition z-10"
+            title="Próximo"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -95,6 +97,7 @@ export function CarouselDestaques({ destaques }: CarouselDestaquesProps) {
               <button
                 key={index}
                 onClick={(e) => { e.preventDefault(); setCurrent(index); }}
+                title={`Slide ${index + 1}`}
                 className={cn(
                   "w-2 h-2 rounded-full transition-all",
                   index === current ? "bg-white w-4" : "bg-white/50"

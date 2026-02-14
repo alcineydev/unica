@@ -11,7 +11,7 @@ import {
   Building2
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { CarouselDestaques } from '@/components/app/home'
+import { CarouselDestaques, RecentTransactions } from '@/components/app/home'
 
 // ==========================================
 // Tipos
@@ -447,6 +447,11 @@ export default function AppHomePage() {
           </div>
         </div>
       )}
+
+      {/* ===== ATIVIDADE RECENTE ===== */}
+      <div className="px-4 sm:px-6 mt-6">
+        <RecentTransactions showValues={showValues} />
+      </div>
 
       {/* ===== UPGRADE DE PLANO ===== */}
       {planosUpgrade.length > 0 && (
