@@ -44,7 +44,7 @@ export default function CategoriasPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-24 px-4 pt-4 lg:px-8 lg:pt-6">
+    <div className="min-h-screen bg-[#f8fafc] pb-24 px-4 pt-4 lg:px-10 lg:pt-8">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-[#f8fafc] border-b">
         <div className="flex items-center gap-3 p-4">

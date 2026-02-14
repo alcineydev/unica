@@ -111,7 +111,7 @@ function ParceirosContent() {
   const hasFilters = search || categoria
 
   return (
-    <div className="pb-24 px-4 pt-4 lg:px-8 lg:pt-6">
+    <div className="pb-24 px-4 pt-4 lg:px-10 lg:pt-8">
       {/* Header com busca */}
       <div className="sticky top-0 z-10 bg-[#f8fafc]/95 backdrop-blur-sm border-b border-gray-100">
         <div className="px-4 py-3">

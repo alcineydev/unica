@@ -7,7 +7,7 @@ import Image from 'next/image'
 import { useSession, signOut } from 'next-auth/react'
 import {
   Home, Search, CreditCard, Store, Star,
-  Bell, User, LogOut, Crown, Sparkles
+  Bell, User, LogOut, Crown
 } from 'lucide-react'
 
 const navItems = [
@@ -115,19 +115,6 @@ export function AppSidebar() {
           )
         })}
       </nav>
-
-      {/* Upgrade mini */}
-      <div className="px-3 py-3 relative">
-        <Link href="/app/planos" className="block">
-          <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-white/[0.06] hover:from-blue-500/15 hover:to-violet-500/15 transition-all">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-amber-400" />
-              <span className="text-xs font-semibold text-white/70">Upgrade</span>
-            </div>
-            <p className="text-[10px] text-white/30 mt-0.5">Mais benefícios</p>
-          </div>
-        </Link>
-      </div>
 
       {/* Sair */}
       <div className="px-3 pb-5 relative">

@@ -126,7 +126,7 @@ export default function AvaliarPage({ params }: { params: Promise<{ parceiroId: 
   }
 
   return (
-    <div className="p-4 lg:px-8 lg:pt-6 max-w-md mx-auto space-y-6">
+    <div className="p-4 lg:px-10 lg:pt-8 max-w-md mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>

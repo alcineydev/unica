@@ -133,9 +133,9 @@ export default function AppHomePage() {
   // Loading
   if (isLoading) {
     return (
-      <div className="space-y-0 lg:-mx-8 lg:-mt-6">
+      <div className="space-y-0">
         <Skeleton className="h-[240px] rounded-none" />
-        <div className="px-4 sm:px-6 space-y-4 mt-4">
+        <div className="px-4 sm:px-6 lg:px-10 space-y-4 mt-4">
           <Skeleton className="h-40 rounded-2xl" />
           <div className="flex gap-3 overflow-hidden">
             {[1, 2, 3, 4, 5].map(i => (
@@ -248,52 +248,43 @@ export default function AppHomePage() {
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-blue-400/[0.06] rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
 
           <div className="relative px-5 pt-4 pb-7">
-            {/* Mini header mobile */}
+            {/* Mini header: foto+nome+plano | sino */}
             <div className="flex items-center justify-between mb-5">
-              <Link href="/app" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <span className="text-white font-extrabold text-[11px]">U</span>
+              <Link href="/app/perfil" className="flex items-center gap-2.5">
+                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center border border-white/10 overflow-hidden">
+                  <span className="text-white/70 font-semibold text-sm">{user.firstName?.charAt(0)?.toUpperCase()}</span>
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-[14px]">Olá, {user.firstName}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Crown className="h-3 w-3 text-amber-400/60" />
+                    <span className="text-[10px] text-white/40">{assinante.plan?.name || 'Plano'}</span>
+                  </div>
                 </div>
               </Link>
-              <div className="flex items-center gap-1">
-                <Link href="/app/notificacoes" className="relative p-2 rounded-full text-white/50 hover:text-white/80 hover:bg-white/5 transition-all">
-                  <Bell className="h-5 w-5" />
-                </Link>
-                <Link href="/app/perfil" className="p-1">
-                  <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center border border-white/10">
-                    <span className="text-white/70 font-semibold text-[10px]">{user.firstName?.charAt(0)?.toUpperCase()}</span>
-                  </div>
-                </Link>
-              </div>
+              <Link href="/app/notificacoes" className="relative p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-all">
+                <Bell className="h-5 w-5" />
+              </Link>
             </div>
 
-            {/* Saudação */}
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <p className="text-white font-semibold text-base">Olá, {user.firstName}</p>
-                <div className="flex items-center gap-1.5">
-                  <Crown className="h-3 w-3 text-blue-300/70" />
-                  <span className="text-[11px] text-blue-300/60">{assinante.plan?.name || 'Plano'}</span>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowValues(!showValues)}
-                className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
-                title={showValues ? 'Ocultar valores' : 'Mostrar valores'}
-              >
-                {showValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              </button>
-            </div>
-
-            {/* Saldo */}
+            {/* Saldo + Toggle */}
             <div className="mb-5">
               <p className="text-[10px] text-blue-300/40 uppercase tracking-widest mb-1">Saldo disponível</p>
-              <h1 className="text-[28px] font-extrabold text-white tracking-tight">
-                {showValues ? formatCurrency(assinante.cashback || 0) : 'R$ •••••'}
-              </h1>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-[28px] font-extrabold text-white tracking-tight">
+                  {showValues ? formatCurrency(assinante.cashback || 0) : 'R$ •••••'}
+                </h1>
+                <button
+                  onClick={() => setShowValues(!showValues)}
+                  className="p-1.5 rounded-full text-white/30 hover:text-white/60 transition-all"
+                  title={showValues ? 'Ocultar valores' : 'Mostrar valores'}
+                >
+                  {showValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
-            {/* Métricas */}
+            {/* Métricas — 3 cards glass */}
             <div className="grid grid-cols-3 gap-2.5">
               <div className="bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-xl p-3 text-center">
                 <Coins className="h-4 w-4 text-amber-400 mx-auto mb-1" />
@@ -317,18 +308,18 @@ export default function AppHomePage() {
             </div>
           </div>
         </div>
-        <div className="h-4 bg-gradient-to-b from-[#0a1628] to-[#f8fafc] rounded-b-[20px]" />
+        <div className="h-4 bg-gradient-to-b from-[#0a1628] to-[#f8fafc] rounded-b-[16px]" />
       </div>
 
       {/* ========== DESKTOP HERO (LIGHT) ========== */}
-      <div className="hidden lg:block relative overflow-hidden lg:-mx-8 lg:-mt-6">
-        <div className="bg-white">
+      <div className="hidden lg:block relative overflow-hidden">
+        <div className="bg-white border-b border-gray-200">
           <div className="absolute top-0 right-0 w-72 h-72 bg-blue-100/40 rounded-full blur-[120px] -translate-y-1/3 translate-x-1/4 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-blue-50/60 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
 
-          <div className="relative px-8 pt-6 pb-6">
+          <div className="relative px-10 py-8">
             {/* Saudação */}
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-6">
               <div>
                 <p className="text-gray-900 font-semibold text-lg">Olá, {user.firstName}</p>
                 <div className="flex items-center gap-1.5">
@@ -336,60 +327,72 @@ export default function AppHomePage() {
                   <span className="text-[12px] text-gray-400">{assinante.plan?.name || 'Plano'}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Saldo + Toggle */}
+            <div className="flex items-end justify-between mb-6">
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Saldo disponível</p>
+                <h1 className="text-[36px] font-extrabold text-gray-900 tracking-tight">
+                  {showValues ? formatCurrency(assinante.cashback || 0) : 'R$ •••••'}
+                </h1>
+              </div>
               <button
                 onClick={() => setShowValues(!showValues)}
-                className="p-2 rounded-full text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all text-xs"
                 title={showValues ? 'Ocultar valores' : 'Mostrar valores'}
               >
-                {showValues ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                {showValues ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                <span>{showValues ? 'Ocultar' : 'Mostrar'}</span>
               </button>
             </div>
 
-            {/* Saldo */}
-            <div className="mb-5">
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Saldo disponível</p>
-              <h1 className="text-[36px] font-extrabold text-gray-900 tracking-tight">
-                {showValues ? formatCurrency(assinante.cashback || 0) : 'R$ •••••'}
-              </h1>
-            </div>
-
-            {/* Métricas */}
-            <div className="grid grid-cols-3 gap-3 max-w-xl">
-              <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200/50 rounded-2xl p-3.5 text-center">
-                <Coins className="h-4 w-4 text-amber-500 mx-auto mb-1" />
-                <p className="text-lg font-bold text-gray-900">
+            {/* Métricas — 4 cards */}
+            <div className="grid grid-cols-4 gap-3">
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200/50 rounded-2xl p-4 text-center">
+                <Coins className="h-5 w-5 text-amber-500 mx-auto mb-1.5" />
+                <p className="text-xl font-bold text-gray-900">
                   {showValues ? Number(assinante.points || 0).toLocaleString('pt-BR') : '•••'}
                 </p>
-                <p className="text-[10px] text-gray-400">Pontos</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">Pontos</p>
               </div>
-              <div className="bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200/50 rounded-2xl p-3.5 text-center">
-                <TrendingUp className="h-4 w-4 text-green-500 mx-auto mb-1" />
-                <p className="text-lg font-bold text-gray-900">
+              <div className="bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200/50 rounded-2xl p-4 text-center">
+                <TrendingUp className="h-5 w-5 text-green-500 mx-auto mb-1.5" />
+                <p className="text-xl font-bold text-gray-900">
                   {showValues ? formatCurrency((assinante.cashback || 0) + (assinante.points || 0) * 0.01) : '•••'}
                 </p>
-                <p className="text-[10px] text-gray-400">Economia</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">Economia</p>
               </div>
-              <Link href="/app/carteira" className="bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200/50 rounded-2xl p-3.5 text-center hover:shadow-md hover:border-blue-300/60 transition-all">
-                <Wallet className="h-4 w-4 text-blue-500 mx-auto mb-1" />
-                <p className="text-[11px] font-semibold text-gray-900">Carteira</p>
-                <p className="text-[10px] text-gray-400">QR Code</p>
+              <Link href="/app/carteira" className="bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200/50 rounded-2xl p-4 text-center hover:shadow-md hover:border-blue-300/60 transition-all">
+                <Wallet className="h-5 w-5 text-blue-500 mx-auto mb-1.5" />
+                <p className="text-sm font-semibold text-gray-900">Carteira</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">QR Code</p>
+              </Link>
+              <Link href="/app/planos" className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] rounded-2xl p-4 text-center hover:shadow-lg transition-all relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full blur-[30px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+                <div className="relative">
+                  <Crown className="h-5 w-5 text-amber-400 mx-auto mb-1.5" />
+                  <p className="text-sm font-semibold text-white">{assinante.plan?.name}</p>
+                  <p className="text-[10px] text-amber-400/80 mt-1 flex items-center justify-center gap-0.5">
+                    <Zap className="h-3 w-3" /> Upgrade
+                  </p>
+                </div>
               </Link>
             </div>
           </div>
         </div>
-        <div className="h-3 bg-gradient-to-b from-white to-[#f8fafc]" />
       </div>
 
       {/* ===== CARROSSEL DESTAQUES ===== */}
       {destaques.length > 0 && (
-        <div className="px-4 sm:px-6 -mt-1">
+        <div className="px-4 sm:px-6 lg:px-10 -mt-1">
           <CarouselDestaques destaques={destaques} />
         </div>
       )}
 
       {/* ===== PARCEIROS EM DESTAQUE ===== */}
       {parceirosDestaque.length > 0 && (
-        <div className="px-4 sm:px-6 mt-5">
+        <div className="px-4 sm:px-6 lg:px-10 mt-5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
               <Sparkles className="h-4 w-4 text-blue-600" /> Em Destaque
@@ -427,7 +430,7 @@ export default function AppHomePage() {
 
       {/* ===== CATEGORIAS ===== */}
       {categories.length > 0 && (
-        <div className="px-4 sm:px-6 mt-6">
+        <div className="px-4 sm:px-6 lg:px-10 mt-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-gray-900">Categorias</h2>
             <Link href="/app/categorias" className="text-xs font-medium text-blue-600 hover:text-blue-700">
@@ -457,7 +460,7 @@ export default function AppHomePage() {
 
       {/* ===== PARCEIROS DO SEU PLANO ===== */}
       {parceiros.length > 0 && (
-        <div className="px-4 sm:px-6 mt-6">
+        <div className="px-4 sm:px-6 lg:px-10 mt-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
               <Crown className="h-4 w-4 text-blue-600" /> Parceiros do seu Plano
@@ -500,62 +503,59 @@ export default function AppHomePage() {
             })}
           </div>
 
-          {/* Desktop: lista detalhada */}
-          <div className="hidden lg:block space-y-2.5">
-            {parceiros.slice(0, 8).map((p) => (
-              <Link key={p.id} href={`/app/parceiros/${p.id}`}>
-                <div className="flex items-center gap-3.5 p-3 bg-white rounded-xl border border-gray-100 hover:border-blue-100 hover:shadow-sm transition-all">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100">
-                    {p.logo ? (
-                      <Image src={p.logo} alt={p.tradeName || p.companyName} width={48} height={48} className="object-cover w-full h-full" unoptimized />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
-                        <Building2 className="h-5 w-5 text-blue-300" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm text-gray-900 truncate">{p.tradeName || p.companyName}</p>
-                      {p.avaliacoes.total > 0 && (
-                        <div className="flex items-center gap-0.5 shrink-0">
-                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                          <span className="text-[11px] font-medium text-gray-500">{p.avaliacoes.media.toFixed(1)}</span>
+          {/* Desktop: grid responsivo */}
+          <div className="hidden lg:grid lg:grid-cols-2 xl:grid-cols-3 gap-3">
+            {parceiros.slice(0, 9).map((p) => {
+              const mainBenefit = p.benefits[0]
+              const badge = mainBenefit ? getBenefitBadge(mainBenefit.type, mainBenefit.value) : null
+              return (
+                <Link key={p.id} href={`/app/parceiros/${p.id}`}>
+                  <div className="flex items-center gap-3.5 p-3.5 bg-white rounded-xl border border-gray-100 hover:border-blue-100 hover:shadow-sm transition-all">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100">
+                      {p.logo ? (
+                        <Image src={p.logo} alt={p.tradeName || p.companyName} width={48} height={48} className="object-cover w-full h-full" unoptimized />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+                          <Building2 className="h-5 w-5 text-blue-300" />
                         </div>
                       )}
                     </div>
-                    <p className="text-[11px] text-gray-400 truncate">
-                      {p.category}{p.city && <> · {p.city.name}</>}
-                    </p>
-                    {p.benefits.length > 0 && (
-                      <div className="flex gap-1 mt-1.5 flex-wrap">
-                        {p.benefits.slice(0, 3).map((b) => {
-                          const badge = getBenefitBadge(b.type, b.value)
-                          return (
-                            <span key={b.id} className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${badge.color}`}>
-                              {badge.text}
-                            </span>
-                          )
-                        })}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-sm text-gray-900 truncate">{p.tradeName || p.companyName}</p>
+                        {p.avaliacoes.total > 0 && (
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                            <span className="text-[11px] font-medium text-gray-500">{p.avaliacoes.media.toFixed(1)}</span>
+                          </div>
+                        )}
                       </div>
-                    )}
+                      <p className="text-[11px] text-gray-400 truncate">
+                        {p.category}{p.city && <> · {p.city.name}</>}
+                      </p>
+                      {badge && (
+                        <span className={`inline-block mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded ${badge.color}`}>
+                          {badge.text}
+                        </span>
+                      )}
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-300 shrink-0" />
                   </div>
-                  <ChevronRight className="h-4 w-4 text-gray-300 shrink-0" />
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         </div>
       )}
 
       {/* ===== ATIVIDADE RECENTE ===== */}
-      <div className="px-4 sm:px-6 mt-6">
+      <div className="px-4 sm:px-6 lg:px-10 mt-6">
         <RecentTransactions showValues={showValues} />
       </div>
 
       {/* ===== UPGRADE DE PLANO ===== */}
       {planosUpgrade.length > 0 && (
-        <div className="px-4 sm:px-6 mt-6">
+        <div className="px-4 sm:px-6 lg:px-10 mt-6">
           <div className="p-4 bg-gradient-to-br from-[#0f172a] to-[#1e293b] rounded-2xl overflow-hidden relative">
             {/* Decoração */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
@@ -595,7 +595,7 @@ export default function AppHomePage() {
 
       {/* ===== FALLBACK VAZIO ===== */}
       {!destaques.length && !parceirosDestaque.length && !parceiros.length && (
-        <div className="px-4 sm:px-6 text-center py-12">
+        <div className="px-4 sm:px-6 lg:px-10 text-center py-12">
           <Store className="h-12 w-12 mx-auto text-gray-300 mb-3" />
           <p className="text-gray-400">Nenhum parceiro disponível no momento.</p>
           <p className="text-xs text-gray-300 mt-1">Novos parceiros em breve!</p>
