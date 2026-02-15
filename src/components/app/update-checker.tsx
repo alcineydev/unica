@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw, Sparkles } from 'lucide-react'
 
 // Mesma versão que src/lib/version.ts
-const CURRENT_VERSION = '1.0.6'
+const CURRENT_VERSION = '1.0.7'
 const CHECK_INTERVAL = 60000 // 60 segundos
 
 export function UpdateChecker() {
