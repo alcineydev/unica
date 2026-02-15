@@ -615,6 +615,23 @@ html body [data-slot="textarea"]:focus {
 .tiptap em { font-style: italic; }
 .tiptap u { text-decoration: underline; }
 
+/* Page transition spinner */
+.spinner-orbital {
+  animation-duration: 1.5s;
+}
+
+.bounce-delay-0 {
+  animation-delay: 0ms;
+}
+
+.bounce-delay-150 {
+  animation-delay: 150ms;
+}
+
+.bounce-delay-300 {
+  animation-delay: 300ms;
+}
+
 /* Skeleton shimmer premium */
 @keyframes skeleton-shimmer {
   0% { background-position: -200% 0; }

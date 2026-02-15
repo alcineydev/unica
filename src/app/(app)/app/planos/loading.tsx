@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function PlanosLoading() {
   return (
-    <div className="px-4 pt-4 lg:px-10 lg:pt-8 space-y-6 animate-in fade-in duration-300">
+    <div className="min-h-screen bg-[#f8fafc] px-4 pt-4 lg:px-10 lg:pt-8 space-y-6 animate-in fade-in duration-300">
       <div className="space-y-2">
         <Skeleton className="h-7 w-36" />
         <Skeleton className="h-4 w-56" />

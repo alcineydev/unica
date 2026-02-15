@@ -1,50 +1,41 @@
 # Feature: Animação de Transição entre Páginas — App Assinante
 
-**Data:** 2026-02-12
+**Data:** 2026-02-12  
+**Redesign:** 2026-02-15
 
 ## Problema
-Ao navegar entre páginas no app do assinante, aparecia tela branca antes do `loading.tsx` carregar, gerando sensação de travamento.
+Ao navegar entre páginas no app do assinante, aparecia tela branca antes do `loading.tsx` carregar. Spinner v1 sumia cedo demais (pathname muda antes da página renderizar).
 
-## Solução
-Componente `PageTransition` que intercepta cliques em links `/app/*`, mostra overlay com spinner premium durante a transição, e esconde automaticamente quando o pathname muda. Combinado com `animate-in fade-in` nos loading.tsx para entrada suave dos skeletons.
+## Solução (v2 — Redesign Premium)
+Componente `PageTransition` com logo UNICA branded + spinner orbital. Background `#f8fafc` idêntico ao app garante zero tela branca. Loading.tsx com `min-h-screen bg-[#f8fafc]` cobrem toda a viewport.
 
-## Arquivos Criados
+## Arquivos Criados/Atualizados
 
 | Arquivo | Função |
 |---------|--------|
-| `src/components/app/page-transition.tsx` | Componente client que detecta navegação via click listener e pathname change, exibe overlay + spinner |
+| `src/components/app/page-transition.tsx` | Logo "U" + spinner orbital SVG + dots animados |
 
 ## Arquivos Modificados
 
 | Arquivo | Alteração |
 |---------|-----------|
 | `src/components/app/index.ts` | Export do `PageTransition` |
-| `src/app/(app)/layout.tsx` | Import + montagem do `<PageTransition />` antes do `<BottomNav />` |
-| `src/app/globals.css` | CSS `skeleton-shimmer` keyframes adicionado |
-| `src/app/(app)/app/loading.tsx` | Adicionado `animate-in fade-in duration-300` |
-| `src/app/(app)/app/parceiros/loading.tsx` | Adicionado `animate-in fade-in duration-300` |
-| `src/app/(app)/app/parceiros/[id]/loading.tsx` | Adicionado `animate-in fade-in duration-300` |
-| `src/app/(app)/app/carteira/loading.tsx` | Adicionado `animate-in fade-in duration-300` |
-| `src/app/(app)/app/notificacoes/loading.tsx` | Adicionado `animate-in fade-in duration-300` |
-| `src/app/(app)/app/perfil/loading.tsx` | Adicionado `animate-in fade-in duration-300` |
-| `src/app/(app)/app/planos/loading.tsx` | Adicionado `animate-in fade-in duration-300` |
-| `src/app/(app)/app/buscar/loading.tsx` | Adicionado `animate-in fade-in duration-300` |
-| `src/app/(app)/app/categorias/loading.tsx` | Adicionado `animate-in fade-in duration-300` |
-| `src/app/(app)/app/categoria/[slug]/loading.tsx` | Adicionado `animate-in fade-in duration-300` |
-| `src/app/(app)/app/minhas-avaliacoes/loading.tsx` | Adicionado `animate-in fade-in duration-300` |
-| `src/app/(app)/app/avaliar/[parceiroId]/loading.tsx` | Adicionado `animate-in fade-in duration-300` |
+| `src/app/(app)/layout.tsx` | Import + montagem do `<PageTransition />` |
+| `src/app/globals.css` | CSS `skeleton-shimmer` + `spinner-orbital` + `bounce-delay-*` |
+| 12x `loading.tsx` do app | `min-h-screen bg-[#f8fafc] animate-in fade-in duration-300` |
 
 ## Fluxo
 
 1. Usuário clica em link `/app/*`
-2. `PageTransition` detecta clique → mostra overlay sutil + spinner azul
-3. Next.js inicia navegação → `loading.tsx` renderiza com fade-in suave
-4. Pathname muda → `PageTransition` some após 150ms
-5. Página real aparece
+2. `PageTransition` mostra tela com logo UNICA + spinner orbital (bg `#f8fafc`)
+3. Next.js inicia navegação → `loading.tsx` renderiza (mesmo bg `#f8fafc`)
+4. Pathname muda → spinner fade-out → skeleton já visível por baixo
+5. Dados carregam → página real substitui skeleton
 
-## Como Funciona o PageTransition
+## Como Funciona
 
 - **Click listener global**: Captura cliques em `<a>` com href `/app/*`
-- **Overlay**: Fundo `bg-[#f8fafc]/80` com `backdrop-blur-[2px]`, não bloqueia eventos (`pointer-events-none`)
-- **Spinner**: 3 camadas — anel externo estático, anel rotativo azul, ponto central pulsante
-- **Cleanup**: `useRef` para timeout + cleanup no unmount
+- **Logo branded**: Quadrado azul com "U" + anel orbital SVG gradient
+- **Background unificado**: `#f8fafc` em spinner E loading.tsx = zero flash branco
+- **Safety timeout**: 5s para não travar caso navegação falhe
+- **CSS classes**: `spinner-orbital`, `bounce-delay-*` no globals.css (sem inline styles)

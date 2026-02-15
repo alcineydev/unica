@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function AvaliarLoading() {
   return (
-    <div className="px-4 pt-4 lg:px-10 lg:pt-8 space-y-6 animate-in fade-in duration-300">
+    <div className="min-h-screen bg-[#f8fafc] px-4 pt-4 lg:px-10 lg:pt-8 space-y-6 animate-in fade-in duration-300">
       {/* Parceiro info */}
       <div className="flex items-center gap-4">
         <Skeleton className="h-14 w-14 rounded-xl" />

@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function CarteiraLoading() {
   return (
-    <div className="px-4 pt-4 lg:px-10 lg:pt-8 space-y-6 animate-in fade-in duration-300">
+    <div className="min-h-screen bg-[#f8fafc] px-4 pt-4 lg:px-10 lg:pt-8 space-y-6 animate-in fade-in duration-300">
       {/* QR Card */}
       <div className="flex justify-center">
         <Skeleton className="h-64 w-64 rounded-2xl" />

@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function ParceirosLoading() {
   return (
-    <div className="px-4 pt-4 lg:px-10 lg:pt-8 space-y-4 animate-in fade-in duration-300">
+    <div className="min-h-screen bg-[#f8fafc] px-4 pt-4 lg:px-10 lg:pt-8 space-y-4 animate-in fade-in duration-300">
       {/* Title */}
       <div className="space-y-2">
         <Skeleton className="h-7 w-40" />

@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function AppLoading() {
   return (
-    <div className="space-y-0 animate-in fade-in duration-300">
+    <div className="min-h-screen bg-[#f8fafc] space-y-0 animate-in fade-in duration-300">
       {/* Hero skeleton mobile */}
       <div className="lg:hidden">
         <div className="bg-gradient-to-br from-[#0a1628] via-[#0f1f3d] to-[#0a1628] px-5 pt-4 pb-7">
