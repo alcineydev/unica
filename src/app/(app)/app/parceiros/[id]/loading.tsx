@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function ParceiroDetailLoading() {
   return (
-    <div>
+    <div className="animate-in fade-in duration-300">
       {/* Banner */}
       <Skeleton className="h-48 lg:h-56 w-full" />
 

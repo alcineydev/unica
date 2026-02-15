@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function BuscarLoading() {
   return (
-    <div className="px-4 pt-4 lg:px-10 lg:pt-8 space-y-4">
+    <div className="px-4 pt-4 lg:px-10 lg:pt-8 space-y-4 animate-in fade-in duration-300">
       {/* Search */}
       <Skeleton className="h-12 w-full rounded-xl" />
 

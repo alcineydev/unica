@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
-import { BottomNav, AppSidebar } from '@/components/app'
+import { BottomNav, AppSidebar, PageTransition } from '@/components/app'
 import { UpdateChecker } from '@/components/app/update-checker'
 import { NotificationPermissionModal } from '@/components/app/notification-permission-modal'
 import { Toaster } from 'sonner'
@@ -32,6 +32,9 @@ export default async function AppLayout({
           {children}
         </main>
       </div>
+
+      {/* Page transition */}
+      <PageTransition />
 
       {/* Bottom nav: mobile only */}
       <BottomNav />

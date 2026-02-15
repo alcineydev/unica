@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function PerfilLoading() {
   return (
-    <div className="px-4 pt-4 lg:px-10 lg:pt-8 space-y-6">
+    <div className="px-4 pt-4 lg:px-10 lg:pt-8 space-y-6 animate-in fade-in duration-300">
       {/* Avatar + Name */}
       <div className="flex items-center gap-4">
         <Skeleton className="h-20 w-20 rounded-full" />
