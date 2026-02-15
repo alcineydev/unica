@@ -1,29 +1,66 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
+
+const MIN_DISPLAY_MS = 1000 // Mínimo 1s para ver a marca
 
 export function PageTransition() {
   const pathname = usePathname()
-  const [isNavigating, setIsNavigating] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
+  const [isFadingOut, setIsFadingOut] = useState(false)
   const prevPathname = useRef(pathname)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const showTimeRef = useRef<number>(0)
+  const safetyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const minTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const fadeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const pendingHide = useRef(false)
 
+  // Limpar todos os timeouts
+  const clearAllTimeouts = useCallback(() => {
+    if (safetyTimeoutRef.current) clearTimeout(safetyTimeoutRef.current)
+    if (minTimeoutRef.current) clearTimeout(minTimeoutRef.current)
+    if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current)
+  }, [])
+
+  // Esconder com fade-out
+  const hideWithFade = useCallback(() => {
+    const elapsed = Date.now() - showTimeRef.current
+    const remaining = MIN_DISPLAY_MS - elapsed
+
+    if (remaining > 0) {
+      // Ainda não completou o mínimo — aguardar
+      pendingHide.current = true
+      minTimeoutRef.current = setTimeout(() => {
+        setIsFadingOut(true)
+        fadeTimeoutRef.current = setTimeout(() => {
+          setIsVisible(false)
+          setIsFadingOut(false)
+          pendingHide.current = false
+        }, 200) // Duração do fade-out
+      }, remaining)
+    } else {
+      // Já passou o mínimo — esconder agora
+      setIsFadingOut(true)
+      fadeTimeoutRef.current = setTimeout(() => {
+        setIsVisible(false)
+        setIsFadingOut(false)
+        pendingHide.current = false
+      }, 200)
+    }
+  }, [])
+
+  // Detectar quando navegação completou
   useEffect(() => {
     if (prevPathname.current !== pathname) {
       prevPathname.current = pathname
-      // Pathname mudou = navegação completou, esconder com fade
-      hideTimeoutRef.current = setTimeout(() => {
-        setIsNavigating(false)
-      }, 100)
+      if (isVisible) {
+        hideWithFade()
+      }
     }
+  }, [pathname, isVisible, hideWithFade])
 
-    return () => {
-      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current)
-    }
-  }, [pathname])
-
+  // Interceptar cliques em links
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement
@@ -41,71 +78,74 @@ export function PageTransition() {
       ) return
 
       if (href.startsWith('/app')) {
-        // Cancelar timeout anterior
-        if (timeoutRef.current) clearTimeout(timeoutRef.current)
-        if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current)
+        clearAllTimeouts()
+        pendingHide.current = false
+        setIsFadingOut(false)
+        setIsVisible(true)
+        showTimeRef.current = Date.now()
 
-        // Mostrar IMEDIATAMENTE
-        setIsNavigating(true)
-
-        // Safety: esconder após 5s caso algo trave
-        timeoutRef.current = setTimeout(() => {
-          setIsNavigating(false)
-        }, 5000)
+        // Safety: esconder após 6s caso algo trave
+        safetyTimeoutRef.current = setTimeout(() => {
+          hideWithFade()
+        }, 6000)
       }
     }
 
     document.addEventListener('click', handleClick, true)
     return () => {
       document.removeEventListener('click', handleClick, true)
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      clearAllTimeouts()
     }
-  }, [pathname])
+  }, [pathname, clearAllTimeouts, hideWithFade])
 
-  if (!isNavigating) return null
+  if (!isVisible) return null
 
   return (
-    <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-[#f8fafc] animate-in fade-in duration-150">
-      {/* Logo animada */}
-      <div className="flex flex-col items-center gap-4">
-        {/* Logo UNICA */}
-        <div className="relative">
-          {/* Anel externo pulsante */}
-          <div className="absolute -inset-3 rounded-full border-2 border-blue-200 animate-ping opacity-20" />
-
-          {/* Container logo */}
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 animate-in zoom-in-50 duration-300">
-            <span className="text-white font-bold text-2xl tracking-tight">U</span>
-          </div>
-
-          {/* Spinner orbital */}
-          <svg className="absolute -inset-2 w-20 h-20 animate-spin spinner-orbital" viewBox="0 0 80 80">
+    <div
+      className={`fixed inset-0 z-[9990] flex items-center justify-center bg-[#f8fafc] transition-opacity duration-200 ${
+        isFadingOut ? 'opacity-0' : 'opacity-100'
+      }`}
+    >
+      <div className="flex flex-col items-center gap-5">
+        {/* Logo com spinner */}
+        <div className="relative w-20 h-20 flex items-center justify-center">
+          {/* Spinner track (fundo) */}
+          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 80 80">
             <circle
               cx="40" cy="40" r="36"
               fill="none"
-              stroke="url(#spinner-gradient)"
-              strokeWidth="3"
+              stroke="#e2e8f0"
+              strokeWidth="2.5"
+            />
+          </svg>
+
+          {/* Spinner ativo */}
+          <svg className="absolute inset-0 w-full h-full unica-spinner" viewBox="0 0 80 80">
+            <circle
+              cx="40" cy="40" r="36"
+              fill="none"
+              stroke="url(#unica-spinner-grad)"
+              strokeWidth="2.5"
               strokeLinecap="round"
-              strokeDasharray="80 200"
+              strokeDasharray="60 170"
             />
             <defs>
-              <linearGradient id="spinner-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#2563eb" stopOpacity="1" />
-                <stop offset="100%" stopColor="#2563eb" stopOpacity="0" />
+              <linearGradient id="unica-spinner-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#2563eb" />
+                <stop offset="100%" stopColor="#60a5fa" />
               </linearGradient>
             </defs>
           </svg>
+
+          {/* Logo central */}
+          <div className="relative w-12 h-12 bg-gradient-to-br from-[#1e40af] via-[#2563eb] to-[#3b82f6] rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
+            <span className="text-white font-bold text-xl">U</span>
+          </div>
         </div>
 
-        {/* Texto */}
-        <div className="flex flex-col items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200">
-          <span className="text-sm font-medium text-gray-500">Carregando</span>
-          {/* Dots animados */}
-          <div className="flex gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce bounce-delay-0" />
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce bounce-delay-150" />
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce bounce-delay-300" />
-          </div>
+        {/* Barra de progresso fake */}
+        <div className="w-32 h-1 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full unica-progress" />
         </div>
       </div>
     </div>
