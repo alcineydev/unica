@@ -91,7 +91,7 @@ export function NotificationBell({ variant = 'dark' }: { variant?: 'dark' | 'lig
 
       {/* Dropdown */}
       {isOpen && (
-        <div className={`absolute right-0 top-full mt-2 w-80 rounded-2xl shadow-2xl border overflow-hidden z-50 ${
+        <div className={`fixed right-4 top-16 lg:absolute lg:right-0 lg:top-full lg:mt-2 w-80 rounded-2xl shadow-2xl border z-[9999] ${
           isDark
             ? 'bg-[#0d1b36] border-white/10'
             : 'bg-white border-gray-200'

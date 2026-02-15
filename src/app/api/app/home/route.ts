@@ -175,7 +175,11 @@ export async function GET() {
       let desconto = null
       if (p.benefitAccess?.[0]?.benefit) {
         const benefit = p.benefitAccess[0].benefit
-        const value = benefit.value as Record<string, number>
+        let rawBenefitValue = benefit.value
+        if (typeof rawBenefitValue === 'string') {
+          try { rawBenefitValue = JSON.parse(rawBenefitValue) } catch { rawBenefitValue = {} }
+        }
+        const value = (rawBenefitValue as Record<string, number>) || {}
         if (benefit.type === 'DESCONTO' && value.percentage) {
           desconto = `${value.percentage}% OFF`
         } else if (benefit.type === 'CASHBACK' && value.percentage) {
@@ -268,12 +272,16 @@ export async function GET() {
               total: avaliacoes.length
             },
             benefits: p.benefitAccess.map(ba => {
-              const value = ba.benefit.value as Record<string, number>
+              let rawVal = ba.benefit.value
+              if (typeof rawVal === 'string') {
+                try { rawVal = JSON.parse(rawVal) } catch { rawVal = {} }
+              }
+              const value = (rawVal as Record<string, number>) || {}
               return {
                 id: ba.benefit.id,
                 name: ba.benefit.name,
                 type: ba.benefit.type,
-                value: value.percentage || value.monthlyPoints || 0
+                value: value.percentage || value.monthlyPoints || value.points || 0
               }
             })
           }

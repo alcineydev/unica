@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner'
 import { CarouselDestaques, RecentTransactions } from '@/components/app/home'
 import { NotificationBell } from '@/components/app/notification-bell'
+import { MobileMenu } from '@/components/app/mobile-menu'
 
 // ==========================================
 // Tipos
@@ -230,10 +231,11 @@ export default function AppHomePage() {
   } = data!
 
   // Planos de upgrade (excluir plano atual, só preço maior)
+  const isConvite = assinante.plan?.name?.toLowerCase() === 'convite'
   const currentPlanPrice = planosDisponiveis?.find(p => p.id === currentPlanId)?.price || 0
-  const planosUpgrade = planosDisponiveis?.filter(p =>
+  const planosUpgrade = isConvite ? [] : (planosDisponiveis?.filter(p =>
     p.id !== currentPlanId && Number(p.price) > Number(currentPlanPrice) && Number(p.price) > 0
-  ) || []
+  ) || [])
 
   return (
     <div className="space-y-0 pb-24">
@@ -243,7 +245,7 @@ export default function AppHomePage() {
       {/* ╚══════════════════════════════════════╝ */}
 
       {/* ========== MOBILE HERO (DARK) ========== */}
-      <div className="lg:hidden relative overflow-hidden">
+      <div className="lg:hidden relative">
         <div className="bg-gradient-to-br from-[#0a1628] via-[#0f1f3d] to-[#0a1628]">
           <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/[0.08] rounded-full blur-[100px] -translate-y-1/3 translate-x-1/4 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-blue-400/[0.06] rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
@@ -269,7 +271,10 @@ export default function AppHomePage() {
                   </div>
                 </div>
               </Link>
-              <NotificationBell variant="dark" />
+              <div className="flex items-center gap-1">
+                <NotificationBell variant="dark" />
+                <MobileMenu variant="dark" />
+              </div>
             </div>
 
             {/* Saldo + Toggle */}
@@ -317,7 +322,7 @@ export default function AppHomePage() {
       </div>
 
       {/* ========== DESKTOP HERO (LIGHT) ========== */}
-      <div className="hidden lg:block relative overflow-hidden">
+      <div className="hidden lg:block relative">
         <div className="bg-white border-b border-gray-200">
           <div className="absolute top-0 right-0 w-72 h-72 bg-blue-100/40 rounded-full blur-[120px] -translate-y-1/3 translate-x-1/4 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-blue-50/60 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
@@ -374,16 +379,29 @@ export default function AppHomePage() {
                 <p className="text-sm font-semibold text-gray-900">Carteira</p>
                 <p className="text-[11px] text-gray-400 mt-0.5">QR Code</p>
               </Link>
-              <Link href="/app/planos" className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] rounded-2xl p-4 text-center hover:shadow-lg transition-all relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full blur-[30px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
-                <div className="relative">
-                  <Crown className="h-5 w-5 text-amber-400 mx-auto mb-1.5" />
-                  <p className="text-sm font-semibold text-white">{assinante.plan?.name}</p>
-                  <p className="text-[10px] text-amber-400/80 mt-1 flex items-center justify-center gap-0.5">
-                    <Zap className="h-3 w-3" /> Upgrade
-                  </p>
+              {isConvite ? (
+                <div className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] rounded-2xl p-4 text-center relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full blur-[30px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+                  <div className="relative">
+                    <Crown className="h-5 w-5 text-amber-400 mx-auto mb-1.5" />
+                    <p className="text-sm font-semibold text-white">Convite</p>
+                    <p className="text-[10px] text-green-400/80 mt-1 flex items-center justify-center gap-0.5">
+                      ✓ Acesso Total
+                    </p>
+                  </div>
                 </div>
-              </Link>
+              ) : (
+                <Link href="/app/planos" className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] rounded-2xl p-4 text-center hover:shadow-lg transition-all relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full blur-[30px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+                  <div className="relative">
+                    <Crown className="h-5 w-5 text-amber-400 mx-auto mb-1.5" />
+                    <p className="text-sm font-semibold text-white">{assinante.plan?.name}</p>
+                    <p className="text-[10px] text-amber-400/80 mt-1 flex items-center justify-center gap-0.5">
+                      <Zap className="h-3 w-3" /> Upgrade
+                    </p>
+                  </div>
+                </Link>
+              )}
             </div>
           </div>
         </div>
