@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Bell, Gift, Tag, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,13 +23,26 @@ interface PermissionState {
 export function NotificationPermissionModal() {
   const [isOpen, setIsOpen] = useState(false)
   const [isRequesting, setIsRequesting] = useState(false)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const hasChecked = useRef(false)
 
   useEffect(() => {
+    // Previne double-mount do React StrictMode
+    if (hasChecked.current) return
+    hasChecked.current = true
+
     checkAndShowModal()
+
+    // Cleanup: cancela timeout se componente desmontar
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+    }
   }, [])
 
   const checkAndShowModal = async () => {
-    // Verificar se o navegador suporta notificações
     if (typeof window === 'undefined') return
 
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
@@ -37,28 +50,19 @@ export function NotificationPermissionModal() {
       return
     }
 
-    // Se já tem permissão, não mostrar
-    if (Notification.permission === 'granted') {
+    if (Notification.permission === 'granted' || Notification.permission === 'denied') {
       return
     }
 
-    // Se já negou permanentemente no navegador, não mostrar
-    if (Notification.permission === 'denied') {
-      return
-    }
-
-    // Verificar estado salvo
     const savedState = localStorage.getItem(STORAGE_KEY)
     if (savedState) {
       try {
         const state: PermissionState = JSON.parse(savedState)
 
-        // Se já aceitou ou recusou muitas vezes, não mostrar
         if (state.granted || state.dismissCount >= MAX_DISMISSALS) {
           return
         }
 
-        // Se recusou recentemente (menos de 24h), não mostrar
         if (state.lastDismissed) {
           const lastDismissed = new Date(state.lastDismissed)
           const hoursSince = (Date.now() - lastDismissed.getTime()) / (1000 * 60 * 60)
@@ -71,9 +75,7 @@ export function NotificationPermissionModal() {
       }
     }
 
-    // Delay maior para não conflitar com notification modal
-    setTimeout(() => {
-      // Só abrir se não houver outro dialog aberto
+    timerRef.current = setTimeout(() => {
       const hasOpenDialog = document.querySelector('[data-state="open"][role="dialog"]')
       if (!hasOpenDialog) {
         setIsOpen(true)
@@ -88,7 +90,6 @@ export function NotificationPermissionModal() {
       const permission = await Notification.requestPermission()
 
       if (permission === 'granted') {
-        // Salvar que aceitou
         const state: PermissionState = {
           granted: true,
           dismissCount: 0,
@@ -96,12 +97,10 @@ export function NotificationPermissionModal() {
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 
-        // Registrar para push notifications
         await registerPushSubscription()
 
         setIsOpen(false)
       } else {
-        // Usuário negou no popup do navegador
         handleDismiss()
       }
     } catch (error) {
@@ -137,7 +136,6 @@ export function NotificationPermissionModal() {
     try {
       const registration = await navigator.serviceWorker.ready
 
-      // Buscar VAPID key
       const response = await fetch('/api/push/subscribe')
       const { publicKey } = await response.json()
 
@@ -151,10 +149,8 @@ export function NotificationPermissionModal() {
         applicationServerKey: publicKey
       })
 
-      // Extrair dados da subscription
       const subscriptionJson = subscription.toJSON()
 
-      // Enviar subscription para o servidor
       await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -173,7 +169,6 @@ export function NotificationPermissionModal() {
     }
   }
 
-  // Não renderizar se não estiver aberto
   if (!isOpen) return null
 
   return (
@@ -193,7 +188,6 @@ export function NotificationPermissionModal() {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Benefícios */}
         <div className="space-y-3 my-4">
           <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
             <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -226,7 +220,6 @@ export function NotificationPermissionModal() {
           </div>
         </div>
 
-        {/* Botões */}
         <div className="space-y-2">
           <Button
             className="w-full h-12 text-base"

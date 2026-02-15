@@ -66,7 +66,7 @@ export default function CheckoutPage() {
       const data = await res.json()
       setPlan(data.plan || data.data || data)
     } catch {
-      toast.error('Plano não encontrado')
+        toast.error('Plano não encontrado')
     } finally {
       setLoading(false)
     }
@@ -166,7 +166,7 @@ export default function CheckoutPage() {
       const paymentId = result.payment?.id || result.paymentId || result.id
 
       if (paymentMethod === 'CREDIT_CARD' && (paymentStatus === 'CONFIRMED' || paymentStatus === 'RECEIVED')) {
-        toast.success('Pagamento aprovado!')
+          toast.success('Pagamento aprovado!')
         setTimeout(() => {
           router.push(`/checkout/sucesso?paymentId=${paymentId}&method=CREDIT_CARD`)
         }, 1500)
@@ -221,7 +221,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen bg-[#f8fafc]">
         <div className="max-w-lg mx-auto p-4 md:p-8 space-y-6">
-          <div className="text-center">
+        <div className="text-center">
             <h1 className="text-xl font-bold">Pagamento PIX</h1>
             <p className="text-sm text-muted-foreground">{plan.name}</p>
           </div>
@@ -250,7 +250,7 @@ export default function CheckoutPage() {
           <div className="text-center">
             <h1 className="text-xl font-bold">Boleto Gerado</h1>
             <p className="text-sm text-muted-foreground">{plan.name}</p>
-          </div>
+                </div>
           <CheckoutBoletoResult
             boletoData={{
               bankSlipUrl: paymentResult.payment?.bankSlipUrl || paymentResult.bankSlipUrl,
@@ -332,7 +332,7 @@ export default function CheckoutPage() {
           <div className="order-first lg:order-last">
             <div className="lg:sticky lg:top-8">
               <CheckoutPlanSummary plan={plan} />
-            </div>
+                </div>
           </div>
         </div>
       </div>
