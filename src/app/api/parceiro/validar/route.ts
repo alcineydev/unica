@@ -187,9 +187,16 @@ export async function POST(request: NextRequest) {
 
     if (beneficio.type === 'CASHBACK' && beneficio.value) {
       const valorCompra = valor || 0
-      const percentual = (beneficio.value as Record<string, number>).percentage || 0
+      let rawValue = beneficio.value
+      if (typeof rawValue === 'string') {
+        try { rawValue = JSON.parse(rawValue) } catch { rawValue = {} }
+      }
+      const valueObj = (rawValue as Record<string, number>) || {}
+      const percentual = valueObj.percentage || valueObj.value || 0
       cashbackGanho = (valorCompra * percentual) / 100
     }
+
+    const parceiroId = parceiro?.id
 
     // Atualizar pontos/cashback do assinante
     if (pontosGanhos > 0 || cashbackGanho > 0) {
@@ -197,8 +204,31 @@ export async function POST(request: NextRequest) {
         where: { id: assinanteId },
         data: {
           points: { increment: pontosGanhos },
-          cashback: { increment: cashbackGanho }
-        }
+          cashback: { increment: cashbackGanho },
+        },
+      })
+    }
+
+    // Atualizar CashbackBalance por parceiro
+    if (cashbackGanho > 0 && parceiroId) {
+      await prisma.cashbackBalance.upsert({
+        where: {
+          assinanteId_parceiroId: {
+            assinanteId: assinante.id,
+            parceiroId,
+          },
+        },
+        update: {
+          balance: { increment: cashbackGanho },
+          totalEarned: { increment: cashbackGanho },
+        },
+        create: {
+          assinanteId: assinante.id,
+          parceiroId,
+          balance: cashbackGanho,
+          totalEarned: cashbackGanho,
+          totalUsed: 0,
+        },
       })
     }
 

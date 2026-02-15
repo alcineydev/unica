@@ -61,11 +61,47 @@ export async function GET() {
       },
     })
 
+    // Cashback dos clientes
+    const cashbackBalances = await prisma.cashbackBalance.findMany({
+      where: {
+        parceiroId: parceiro.id,
+        balance: { gt: 0 },
+      },
+      include: {
+        assinante: {
+          select: {
+            id: true,
+            name: true,
+            cpf: true,
+            user: { select: { avatar: true } },
+          },
+        },
+      },
+      orderBy: { balance: 'desc' },
+    })
+
+    const cashbackTotals = {
+      totalPending: cashbackBalances.reduce((sum, b) => sum + Number(b.balance), 0),
+      totalIssued: cashbackBalances.reduce((sum, b) => sum + Number(b.totalEarned), 0),
+      totalRedeemed: cashbackBalances.reduce((sum, b) => sum + Number(b.totalUsed), 0),
+    }
+
     return NextResponse.json({
       data: {
         totalSales: completed._count || 0,
         salesAmount: Number(completed._sum.amount || 0),
         pendingAmount: Number(pending._sum.amount || 0),
+        cashbackTotals,
+        cashbackBalances: cashbackBalances.map(b => ({
+          assinanteId: b.assinante.id,
+          name: b.assinante.name,
+          cpf: b.assinante.cpf,
+          avatar: b.assinante.user?.avatar || null,
+          balance: Number(b.balance),
+          totalEarned: Number(b.totalEarned),
+          totalUsed: Number(b.totalUsed),
+          updatedAt: b.updatedAt.toISOString(),
+        })),
         transactions: transactions.map(tx => ({
           id: tx.id,
           amount: Number(tx.amount),

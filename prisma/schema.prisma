@@ -194,9 +194,10 @@ model Parceiro {
   benefitAccess BenefitAccess[]
   city          City                  @relation(fields: [cityId], references: [id])
   user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions  Transaction[]
-  notificacoes  ParceiroNotificacao[]
-  avaliacoes    Avaliacao[]
+  transactions     Transaction[]
+  notificacoes     ParceiroNotificacao[]
+  avaliacoes       Avaliacao[]
+  cashbackBalances CashbackBalance[]
 
   @@index([isActive])
   @@index([categoryId])
@@ -252,6 +253,7 @@ model Assinante {
   transactions       Transaction[]
   avaliacoes         Avaliacao[]
   notificacoes       AssinanteNotificacao[]
+  cashbackBalances   CashbackBalance[]
 
   @@index([subscriptionStatus])
   @@index([planId])
@@ -301,6 +303,7 @@ model Transaction {
   amount            Decimal           @db.Decimal(10, 2)
   pointsUsed        Decimal           @default(0) @db.Decimal(10, 2)
   cashbackGenerated Decimal           @default(0) @db.Decimal(10, 2)
+  cashbackUsed      Decimal           @default(0) @db.Decimal(10, 2)
   discountApplied   Decimal           @default(0) @db.Decimal(10, 2)
   description       String
   status            TransactionStatus
@@ -313,6 +316,26 @@ model Transaction {
   @@index([parceiroId])
   @@index([createdAt])
   @@map("transactions")
+}
+
+/// Saldo de cashback por assinante+parceiro
+model CashbackBalance {
+  id          String   @id @default(cuid())
+  assinanteId String
+  parceiroId  String
+  balance     Decimal  @default(0) @db.Decimal(10, 2)
+  totalEarned Decimal  @default(0) @db.Decimal(10, 2)
+  totalUsed   Decimal  @default(0) @db.Decimal(10, 2)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  assinante Assinante @relation(fields: [assinanteId], references: [id])
+  parceiro  Parceiro  @relation(fields: [parceiroId], references: [id])
+
+  @@unique([assinanteId, parceiroId])
+  @@index([assinanteId])
+  @@index([parceiroId])
+  @@map("cashback_balances")
 }
 
 /// Configurações do sistema

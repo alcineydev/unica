@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { QRCodeSVG } from 'qrcode.react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -10,7 +11,7 @@ import {
   QrCode, RefreshCw, Share2, Download, Crown,
   CheckCircle, AlertCircle, History, ArrowUpRight,
   ArrowDownRight, Eye, EyeOff, Copy,
-  Coins, TrendingUp, Gift
+  Coins, TrendingUp, Gift, Store, Wallet
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -18,15 +19,27 @@ import { toast } from 'sonner'
 // Tipos
 // ==========================================
 
+interface CashbackByPartner {
+  parceiroId: string
+  parceiroName: string
+  parceiroLogo: string | null
+  parceiroCategory: string | null
+  balance: number
+  totalEarned: number
+  totalUsed: number
+}
+
 interface Transaction {
   id: string
   amount: number
   pointsUsed: number
   cashbackGenerated: number
+  cashbackUsed: number
+  discountApplied: number
   type: string
   status: string
   createdAt: string
-  parceiro: { companyName: string; tradeName: string }
+  parceiro: { id: string; name: string; logo: string | null } | null
 }
 
 interface CarteiraData {
@@ -39,8 +52,10 @@ interface CarteiraData {
     points: number
     cashback: number
     status?: string
-    plan: { name: string } | null
+    plan: { name: string; slug?: string } | null
   }
+  cashbackByPartner: CashbackByPartner[]
+  totalCashback: number
   transactions: Transaction[]
 }
 
@@ -91,7 +106,7 @@ export default function CarteiraPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [showValues, setShowValues] = useState(true)
-  const [activeTab, setActiveTab] = useState<'qrcode' | 'extrato'>('qrcode')
+  const [activeTab, setActiveTab] = useState<'qrcode' | 'cashback' | 'extrato'>('qrcode')
 
   useEffect(() => {
     fetchCarteira()
@@ -150,7 +165,7 @@ export default function CarteiraPage() {
     const svgData = new XMLSerializer().serializeToString(svg)
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
-    const img = new Image()
+    const img = document.createElement('img')
 
     img.onload = () => {
       canvas.width = img.width
@@ -286,9 +301,14 @@ export default function CarteiraPage() {
               </p>
               <h1 className="text-[32px] sm:text-4xl font-extrabold text-white tracking-tight">
                 {showValues
-                  ? formatCurrency(assinante.cashback || 0)
+                  ? formatCurrency(data.totalCashback || assinante.cashback || 0)
                   : 'R$ •••••'}
               </h1>
+              {data.cashbackByPartner && data.cashbackByPartner.length > 0 && (
+                <p className="text-[11px] text-blue-300/50 mt-1">
+                  disponível em {data.cashbackByPartner.length} {data.cashbackByPartner.length === 1 ? 'parceiro' : 'parceiros'}
+                </p>
+              )}
             </div>
 
             {/* Cards de métricas */}
@@ -394,6 +414,7 @@ export default function CarteiraPage() {
         <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-4">
           {[
             { key: 'qrcode' as const, label: 'Carteirinha' },
+            { key: 'cashback' as const, label: 'Cashback' },
             { key: 'extrato' as const, label: 'Extrato' },
           ].map(({ key, label }) => (
             <button
@@ -508,6 +529,119 @@ export default function CarteiraPage() {
           </div>
         )}
 
+        {/* ===== TAB: CASHBACK POR PARCEIRO ===== */}
+        {activeTab === 'cashback' && (
+          <div className="space-y-4">
+            {/* Resumo */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center">
+                    <Wallet className="h-3.5 w-3.5 text-green-600" />
+                  </div>
+                  <span className="text-[11px] text-gray-400">Disponível</span>
+                </div>
+                <p className="text-lg font-bold text-gray-900">
+                  {showValues ? formatCurrency(data.totalCashback || 0) : 'R$ •••'}
+                </p>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Store className="h-3.5 w-3.5 text-blue-600" />
+                  </div>
+                  <span className="text-[11px] text-gray-400">Parceiros</span>
+                </div>
+                <p className="text-lg font-bold text-gray-900">
+                  {data.cashbackByPartner?.length || 0}
+                </p>
+              </div>
+            </div>
+
+            {/* Dica */}
+            <div className="flex items-center gap-3 p-3.5 bg-amber-50/60 border border-amber-100/80 rounded-xl">
+              <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+                <Gift className="h-4 w-4 text-amber-600" />
+              </div>
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Seu cashback só pode ser usado no parceiro onde foi ganho. Acumule e use na próxima compra!
+              </p>
+            </div>
+
+            {/* Lista de parceiros com cashback */}
+            {data.cashbackByPartner && data.cashbackByPartner.length > 0 ? (
+              <div className="space-y-2.5">
+                {data.cashbackByPartner.map((cb) => (
+                  <div
+                    key={cb.parceiroId}
+                    className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-sm transition-shadow"
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Logo parceiro */}
+                      <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0 border border-gray-200">
+                        {cb.parceiroLogo ? (
+                          <Image
+                            src={cb.parceiroLogo}
+                            alt={cb.parceiroName}
+                            width={48}
+                            height={48}
+                            className="w-full h-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <Store className="h-5 w-5 text-gray-400" />
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {cb.parceiroName}
+                        </p>
+                        {cb.parceiroCategory && (
+                          <p className="text-[11px] text-gray-400 truncate">
+                            {cb.parceiroCategory}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className="text-[10px] text-gray-400">
+                            Ganho: {showValues ? formatCurrency(cb.totalEarned) : '•••'}
+                          </span>
+                          {cb.totalUsed > 0 && (
+                            <span className="text-[10px] text-gray-400">
+                              Usado: {showValues ? formatCurrency(cb.totalUsed) : '•••'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Saldo */}
+                      <div className="text-right shrink-0">
+                        <p className="text-base font-bold text-green-600">
+                          {showValues ? formatCurrency(cb.balance) : '•••'}
+                        </p>
+                        <p className="text-[10px] text-gray-400">disponível</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Wallet className="h-7 w-7 text-gray-200" />
+                </div>
+                <p className="text-sm font-medium text-gray-400">
+                  Nenhum cashback ainda
+                </p>
+                <p className="text-xs text-gray-300 mt-0.5">
+                  Faça compras nos parceiros para acumular
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ===== TAB: EXTRATO ===== */}
         {activeTab === 'extrato' && (
           <div className="space-y-3">
@@ -570,9 +704,7 @@ export default function CarteiraPage() {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">
-                            {tx.parceiro?.tradeName ||
-                              tx.parceiro?.companyName ||
-                              'Transação'}
+                            {tx.parceiro?.name || 'Transação'}
                           </p>
                           <p className="text-[11px] text-gray-400">
                             {formatDate(tx.createdAt)}
@@ -589,6 +721,16 @@ export default function CarteiraPage() {
                             {showValues
                               ? formatCurrency(tx.cashbackGenerated)
                               : '•••'}
+                          </p>
+                        )}
+                        {tx.cashbackUsed > 0 && (
+                          <p className="text-[11px] text-orange-600 font-medium">
+                            -{showValues ? formatCurrency(tx.cashbackUsed) : '•••'} cb
+                          </p>
+                        )}
+                        {tx.discountApplied > 0 && (
+                          <p className="text-[11px] text-blue-600 font-medium">
+                            -{showValues ? formatCurrency(tx.discountApplied) : '•••'} desc
                           </p>
                         )}
                         {tx.pointsUsed > 0 && (

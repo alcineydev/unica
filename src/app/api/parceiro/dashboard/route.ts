@@ -109,6 +109,41 @@ export async function GET() {
       ? avaliacoes.reduce((sum, a) => sum + a.nota, 0) / avaliacoes.length
       : 0
 
+    // Cashback metrics
+    let cashbackMetrics = {
+      totalIssued: 0,
+      totalRedeemed: 0,
+      totalPending: 0,
+      clientsWithBalance: 0,
+    }
+    try {
+      const cashbackData = await prisma.cashbackBalance.aggregate({
+        where: { parceiroId: parceiro.id },
+        _sum: {
+          totalEarned: true,
+          totalUsed: true,
+          balance: true,
+        },
+        _count: true,
+      })
+
+      const clientsWithBalance = await prisma.cashbackBalance.count({
+        where: {
+          parceiroId: parceiro.id,
+          balance: { gt: 0 },
+        },
+      })
+
+      cashbackMetrics = {
+        totalIssued: Number(cashbackData._sum.totalEarned || 0),
+        totalRedeemed: Number(cashbackData._sum.totalUsed || 0),
+        totalPending: Number(cashbackData._sum.balance || 0),
+        clientsWithBalance,
+      }
+    } catch (e) {
+      console.error('[DASHBOARD] Erro ao buscar cashback:', e)
+    }
+
     return NextResponse.json({
       data: {
         totalSales: vendasMes,
@@ -119,6 +154,7 @@ export async function GET() {
           total: avaliacoes.length,
           media: Math.round(mediaAvaliacoes * 10) / 10
         },
+        cashback: cashbackMetrics,
         recentTransactions: recentTransactions.map(tx => ({
           id: tx.id,
           amount: parseFloat(tx.amount?.toString() || '0'),

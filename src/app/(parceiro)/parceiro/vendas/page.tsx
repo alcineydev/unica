@@ -71,12 +71,20 @@ interface AssinanteData {
 }
 
 interface SaleData {
-  assinante: AssinanteData
-  amount: number
-  discount: number
-  pointsUsed: number
-  cashbackGenerated: number
+  originalAmount: number
   finalAmount: number
+  discountPercent: number
+  discountAmount: number
+  pointsAvailable: number
+  pointsUsed: number
+  cashbackAvailable: number
+  cashbackToUse: number
+  cashbackPercent: number
+  cashbackGenerated: number
+  cashbackNewBalance: number
+  assinanteName: string
+  planName: string
+  parceiroName: string
 }
 
 export default function ParceiroVendaPage() {
@@ -92,6 +100,8 @@ export default function ParceiroVendaPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [inputMethod, setInputMethod] = useState<'scanner' | 'manual'>('scanner')
+  const [useCashback, setUseCashback] = useState(false)
+  const [cashbackAvailable, setCashbackAvailable] = useState(0)
 
   // Buscar assinante por CPF (digitado manualmente)
   async function searchAssinanteByCPF(cpfValue: string) {
@@ -158,7 +168,22 @@ export default function ParceiroVendaPage() {
       }
       setAssinante(assinanteData)
       setCpf(ass.cpf || '')
+      setUseCashback(false)
+      setSaleData(null)
       toast.success(`Cliente encontrado: ${ass.nome || 'Cliente'}`)
+
+      // Buscar cashback disponível neste parceiro
+      try {
+        const cbRes = await fetch('/api/parceiro/venda/calcular', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assinanteId: assinanteData.id, amount: 1, useCashback: false }),
+        })
+        const cbData = await cbRes.json()
+        setCashbackAvailable(cbData.data?.cashbackAvailable || 0)
+      } catch {
+        setCashbackAvailable(0)
+      }
     } catch (error) {
       console.error('[VENDAS] Erro ao buscar cliente:', error)
       toast.error('Erro de conexão. Tente novamente.')
@@ -207,6 +232,7 @@ export default function ParceiroVendaPage() {
           amount: amountValue,
           usePoints,
           pointsToUse: usePoints ? parseFloat(pointsToUse) || 0 : 0,
+          useCashback,
         }),
       })
 
@@ -227,7 +253,7 @@ export default function ParceiroVendaPage() {
 
   // Confirmar venda
   async function handleConfirmSale() {
-    if (!saleData) return
+    if (!saleData || !assinante) return
 
     setIsProcessing(true)
 
@@ -236,11 +262,14 @@ export default function ParceiroVendaPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          assinanteId: saleData.assinante.id,
-          amount: saleData.amount,
+          assinanteId: assinante.id,
+          amount: saleData.originalAmount,
+          discountApplied: saleData.discountAmount,
           pointsUsed: saleData.pointsUsed,
-          discount: saleData.discount,
           cashbackGenerated: saleData.cashbackGenerated,
+          cashbackUsed: saleData.cashbackToUse,
+          finalAmount: saleData.finalAmount,
+          description: `Compra em ${saleData.parceiroName}`,
         }),
       })
 
@@ -266,6 +295,8 @@ export default function ParceiroVendaPage() {
     setAmount('')
     setUsePoints(false)
     setPointsToUse('')
+    setUseCashback(false)
+    setCashbackAvailable(0)
     setSaleData(null)
     setIsConfirmOpen(false)
     setIsSuccess(false)
@@ -437,6 +468,21 @@ export default function ParceiroVendaPage() {
                     <span>Cashback: <strong>{getCashback()}%</strong></span>
                   </div>
                 </div>
+
+                {cashbackAvailable > 0 && (
+                  <>
+                    <Separator />
+                    <div className="flex items-center justify-between bg-green-50 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">💰</span>
+                        <span className="text-sm text-green-700">Cashback neste parceiro</span>
+                      </div>
+                      <span className="text-sm font-bold text-green-800">
+                        {formatCurrency(cashbackAvailable)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </CardContent>
@@ -512,6 +558,35 @@ export default function ParceiroVendaPage() {
               </div>
             )}
 
+            {assinante && cashbackAvailable > 0 && (
+              <div className="rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Coins className="h-4 w-4 text-green-600" />
+                    <div>
+                      <span className="font-medium text-green-800">Usar Cashback</span>
+                      <p className="text-xs text-green-600">
+                        Disponível: {formatCurrency(cashbackAvailable)}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant={useCashback ? 'default' : 'outline'}
+                    size="sm"
+                    className={useCashback ? 'bg-green-600 hover:bg-green-700' : ''}
+                    onClick={() => setUseCashback(!useCashback)}
+                  >
+                    {useCashback ? 'Sim' : 'Não'}
+                  </Button>
+                </div>
+                {useCashback && (
+                  <p className="text-xs text-green-600">
+                    O cashback será descontado automaticamente do valor da compra.
+                  </p>
+                )}
+              </div>
+            )}
+
             <Button
               className="w-full"
               size="lg"
@@ -555,16 +630,16 @@ export default function ParceiroVendaPage() {
                   <div className="rounded-lg bg-muted p-4 space-y-2">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Cliente:</span>
-                      <span className="font-medium">{saleData.assinante.name}</span>
+                      <span className="font-medium">{saleData.assinanteName}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Valor Original:</span>
-                      <span>{formatCurrency(saleData.amount)}</span>
+                      <span>{formatCurrency(saleData.originalAmount)}</span>
                     </div>
-                    {saleData.discount > 0 && (
+                    {saleData.discountAmount > 0 && (
                       <div className="flex justify-between text-green-600">
-                        <span>Desconto:</span>
-                        <span>- {formatCurrency(saleData.discount)}</span>
+                        <span>Desconto ({saleData.discountPercent}%):</span>
+                        <span>- {formatCurrency(saleData.discountAmount)}</span>
                       </div>
                     )}
                     {saleData.pointsUsed > 0 && (
@@ -573,15 +648,27 @@ export default function ParceiroVendaPage() {
                         <span>- {formatCurrency(saleData.pointsUsed)}</span>
                       </div>
                     )}
+                    {saleData.cashbackToUse > 0 && (
+                      <div className="flex justify-between text-emerald-600">
+                        <span>Cashback Usado:</span>
+                        <span>- {formatCurrency(saleData.cashbackToUse)}</span>
+                      </div>
+                    )}
                     <Separator />
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total a Pagar:</span>
                       <span>{formatCurrency(saleData.finalAmount)}</span>
                     </div>
                     {saleData.cashbackGenerated > 0 && (
-                      <div className="flex justify-between text-sm text-green-600">
-                        <span>Cashback Gerado:</span>
-                        <span>+ {formatCurrency(saleData.cashbackGenerated)}</span>
+                      <div className="flex justify-between text-sm pt-2 border-t border-dashed">
+                        <span className="text-blue-600">Cashback Gerado:</span>
+                        <span className="font-medium text-blue-600">+ {formatCurrency(saleData.cashbackGenerated)}</span>
+                      </div>
+                    )}
+                    {saleData.cashbackGenerated > 0 && (
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Novo saldo cashback</span>
+                        <span>{formatCurrency(saleData.cashbackNewBalance)}</span>
                       </div>
                     )}
                   </div>
@@ -610,9 +697,35 @@ export default function ParceiroVendaPage() {
                 <CheckCircle2 className="h-12 w-12 text-green-500" />
               </div>
               <h3 className="text-xl font-bold mb-2">Venda Registrada!</h3>
-              <p className="text-muted-foreground mb-6">
+              <p className="text-muted-foreground mb-4">
                 A transação foi processada com sucesso.
               </p>
+
+              {saleData && (
+                <div className="w-full rounded-lg bg-muted p-3 space-y-1.5 text-sm mb-6">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total pago</span>
+                    <span className="font-medium">{formatCurrency(saleData.finalAmount)}</span>
+                  </div>
+                  {saleData.cashbackToUse > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Cashback utilizado</span>
+                      <span className="font-medium text-emerald-600">
+                        {formatCurrency(saleData.cashbackToUse)}
+                      </span>
+                    </div>
+                  )}
+                  {saleData.cashbackGenerated > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Cashback gerado</span>
+                      <span className="font-medium text-blue-600">
+                        + {formatCurrency(saleData.cashbackGenerated)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Button onClick={handleNewSale} className="w-full">
                 Nova Venda
               </Button>

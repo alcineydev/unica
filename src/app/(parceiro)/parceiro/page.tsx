@@ -12,7 +12,8 @@ import {
   QrCode,
   ArrowRight,
   Loader2,
-  TrendingDown
+  TrendingDown,
+  Wallet
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,12 @@ interface DashboardData {
   avaliacoes?: {
     total: number
     media: number
+  }
+  cashback?: {
+    totalIssued: number
+    totalRedeemed: number
+    totalPending: number
+    clientsWithBalance: number
   }
   recentTransactions: {
     id: string
@@ -210,6 +217,59 @@ export default function ParceiroDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Cards de Cashback */}
+      {(data?.cashback?.totalIssued || 0) > 0 && (
+        <div className="grid gap-3 grid-cols-2">
+          {/* Cashback Emitido */}
+          <Card>
+            <CardContent className="p-3 md:p-6">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] md:text-sm text-muted-foreground truncate">
+                    Cashback Emitido
+                  </p>
+                  <p className="text-lg md:text-3xl font-bold mt-0.5">
+                    {formatCurrency(data?.cashback?.totalIssued || 0)}
+                  </p>
+                  {(data?.cashback?.totalRedeemed || 0) > 0 && (
+                    <p className="text-[10px] md:text-xs text-green-600 mt-0.5">
+                      {formatCurrency(data?.cashback?.totalRedeemed || 0)} resgatado
+                    </p>
+                  )}
+                </div>
+                <div className="p-1.5 md:p-3 rounded-lg md:rounded-full bg-blue-100 flex-shrink-0">
+                  <TrendingUp className="h-4 w-4 md:h-6 md:w-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Cashback Pendente */}
+          <Card>
+            <CardContent className="p-3 md:p-6">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] md:text-sm text-muted-foreground truncate">
+                    Cashback Pendente
+                  </p>
+                  <p className="text-lg md:text-3xl font-bold mt-0.5">
+                    {formatCurrency(data?.cashback?.totalPending || 0)}
+                  </p>
+                  {(data?.cashback?.clientsWithBalance || 0) > 0 && (
+                    <p className="text-[10px] md:text-xs text-amber-600 mt-0.5">
+                      {data?.cashback?.clientsWithBalance} {(data?.cashback?.clientsWithBalance || 0) === 1 ? 'cliente' : 'clientes'}
+                    </p>
+                  )}
+                </div>
+                <div className="p-1.5 md:p-3 rounded-lg md:rounded-full bg-amber-100 flex-shrink-0">
+                  <Wallet className="h-4 w-4 md:h-6 md:w-6 text-amber-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Vendas Recentes e Ações */}
       <div className="grid gap-4 lg:gap-6 lg:grid-cols-5">

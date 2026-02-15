@@ -7,11 +7,14 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Calendar,
+  Wallet,
+  Users,
 } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 interface Transaction {
   id: string
@@ -24,10 +27,27 @@ interface Transaction {
   }
 }
 
+interface CashbackClient {
+  assinanteId: string
+  name: string
+  cpf: string
+  avatar: string | null
+  balance: number
+  totalEarned: number
+  totalUsed: number
+  updatedAt: string
+}
+
 interface SaldoData {
   totalSales: number
   salesAmount: number
   pendingAmount: number
+  cashbackTotals?: {
+    totalPending: number
+    totalIssued: number
+    totalRedeemed: number
+  }
+  cashbackBalances?: CashbackClient[]
   transactions: Transaction[]
 }
 
@@ -211,6 +231,100 @@ export default function ParceiroSaldoPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ===== CASHBACK DOS CLIENTES ===== */}
+      {data?.cashbackBalances && data.cashbackBalances.length > 0 && (
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                <Wallet className="h-4 w-4 text-amber-600" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Cashback dos Clientes</h2>
+                <p className="text-xs text-muted-foreground">Saldo que clientes têm para usar aqui</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-bold text-amber-600">
+                {formatCurrency(data.cashbackTotals?.totalPending || 0)}
+              </p>
+              <p className="text-[10px] text-muted-foreground">pendente total</p>
+            </div>
+          </div>
+
+          {/* Resumo */}
+          <div className="grid grid-cols-3 gap-3">
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-sm font-bold text-blue-600">
+                  {formatCurrency(data.cashbackTotals?.totalIssued || 0)}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Emitido</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-sm font-bold text-green-600">
+                  {formatCurrency(data.cashbackTotals?.totalRedeemed || 0)}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Resgatado</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-sm font-bold text-amber-600">
+                  {formatCurrency(data.cashbackTotals?.totalPending || 0)}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Pendente</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Lista de clientes */}
+          <Card>
+            <CardHeader className="p-4 pb-2">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm">
+                  {data.cashbackBalances.length} {data.cashbackBalances.length === 1 ? 'cliente' : 'clientes'} com saldo
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {data.cashbackBalances.map((client) => (
+                  <div key={client.assinanteId} className="flex items-center justify-between px-4 py-3.5 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9 border border-gray-200">
+                        <AvatarImage src={client.avatar || undefined} />
+                        <AvatarFallback className="bg-gray-100 text-gray-500 text-xs font-semibold">
+                          {client.name?.charAt(0)?.toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">{client.name}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {client.cpf ? `***.***.${client.cpf.slice(-5, -2)}-${client.cpf.slice(-2)}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-green-600">
+                        {formatCurrency(client.balance)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        ganho: {formatCurrency(client.totalEarned)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,125 +1,163 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import { z } from 'zod'
 
-const calcularSchema = z.object({
-  assinanteId: z.string(),
-  amount: z.number().min(1, 'Valor minimo e R$ 1,00'),
-  usePoints: z.boolean(),
-  pointsToUse: z.number().min(0).default(0),
-})
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
     const session = await auth()
-    
-    if (!session || session.user.role !== 'PARCEIRO') {
-      return NextResponse.json(
-        { error: 'Nao autorizado' },
-        { status: 401 }
-      )
+    if (!session || !['PARCEIRO', 'DEVELOPER'].includes(session.user.role as string)) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
-    const validation = calcularSchema.safeParse(body)
+    const { assinanteId, amount, usePoints = false, pointsToUse = 0, useCashback = false } = body
 
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Dados invalidos', details: validation.error.flatten().fieldErrors },
-        { status: 400 }
-      )
+    if (!assinanteId || !amount || amount <= 0) {
+      return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
     }
 
-    const { assinanteId, amount, usePoints, pointsToUse } = validation.data
+    // Buscar parceiro logado
+    const parceiro = await prisma.parceiro.findFirst({
+      where: { userId: session.user.id },
+      select: { id: true, companyName: true, tradeName: true },
+    })
 
-    // Busca o assinante
+    if (!parceiro) {
+      return NextResponse.json({ error: 'Parceiro não encontrado' }, { status: 404 })
+    }
+
+    // Buscar assinante com plano e benefícios
     const assinante = await prisma.assinante.findUnique({
       where: { id: assinanteId },
       include: {
         plan: {
           include: {
             planBenefits: {
-              include: {
-                benefit: true,
-              },
+              include: { benefit: true },
             },
           },
         },
       },
     })
 
-    if (!assinante) {
-      return NextResponse.json(
-        { error: 'Assinante nao encontrado' },
-        { status: 404 }
-      )
+    if (!assinante || !assinante.plan) {
+      return NextResponse.json({ error: 'Assinante ou plano não encontrado' }, { status: 404 })
     }
 
-    if (assinante.subscriptionStatus !== 'ACTIVE') {
-      return NextResponse.json(
-        { error: 'Assinatura inativa' },
-        { status: 400 }
-      )
-    }
+    // Buscar benefícios que o parceiro oferece E que estão no plano do assinante
+    const parceiroWithBenefits = await prisma.parceiro.findUnique({
+      where: { id: parceiro.id },
+      include: {
+        benefitAccess: {
+          include: { benefit: true },
+        },
+      },
+    })
 
-    // Calcula desconto do plano
-    let discountPercentage = 0
-    let cashbackPercentage = 0
+    const parceiroBenefitIds = parceiroWithBenefits?.benefitAccess.map(ba => ba.benefitId) || []
+    const planBenefits = assinante.plan.planBenefits
+      .filter(pb => parceiroBenefitIds.includes(pb.benefitId))
+      .map(pb => pb.benefit)
 
-    if (!assinante.plan) {
-      return NextResponse.json(
-        { error: 'Assinante sem plano ativo' },
-        { status: 400 }
-      )
-    }
+    // Extrair percentuais com safety parse
+    let discountPercent = 0
+    let cashbackPercent = 0
 
-    for (const pb of assinante.plan.planBenefits) {
-      const value = pb.benefit.value as { percentage?: number }
-      
-      if (pb.benefit.type === 'DESCONTO' && value.percentage) {
-        discountPercentage = value.percentage
+    for (const benefit of planBenefits) {
+      let rawValue = benefit.value
+      if (typeof rawValue === 'string') {
+        try { rawValue = JSON.parse(rawValue) } catch { rawValue = {} }
       }
-      if (pb.benefit.type === 'CASHBACK' && value.percentage) {
-        cashbackPercentage = value.percentage
+      const value = (rawValue as Record<string, number>) || {}
+      const pct = value.percentage || value.value || 0
+
+      if (benefit.type === 'DESCONTO' && pct > discountPercent) {
+        discountPercent = pct
+      }
+      if (benefit.type === 'CASHBACK' && pct > cashbackPercent) {
+        cashbackPercent = pct
       }
     }
 
-    // Calcula valores
-    const discountAmount = amount * (discountPercentage / 100)
-    const afterDiscount = amount - discountAmount
+    // 1. Calcular desconto
+    const discountAmount = Number((amount * discountPercent / 100).toFixed(2))
+    let afterDiscount = Number((amount - discountAmount).toFixed(2))
 
-    // Valida pontos
-    const assinantePoints = Number(assinante.points)
-    const actualPointsToUse = usePoints 
-      ? Math.min(pointsToUse, assinantePoints, afterDiscount) 
-      : 0
+    // 2. Calcular pontos (se usar)
+    let actualPointsUsed = 0
+    if (usePoints && pointsToUse > 0) {
+      const availablePoints = Number(assinante.points)
+      actualPointsUsed = Math.min(pointsToUse, availablePoints, afterDiscount)
+      actualPointsUsed = Number(actualPointsUsed.toFixed(2))
+      afterDiscount = Number((afterDiscount - actualPointsUsed).toFixed(2))
+    }
 
-    const finalAmount = Math.max(0, afterDiscount - actualPointsToUse)
+    // 3. Buscar cashback disponível neste parceiro
+    const cashbackBalance = await prisma.cashbackBalance.findUnique({
+      where: {
+        assinanteId_parceiroId: {
+          assinanteId: assinante.id,
+          parceiroId: parceiro.id,
+        },
+      },
+    })
 
-    // Calcula cashback sobre o valor pago (sem pontos)
-    const cashbackGenerated = (finalAmount) * (cashbackPercentage / 100)
+    const cashbackAvailable = Number(cashbackBalance?.balance || 0)
+
+    // 4. Calcular cashback a usar (se escolheu usar)
+    let cashbackToUse = 0
+    if (useCashback && cashbackAvailable > 0) {
+      cashbackToUse = Math.min(cashbackAvailable, afterDiscount)
+      cashbackToUse = Number(cashbackToUse.toFixed(2))
+      afterDiscount = Number((afterDiscount - cashbackToUse).toFixed(2))
+    }
+
+    // 5. Valor final
+    const finalAmount = Math.max(0, afterDiscount)
+
+    // 6. Cashback a ser gerado (sobre o valor ORIGINAL)
+    const cashbackGenerated = Number((amount * cashbackPercent / 100).toFixed(2))
+
+    const parceiroName = parceiro.tradeName || parceiro.companyName
 
     return NextResponse.json({
       data: {
-        assinante: {
-          id: assinante.id,
-          name: assinante.name,
-          cpf: assinante.cpf,
-        },
-        amount,
-        discount: discountAmount,
-        pointsUsed: actualPointsToUse,
-        cashbackGenerated,
+        // Valores da compra
+        originalAmount: amount,
         finalAmount,
+
+        // Desconto
+        discountPercent,
+        discountAmount,
+
+        // Pontos
+        pointsAvailable: Number(assinante.points),
+        pointsUsed: actualPointsUsed,
+
+        // Cashback disponível neste parceiro
+        cashbackAvailable,
+        cashbackToUse,
+
+        // Cashback que será gerado
+        cashbackPercent,
+        cashbackGenerated,
+
+        // Novo saldo cashback após transação
+        cashbackNewBalance: Number((cashbackAvailable - cashbackToUse + cashbackGenerated).toFixed(2)),
+
+        // Info
+        assinanteName: assinante.name,
+        planName: assinante.plan.name,
+        parceiroName,
       },
     })
   } catch (error) {
     console.error('Erro ao calcular venda:', error)
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: error instanceof Error ? error.message : 'Erro interno' },
       { status: 500 }
     )
   }
 }
-
