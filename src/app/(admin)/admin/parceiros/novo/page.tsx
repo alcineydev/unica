@@ -237,10 +237,13 @@ export default function NovoParceiroPage() {
                   name="document"
                   value={formData.document}
                   onChange={handleDocumentChange}
-                  placeholder="00.000.000/0000-00"
+                  placeholder={formData.document.replace(/\D/g, '').length <= 11 ? '000.000.000-00' : '00.000.000/0000-00'}
                   className="h-11"
                   maxLength={18}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {formData.document.replace(/\D/g, '').length <= 11 ? 'Formato CPF' : 'Formato CNPJ'}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Categoria *</Label>

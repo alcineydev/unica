@@ -112,13 +112,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // Verifica se CNPJ já existe
-    const existingCNPJ = await prisma.parceiro.findUnique({
+    // Verifica se CPF/CNPJ já existe
+    const existingDocument = await prisma.parceiro.findUnique({
       where: { cnpj },
     })
-    if (existingCNPJ) {
+    if (existingDocument) {
       return NextResponse.json(
-        { error: 'Este CNPJ já está cadastrado' },
+        { error: cnpj.length === 11 ? 'Este CPF já está cadastrado' : 'Este CNPJ já está cadastrado' },
         { status: 409 }
       )
     }

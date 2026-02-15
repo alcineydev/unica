@@ -9,7 +9,10 @@ export const createPartnerSchema = z.object({
   // Dados da empresa
   companyName: z.string().min(3, 'Razão social deve ter no mínimo 3 caracteres'),
   tradeName: z.string().optional(),
-  cnpj: z.string().length(14, 'CNPJ deve ter 14 dígitos'),
+  cnpj: z.string().refine(
+    (v) => v.length === 11 || v.length === 14,
+    { message: 'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos' }
+  ),
   category: z.string().optional().default('Geral'),
   categoryId: z.string().optional().nullable(),
   description: z.string().optional(),
