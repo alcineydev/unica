@@ -180,10 +180,11 @@ export async function GET() {
           try { rawBenefitValue = JSON.parse(rawBenefitValue) } catch { rawBenefitValue = {} }
         }
         const value = (rawBenefitValue as Record<string, number>) || {}
-        if (benefit.type === 'DESCONTO' && value.percentage) {
-          desconto = `${value.percentage}% OFF`
-        } else if (benefit.type === 'CASHBACK' && value.percentage) {
-          desconto = `${value.percentage}% Cashback`
+        const pct = value.percentage || value.value || 0
+        if (benefit.type === 'DESCONTO' && pct) {
+          desconto = `${pct}% OFF`
+        } else if (benefit.type === 'CASHBACK' && pct) {
+          desconto = `${pct}% Cashback`
         }
       }
 
@@ -281,7 +282,7 @@ export async function GET() {
                 id: ba.benefit.id,
                 name: ba.benefit.name,
                 type: ba.benefit.type,
-                value: value.percentage || value.monthlyPoints || value.points || 0
+                value: value.percentage || value.value || value.monthlyPoints || value.points || 0
               }
             })
           }
