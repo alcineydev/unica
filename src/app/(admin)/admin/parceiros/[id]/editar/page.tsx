@@ -735,7 +735,7 @@ export default function EditarParceiroPage() {
                     Banner Principal
                   </CardTitle>
                   <CardDescription>
-                    Imagem de capa exibida no perfil do parceiro (1200x300 recomendado)
+                    Imagem de capa exibida no perfil do parceiro
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -744,6 +744,9 @@ export default function EditarParceiroPage() {
                     onChange={setBanner}
                     aspectRatio="banner"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Recomendado: 1600×400px (proporção 4:1). Imagens maiores serão redimensionadas automaticamente.
+                  </p>
                 </CardContent>
               </Card>
 
@@ -763,6 +766,9 @@ export default function EditarParceiroPage() {
                       aspectRatio="square"
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Recomendado: 400×400px. Aparece nos cards e na página do parceiro.
+                  </p>
                 </CardContent>
               </Card>
 
@@ -791,7 +797,7 @@ export default function EditarParceiroPage() {
                       ⭐ Banner de Destaque
                     </CardTitle>
                     <CardDescription>
-                      Imagem especial para o carrossel da home (1200x600 recomendado)
+                      Imagem especial para o carrossel da home do app
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -800,6 +806,9 @@ export default function EditarParceiroPage() {
                       onChange={setBannerDestaque}
                       aspectRatio="banner"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Recomendado: 1600×400px (proporção 4:1). Aparece no carrossel da home do app.
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -920,12 +929,15 @@ export default function EditarParceiroPage() {
               {isDestaque && (
                 <div className="space-y-4 pt-4 border-t">
                   <div className="space-y-2">
-                    <Label>Banner do Destaque (1200x600)</Label>
+                    <Label>Banner do Destaque</Label>
                     <ImageUpload
                       value={bannerDestaque}
                       onChange={setBannerDestaque}
                       aspectRatio="banner"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Recomendado: 1600×400px (proporção 4:1). Aparece no carrossel da home do app.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="destaqueOrder">Ordem no Carrossel</Label>

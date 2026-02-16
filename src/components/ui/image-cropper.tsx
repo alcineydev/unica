@@ -58,15 +58,30 @@ export function ImageCropper({
     const image = imgRef.current
     if (!image || !completedCrop) return null
 
-    const canvas = document.createElement('canvas')
     const scaleX = image.naturalWidth / image.width
     const scaleY = image.naturalHeight / image.height
 
-    canvas.width = completedCrop.width * scaleX
-    canvas.height = completedCrop.height * scaleY
+    // Dimensões reais do crop
+    let cropWidth = completedCrop.width * scaleX
+    let cropHeight = completedCrop.height * scaleY
+
+    // Limitar largura máxima a 1600px (mantendo proporção)
+    const MAX_WIDTH = 1600
+    if (cropWidth > MAX_WIDTH) {
+      const ratio = MAX_WIDTH / cropWidth
+      cropWidth = MAX_WIDTH
+      cropHeight = Math.round(cropHeight * ratio)
+    }
+
+    const canvas = document.createElement('canvas')
+    canvas.width = cropWidth
+    canvas.height = cropHeight
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return null
+
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
 
     ctx.drawImage(
       image,
@@ -76,15 +91,15 @@ export function ImageCropper({
       completedCrop.height * scaleY,
       0,
       0,
-      canvas.width,
-      canvas.height
+      cropWidth,
+      cropHeight
     )
 
     return new Promise((resolve) => {
       canvas.toBlob(
         (blob) => resolve(blob),
         'image/jpeg',
-        0.9
+        0.85
       )
     })
   }, [completedCrop])
