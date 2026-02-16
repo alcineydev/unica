@@ -163,7 +163,7 @@ export default function ParceiroDetalhesPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#f8fafc]">
-        <div className="w-full aspect-[16/9] max-h-[280px] bg-gray-200 animate-pulse" />
+        <div className="w-full aspect-[4/1] bg-gray-200 animate-pulse" />
         <div className="px-4 py-5 space-y-4">
           <div className="h-20 bg-gray-100 rounded-xl animate-pulse" />
           <div className="h-32 bg-gray-100 rounded-xl animate-pulse" />
@@ -204,7 +204,7 @@ export default function ParceiroDetalhesPage() {
 
       {/* ===== HERO BANNER ===== */}
       <div className="relative">
-        <div className="relative w-full aspect-[16/9] max-h-[280px] overflow-hidden">
+        <div className="relative w-full aspect-[4/1] overflow-hidden">
           {parceiro.banner ? (
             <>
               <Image

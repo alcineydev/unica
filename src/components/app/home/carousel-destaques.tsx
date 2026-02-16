@@ -37,7 +37,7 @@ export function CarouselDestaques({ destaques }: CarouselDestaquesProps) {
   const next = () => setCurrent((c) => (c + 1) % destaques.length)
 
   return (
-    <div className="relative w-full aspect-[2/1] rounded-xl overflow-hidden bg-gray-100">
+    <div className="relative w-full aspect-[4/1] rounded-xl overflow-hidden bg-gray-100">
       {/* Slides */}
       {destaques.map((destaque, index) => (
         <Link
