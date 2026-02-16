@@ -2,9 +2,8 @@
 
 import { Suspense, useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
-import Image from 'next/image'
-import Link from 'next/link'
-import { Loader2, Building2, Star, Search, X } from 'lucide-react'
+import { Loader2, Search, X } from 'lucide-react'
+import { ParceiroCard } from '@/components/app/parceiros/parceiro-card'
 import { SearchInput } from '@/components/app/parceiros/search-input'
 import { CategoryFilter } from '@/components/app/parceiros/category-filter'
 
@@ -181,51 +180,21 @@ function ParceirosContent() {
           </div>
         )}
 
-        {/* Lista de parceiros */}
+        {/* Grid de parceiros */}
         {!loading && data?.data && data.data.length > 0 && (
-          <div className="space-y-2.5">
+          <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-3">
             {data.data.map(parceiro => (
-              <Link key={parceiro.id} href={`/app/parceiros/${parceiro.id}`}>
-                <div className="flex items-center gap-3.5 p-3 bg-white rounded-xl border border-gray-100 hover:border-blue-100 hover:shadow-sm transition-all active:scale-[0.99]">
-                  {/* Logo */}
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100">
-                    {parceiro.logo ? (
-                      <Image src={parceiro.logo} alt={parceiro.nomeFantasia} width={48} height={48} className="object-cover w-full h-full" unoptimized />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
-                        <Building2 className="h-5 w-5 text-blue-300" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm text-gray-900 truncate">{parceiro.nomeFantasia}</p>
-                      {(parceiro.rating ?? 0) > 0 && (
-                        <div className="flex items-center gap-0.5 shrink-0">
-                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                          <span className="text-[11px] font-medium text-gray-500">{parceiro.rating?.toFixed(1)}</span>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-gray-400 truncate">
-                      {parceiro.categoryRef?.name || parceiro.category || ''}
-                      {parceiro.city && <> · {parceiro.city.name}</>}
-                    </p>
-                    {parceiro.desconto && (
-                      <span className="inline-block mt-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-green-100 text-green-700">
-                        {parceiro.desconto}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Seta */}
-                  <svg className="h-4 w-4 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                  </svg>
-                </div>
-              </Link>
+              <ParceiroCard
+                key={parceiro.id}
+                parceiro={{
+                  id: parceiro.id,
+                  name: parceiro.nomeFantasia,
+                  logo: parceiro.logo,
+                  category: parceiro.categoryRef?.name || parceiro.category || null,
+                  city: parceiro.city?.name || null,
+                  desconto: parceiro.desconto || null,
+                }}
+              />
             ))}
           </div>
         )}

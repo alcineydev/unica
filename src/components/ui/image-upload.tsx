@@ -11,7 +11,7 @@ interface ImageUploadProps {
   value?: string | null
   onChange: (url: string | null) => void
   folder?: string
-  aspectRatio?: 'square' | 'banner' | 'video'
+  aspectRatio?: 'square' | 'banner' | 'destaque' | 'video'
   className?: string
   placeholder?: string
   disabled?: boolean
@@ -21,6 +21,7 @@ interface ImageUploadProps {
 const aspectRatioValues = {
   square: 1,
   banner: 4,
+  destaque: 2.5,
   video: 16 / 9
 }
 
@@ -43,6 +44,7 @@ export function ImageUpload({
   const aspectClasses = {
     square: 'aspect-square',
     banner: 'aspect-[4/1]',
+    destaque: 'aspect-[2.5/1]',
     video: 'aspect-video'
   }
 

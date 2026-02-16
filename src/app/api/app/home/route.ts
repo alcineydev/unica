@@ -81,7 +81,17 @@ export async function GET() {
         tradeName: true,
         companyName: true,
         bannerDestaque: true,
-        logo: true
+        banner: true,
+        logo: true,
+        category: true,
+        benefitAccess: {
+          take: 1,
+          include: {
+            benefit: {
+              select: { type: true, value: true }
+            }
+          }
+        }
       },
       take: 10
     })
@@ -359,12 +369,31 @@ export async function GET() {
         },
         // Nova home
         categories,
-        destaques: destaques.map(d => ({
-          id: d.id,
-          nomeFantasia: d.tradeName || d.companyName,
-          bannerDestaque: d.bannerDestaque,
-          logo: d.logo
-        })),
+        destaques: destaques.map(d => {
+          let desconto: string | null = null
+          let cashback: string | null = null
+          if (d.benefitAccess?.[0]?.benefit) {
+            const benefit = d.benefitAccess[0].benefit
+            let rawVal = benefit.value
+            if (typeof rawVal === 'string') {
+              try { rawVal = JSON.parse(rawVal) } catch { rawVal = {} }
+            }
+            const val = (rawVal as Record<string, number>) || {}
+            const pct = val.percentage || val.value || 0
+            if (benefit.type === 'DESCONTO' && pct) desconto = `${pct}% OFF`
+            else if (benefit.type === 'CASHBACK' && pct) cashback = `${pct}% Cash`
+          }
+          return {
+            id: d.id,
+            nomeFantasia: d.tradeName || d.companyName,
+            bannerDestaque: d.bannerDestaque,
+            banner: d.banner,
+            logo: d.logo,
+            category: d.category || null,
+            desconto,
+            cashback,
+          }
+        }),
         parceirosDestaque: parceirosDestaque.map(processParceiro),
         novidades: novidades.map(processParceiro),
         // Dados existentes (para compatibilidade)

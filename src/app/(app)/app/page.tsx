@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Store, ChevronRight, Crown, Zap, ArrowRight, Wallet,
-  Eye, EyeOff, Coins, TrendingUp, Sparkles, Star,
-  Building2
+  Eye, EyeOff, Coins, TrendingUp, Star
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CarouselDestaques, RecentTransactions } from '@/components/app/home'
+import { ParceiroCard } from '@/components/app/parceiros/parceiro-card'
 import { NotificationBell } from '@/components/app/notification-bell'
 import { MobileMenu } from '@/components/app/mobile-menu'
 
@@ -41,7 +41,11 @@ interface Destaque {
   id: string
   nomeFantasia: string
   bannerDestaque: string | null
+  banner: string | null
   logo: string | null
+  category: string | null
+  desconto: string | null
+  cashback: string | null
 }
 
 interface ParceiroPlano {
@@ -407,48 +411,10 @@ export default function AppHomePage() {
         </div>
       </div>
 
-      {/* ===== CARROSSEL DESTAQUES ===== */}
+      {/* ===== CARROSSEL DESTAQUES (Peek Carousel) ===== */}
       {destaques.length > 0 && (
         <div className="px-4 sm:px-6 lg:px-10 -mt-1">
           <CarouselDestaques destaques={destaques} />
-        </div>
-      )}
-
-      {/* ===== PARCEIROS EM DESTAQUE ===== */}
-      {parceirosDestaque.length > 0 && (
-        <div className="px-4 sm:px-6 lg:px-10 mt-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
-              <Sparkles className="h-4 w-4 text-blue-600" /> Em Destaque
-            </h2>
-            <Link href="/app/parceiros?destaque=true" className="text-xs font-medium text-blue-600 hover:text-blue-700">
-              Ver todos →
-            </Link>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
-            {parceirosDestaque.slice(0, 8).map((p) => (
-              <Link key={p.id} href={`/app/parceiros/${p.id}`} className="flex-shrink-0 w-[140px]">
-                <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md hover:border-blue-100 transition-all">
-                  <div className="h-16 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-                    {p.logo ? (
-                      <Image src={p.logo} alt={p.nomeFantasia} width={48} height={48} className="object-contain rounded-lg" unoptimized />
-                    ) : (
-                      <Building2 className="h-6 w-6 text-blue-300" />
-                    )}
-                  </div>
-                  <div className="p-2.5">
-                    <p className="text-xs font-semibold text-gray-900 truncate">{p.nomeFantasia}</p>
-                    <p className="text-[10px] text-gray-400 truncate">{p.category}</p>
-                    {p.desconto && (
-                      <span className="inline-block mt-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-green-100 text-green-700">
-                        {p.desconto}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
         </div>
       )}
 
@@ -497,78 +463,35 @@ export default function AppHomePage() {
             Empresas com benefícios para o plano {assinante.plan?.name}
           </p>
 
-          {/* Mobile: grid 3 colunas */}
-          <div className="grid grid-cols-3 gap-2 lg:hidden">
+          {/* Grid responsivo com ParceiroCard */}
+          <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 lg:gap-3">
             {parceiros.slice(0, 12).map((p) => {
               const mainBenefit = p.benefits[0]
               const badge = mainBenefit ? getBenefitBadge(mainBenefit.type, mainBenefit.value) : null
               return (
-                <Link key={p.id} href={`/app/parceiros/${p.id}`}>
-                  <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-sm transition-all active:scale-[0.97] p-2.5 text-center">
-                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 mx-auto mb-1.5">
-                      {p.logo ? (
-                        <Image src={p.logo} alt={p.tradeName || p.companyName} width={48} height={48} className="object-cover w-full h-full" unoptimized />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
-                          <Building2 className="h-5 w-5 text-blue-300" />
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-[11px] font-semibold text-gray-900 truncate">{p.tradeName || p.companyName}</p>
-                    <p className="text-[9px] text-gray-400 truncate">{p.city?.name || p.category}</p>
-                    {badge && (
-                      <span className={`inline-block mt-1 text-[8px] font-bold px-1.5 py-0.5 rounded ${badge.color}`}>
-                        {badge.text}
-                      </span>
-                    )}
-                  </div>
-                </Link>
+                <ParceiroCard
+                  key={p.id}
+                  parceiro={{
+                    id: p.id,
+                    name: p.companyName,
+                    tradeName: p.tradeName,
+                    logo: p.logo,
+                    category: p.category,
+                    city: p.city?.name || null,
+                    desconto: badge?.text || null,
+                  }}
+                />
               )
             })}
           </div>
 
-          {/* Desktop: grid responsivo */}
-          <div className="hidden lg:grid lg:grid-cols-2 xl:grid-cols-3 gap-3">
-            {parceiros.slice(0, 12).map((p) => {
-              const mainBenefit = p.benefits[0]
-              const badge = mainBenefit ? getBenefitBadge(mainBenefit.type, mainBenefit.value) : null
-              return (
-                <Link key={p.id} href={`/app/parceiros/${p.id}`}>
-                  <div className="flex items-center gap-3.5 p-3.5 bg-white rounded-xl border border-gray-100 hover:border-blue-100 hover:shadow-sm transition-all">
-                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100">
-                      {p.logo ? (
-                        <Image src={p.logo} alt={p.tradeName || p.companyName} width={48} height={48} className="object-cover w-full h-full" unoptimized />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
-                          <Building2 className="h-5 w-5 text-blue-300" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-sm text-gray-900 truncate">{p.tradeName || p.companyName}</p>
-                        {p.avaliacoes.total > 0 && (
-                          <div className="flex items-center gap-0.5 shrink-0">
-                            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                            <span className="text-[11px] font-medium text-gray-500">{p.avaliacoes.media.toFixed(1)}</span>
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-gray-400 truncate">
-                        {p.category}{p.city && <> · {p.city.name}</>}
-                      </p>
-                      {badge && (
-                        <span className={`inline-block mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded ${badge.color}`}>
-                          {badge.text}
-                        </span>
-                      )}
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-gray-300 shrink-0" />
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
+          {/* Ver todos */}
+          <Link
+            href="/app/parceiros"
+            className="flex items-center justify-center gap-1.5 w-full py-3 mt-3 rounded-xl border border-gray-200 bg-white text-[13px] font-semibold text-blue-600 hover:bg-blue-50 hover:border-blue-200 active:scale-[0.98] transition-all"
+          >
+            Ver todos os parceiros →
+          </Link>
         </div>
       )}
 

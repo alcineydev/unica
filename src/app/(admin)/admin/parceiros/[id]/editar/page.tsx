@@ -804,10 +804,10 @@ export default function EditarParceiroPage() {
                     <ImageUpload
                       value={bannerDestaque}
                       onChange={setBannerDestaque}
-                      aspectRatio="banner"
+                      aspectRatio="destaque"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Recomendado: 1600×400px (proporção 4:1). Aparece no carrossel da home do app.
+                      Recomendado: 1600×640px (proporção 2.5:1). Aparece no carrossel da home do app.
                     </p>
                   </CardContent>
                 </Card>
@@ -933,10 +933,10 @@ export default function EditarParceiroPage() {
                     <ImageUpload
                       value={bannerDestaque}
                       onChange={setBannerDestaque}
-                      aspectRatio="banner"
+                      aspectRatio="destaque"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Recomendado: 1600×400px (proporção 4:1). Aparece no carrossel da home do app.
+                      Recomendado: 1600×640px (proporção 2.5:1). Aparece no carrossel da home do app.
                     </p>
                   </div>
                   <div className="space-y-2">
