@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const destaque = searchParams.get('destaque') === 'true'
     const novidades = searchParams.get('novidades') === 'true'
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '12')
+    const limit = parseInt(searchParams.get('limit') || '20')
     const skip = (page - 1) * limit
 
     // Buscar assinante com seu plano e benefícios
@@ -165,15 +165,20 @@ export async function GET(request: NextRequest) {
         ? avaliacoes.reduce((sum, a) => sum + a.nota, 0) / avaliacoes.length
         : 0
 
-      // Extrair desconto do primeiro benefício
+      // Extrair desconto do primeiro benefício (safety parse)
       let desconto = null
       if (p.benefitAccess?.[0]?.benefit) {
         const benefit = p.benefitAccess[0].benefit
-        const value = benefit.value as Record<string, number>
-        if (benefit.type === 'DESCONTO' && value.percentage) {
-          desconto = `${value.percentage}% OFF`
-        } else if (benefit.type === 'CASHBACK' && value.percentage) {
-          desconto = `${value.percentage}% Cashback`
+        let rawValue = benefit.value
+        if (typeof rawValue === 'string') {
+          try { rawValue = JSON.parse(rawValue) } catch { rawValue = {} }
+        }
+        const value = (rawValue as Record<string, number>) || {}
+        const pct = value.percentage || value.value || 0
+        if (benefit.type === 'DESCONTO' && pct) {
+          desconto = `${pct}% OFF`
+        } else if (benefit.type === 'CASHBACK' && pct) {
+          desconto = `${pct}% Cashback`
         }
       }
 
@@ -195,12 +200,16 @@ export async function GET(request: NextRequest) {
         totalAvaliacoes: avaliacoes.length,
         desconto,
         benefits: p.benefitAccess.map(ba => {
-          const value = ba.benefit.value as Record<string, number>
+          let rawVal = ba.benefit.value
+          if (typeof rawVal === 'string') {
+            try { rawVal = JSON.parse(rawVal) } catch { rawVal = {} }
+          }
+          const value = (rawVal as Record<string, number>) || {}
           return {
             id: ba.benefit.id,
             name: ba.benefit.name,
             type: ba.benefit.type,
-            value: value.percentage || value.monthlyPoints || 0
+            value: value.percentage || value.value || value.monthlyPoints || value.points || 0
           }
         })
       }

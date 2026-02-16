@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
   ArrowLeft, Building2, MapPin, Phone, Mail, Globe,
   Instagram, Facebook, MessageCircle, Percent, Gift,
-  Coins, Loader2, ExternalLink, Star, ChevronRight, X
+  Coins, Star, ChevronRight, X, Wallet, ExternalLink
 } from 'lucide-react'
 
 interface Parceiro {
@@ -40,27 +41,39 @@ interface Parceiro {
 
 interface AssinanteInfo { id: string; name: string; planName: string }
 
+// ==========================================
 // Helpers
+// ==========================================
+
 function getBenefitConfig(type: string) {
-  const map: Record<string, { icon: typeof Percent; color: string; bg: string; text: string }> = {
-    DESCONTO: { icon: Percent, color: 'bg-green-500', bg: 'bg-green-50', text: 'text-green-600' },
-    DISCOUNT: { icon: Percent, color: 'bg-green-500', bg: 'bg-green-50', text: 'text-green-600' },
-    CASHBACK: { icon: Coins, color: 'bg-amber-500', bg: 'bg-amber-50', text: 'text-amber-600' },
-    PONTOS: { icon: Star, color: 'bg-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' },
-    POINTS: { icon: Star, color: 'bg-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' },
-    ACESSO_EXCLUSIVO: { icon: Gift, color: 'bg-violet-500', bg: 'bg-violet-50', text: 'text-violet-600' },
-    FREEBIE: { icon: Gift, color: 'bg-violet-500', bg: 'bg-violet-50', text: 'text-violet-600' },
+  const map: Record<string, { icon: typeof Percent; bg: string; text: string; gradient: string }> = {
+    DESCONTO: { icon: Percent, bg: 'bg-green-50', text: 'text-green-600', gradient: 'from-green-500 to-emerald-600' },
+    DISCOUNT: { icon: Percent, bg: 'bg-green-50', text: 'text-green-600', gradient: 'from-green-500 to-emerald-600' },
+    CASHBACK: { icon: Coins, bg: 'bg-amber-50', text: 'text-amber-600', gradient: 'from-amber-500 to-orange-600' },
+    PONTOS: { icon: Star, bg: 'bg-blue-50', text: 'text-blue-600', gradient: 'from-blue-500 to-indigo-600' },
+    POINTS: { icon: Star, bg: 'bg-blue-50', text: 'text-blue-600', gradient: 'from-blue-500 to-indigo-600' },
+    ACESSO_EXCLUSIVO: { icon: Gift, bg: 'bg-violet-50', text: 'text-violet-600', gradient: 'from-violet-500 to-purple-600' },
+    FREEBIE: { icon: Gift, bg: 'bg-violet-50', text: 'text-violet-600', gradient: 'from-violet-500 to-purple-600' },
   }
-  return map[type] || { icon: Gift, color: 'bg-gray-500', bg: 'bg-gray-50', text: 'text-gray-600' }
+  return map[type] || { icon: Gift, bg: 'bg-gray-50', text: 'text-gray-600', gradient: 'from-gray-500 to-gray-600' }
 }
 
 function getBenefitLabel(type: string, value: number) {
   switch (type) {
     case 'DESCONTO': case 'DISCOUNT': return `${value}% de desconto`
     case 'CASHBACK': return `${value}% de cashback`
-    case 'PONTOS': case 'POINTS': return `${value} pontos`
+    case 'PONTOS': case 'POINTS': return `${value} pontos por compra`
     case 'ACESSO_EXCLUSIVO': case 'FREEBIE': return 'Acesso exclusivo'
     default: return 'Benefício exclusivo'
+  }
+}
+
+function getBenefitHighlight(type: string, value: number) {
+  switch (type) {
+    case 'DESCONTO': case 'DISCOUNT': return `${value}%`
+    case 'CASHBACK': return `${value}%`
+    case 'PONTOS': case 'POINTS': return `${value}`
+    default: return '✓'
   }
 }
 
@@ -70,6 +83,14 @@ function formatPhone(phone: string) {
   return n.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3')
 }
 
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
+// ==========================================
+// Componente Principal
+// ==========================================
+
 export default function ParceiroDetalhesPage() {
   const params = useParams()
   const router = useRouter()
@@ -77,6 +98,7 @@ export default function ParceiroDetalhesPage() {
 
   const [parceiro, setParceiro] = useState<Parceiro | null>(null)
   const [assinante, setAssinante] = useState<AssinanteInfo | null>(null)
+  const [cashbackBalance, setCashbackBalance] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
@@ -91,6 +113,18 @@ export default function ParceiroDetalhesPage() {
       const data = await response.json()
       if (data.parceiro) setParceiro(data.parceiro)
       if (data.assinante) setAssinante(data.assinante)
+
+      // Buscar saldo de cashback neste parceiro
+      try {
+        const cbRes = await fetch('/api/app/carteira')
+        const cbData = await cbRes.json()
+        if (cbData.data?.cashbackByPartner) {
+          const match = cbData.data.cashbackByPartner.find(
+            (cb: { parceiroId: string }) => cb.parceiroId === parceiroId
+          )
+          if (match) setCashbackBalance(match.balance)
+        }
+      } catch { /* silencioso */ }
     } catch (error) {
       console.error('Erro ao buscar parceiro:', error)
     } finally {
@@ -122,19 +156,27 @@ export default function ParceiroDetalhesPage() {
     return parts.length > 0 ? parts.join(' • ') : null
   }
 
+  // ==========================================
   // Loading
+  // ==========================================
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-400 text-sm">Carregando...</p>
+      <div className="min-h-screen bg-[#f8fafc]">
+        <div className="w-full aspect-[16/9] max-h-[280px] bg-gray-200 animate-pulse" />
+        <div className="px-4 py-5 space-y-4">
+          <div className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="h-32 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="h-48 bg-gray-100 rounded-xl animate-pulse" />
         </div>
       </div>
     )
   }
 
-  // Not found
+  // ==========================================
+  // Not Found
+  // ==========================================
+
   if (!parceiro) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
@@ -150,16 +192,31 @@ export default function ParceiroDetalhesPage() {
     )
   }
 
+  // ==========================================
+  // Render
+  // ==========================================
+
+  const mainDiscount = parceiro.benefits.find(b => b.type === 'DESCONTO' || b.type === 'DISCOUNT')
+  const mainCashback = parceiro.benefits.find(b => b.type === 'CASHBACK')
+
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-28">
 
       {/* ===== HERO BANNER ===== */}
       <div className="relative">
-        <div className="h-52 md:h-64 relative overflow-hidden">
+        <div className="relative w-full aspect-[16/9] max-h-[280px] overflow-hidden">
           {parceiro.banner ? (
             <>
-              <Image src={parceiro.banner} alt={parceiro.name} fill className="object-cover" unoptimized />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/40 to-transparent" />
+              <Image
+                src={parceiro.banner}
+                alt={parceiro.name}
+                fill
+                className="object-cover object-center"
+                sizes="100vw"
+                priority
+                unoptimized
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/30 to-transparent" />
             </>
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-[#0f172a] via-[#1e3a5f] to-[#0f172a]">
@@ -177,13 +234,33 @@ export default function ParceiroDetalhesPage() {
             <ArrowLeft className="h-4 w-4" />
           </button>
 
+          {/* Badges de benefício no banner */}
+          <div className="absolute top-4 right-4 z-10 flex gap-1.5">
+            {mainDiscount && mainDiscount.value > 0 && (
+              <div className="px-2.5 py-1 rounded-lg bg-green-500/90 backdrop-blur-sm text-white text-xs font-bold shadow-lg">
+                {mainDiscount.value}% OFF
+              </div>
+            )}
+            {mainCashback && mainCashback.value > 0 && (
+              <div className="px-2.5 py-1 rounded-lg bg-amber-500/90 backdrop-blur-sm text-white text-xs font-bold shadow-lg">
+                {mainCashback.value}% Cash
+              </div>
+            )}
+          </div>
+
           {/* Info sobre o banner */}
           <div className="absolute bottom-0 left-0 right-0 p-5">
             <div className="flex items-end gap-4">
-              {/* Logo */}
               <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white border-[3px] border-white shadow-xl shrink-0">
                 {parceiro.logo ? (
-                  <Image src={parceiro.logo} alt={parceiro.name} width={80} height={80} className="object-cover w-full h-full" unoptimized />
+                  <Image
+                    src={parceiro.logo}
+                    alt={parceiro.name}
+                    width={80}
+                    height={80}
+                    className="object-contain w-full h-full p-1"
+                    unoptimized
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
                     <Building2 className="h-8 w-8 text-blue-400" />
@@ -209,6 +286,24 @@ export default function ParceiroDetalhesPage() {
       {/* ===== CONTEÚDO ===== */}
       <div className="px-4 sm:px-6 py-5 space-y-5">
 
+        {/* Cashback disponível neste parceiro */}
+        {cashbackBalance > 0 && (
+          <Link href="/app/carteira">
+            <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
+              <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center shrink-0">
+                <Wallet className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-green-800">Cashback disponível aqui</p>
+                <p className="text-xs text-green-600">Use na sua próxima compra</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-green-700">{formatCurrency(cashbackBalance)}</p>
+              </div>
+            </div>
+          </Link>
+        )}
+
         {/* Benefícios */}
         {parceiro.benefits && parceiro.benefits.length > 0 && (
           <section>
@@ -218,20 +313,19 @@ export default function ParceiroDetalhesPage() {
             <div className="space-y-2.5">
               {parceiro.benefits.map((benefit) => {
                 const config = getBenefitConfig(benefit.type)
-                const Icon = config.icon
+                const highlight = getBenefitHighlight(benefit.type, benefit.value)
                 return (
                   <div key={benefit.id} className="flex items-center gap-3.5 p-3.5 bg-white rounded-xl border border-gray-100 shadow-sm">
-                    <div className={`w-11 h-11 rounded-xl ${config.bg} flex items-center justify-center shrink-0`}>
-                      <Icon className={`h-5 w-5 ${config.text}`} />
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center shrink-0 shadow-sm`}>
+                      <span className="text-white font-extrabold text-sm">{highlight}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm text-gray-900">{benefit.name}</p>
                       <p className={`text-xs font-medium ${config.text}`}>{getBenefitLabel(benefit.type, benefit.value)}</p>
                       {benefit.description && (
-                        <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-1">{benefit.description}</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">{benefit.description}</p>
                       )}
                     </div>
-                    <div className={`w-1.5 h-10 rounded-full ${config.color}`} />
                   </div>
                 )
               })}
@@ -364,22 +458,24 @@ export default function ParceiroDetalhesPage() {
         )}
       </div>
 
-      {/* ===== BOTÃO WHATSAPP FIXO ===== */}
+      {/* ===== BOTÃO WHATSAPP FIXO — REDESIGN ===== */}
       {parceiro.whatsapp && (
-        <div className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-[#f8fafc] via-[#f8fafc] to-transparent z-30">
-          <div className="max-w-4xl mx-auto">
-            <a href={getWhatsAppLink() || '#'} target="_blank" rel="noopener noreferrer">
-              <button
-                className="w-full flex items-center justify-center gap-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl shadow-lg shadow-green-200/40 transition-all active:scale-[0.98] py-3.5"
-                title="Chamar no WhatsApp"
-              >
-                <MessageCircle className="h-5 w-5" />
-                <span>Chamar no WhatsApp</span>
-              </button>
+        <div className="fixed bottom-20 left-0 right-0 px-4 pb-2 z-30">
+          <div className="max-w-lg mx-auto">
+            <a href={getWhatsAppLink() || '#'} target="_blank" rel="noopener noreferrer" className="block">
+              <div className="flex items-center gap-3 bg-[#25D366] hover:bg-[#20BD5A] text-white rounded-2xl shadow-xl shadow-green-600/20 transition-all active:scale-[0.98] px-5 py-3.5">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                  <MessageCircle className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm">Chamar no WhatsApp</p>
+                  <p className="text-[11px] text-white/70 truncate">
+                    Mensagem automática com seus dados
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-white/50 shrink-0" />
+              </div>
             </a>
-            <p className="text-[10px] text-center text-gray-400 mt-1.5">
-              Mensagem automática com seus dados de assinante
-            </p>
           </div>
         </div>
       )}

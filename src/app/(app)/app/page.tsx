@@ -499,7 +499,7 @@ export default function AppHomePage() {
 
           {/* Mobile: grid 3 colunas */}
           <div className="grid grid-cols-3 gap-2 lg:hidden">
-            {parceiros.slice(0, 9).map((p) => {
+            {parceiros.slice(0, 12).map((p) => {
               const mainBenefit = p.benefits[0]
               const badge = mainBenefit ? getBenefitBadge(mainBenefit.type, mainBenefit.value) : null
               return (
@@ -529,7 +529,7 @@ export default function AppHomePage() {
 
           {/* Desktop: grid responsivo */}
           <div className="hidden lg:grid lg:grid-cols-2 xl:grid-cols-3 gap-3">
-            {parceiros.slice(0, 9).map((p) => {
+            {parceiros.slice(0, 12).map((p) => {
               const mainBenefit = p.benefits[0]
               const badge = mainBenefit ? getBenefitBadge(mainBenefit.type, mainBenefit.value) : null
               return (

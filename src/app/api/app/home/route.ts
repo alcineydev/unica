@@ -250,7 +250,7 @@ export async function GET() {
               }
             }
           },
-          take: 10,
+          take: 12,
           orderBy: { companyName: 'asc' }
         })
 

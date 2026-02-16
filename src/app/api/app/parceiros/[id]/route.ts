@@ -91,14 +91,18 @@ export async function GET(
 
     logger.debug('[API Parceiro] Encontrado:', parceiro.tradeName || parceiro.companyName)
 
-    // Formatar benefícios
+    // Formatar benefícios (safety parse)
     const beneficios = parceiro.benefitAccess.map(ba => {
-      const value = ba.benefit.value as Record<string, number>
+      let rawValue = ba.benefit.value
+      if (typeof rawValue === 'string') {
+        try { rawValue = JSON.parse(rawValue) } catch { rawValue = {} }
+      }
+      const value = (rawValue as Record<string, number>) || {}
       return {
         id: ba.benefit.id,
         name: ba.benefit.name,
         type: ba.benefit.type,
-        value: value.percentage || value.monthlyPoints || 0,
+        value: value.percentage || value.value || value.monthlyPoints || value.points || 0,
         description: ba.benefit.description
       }
     })
