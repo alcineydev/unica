@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useNotifications } from '@/providers/notifications-provider'
 import { NotificationModal } from './notification-modal'
 
 interface NewNotification {
@@ -26,69 +27,13 @@ interface NewNotification {
 export function AppHeader() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [notifCount, setNotifCount] = useState(0)
-  const [lastCount, setLastCount] = useState(0)
-  const [isFirstRender, setIsFirstRender] = useState(true)
+  const { unreadCount } = useNotifications()
 
-  // Modal de notificação in-app
+  // Modal de notificação in-app (removido - não usado)
   const [showModal, setShowModal] = useState(false)
   const [newNotification, setNewNotification] = useState<NewNotification | null>(null)
 
-  const fetchNotifCount = useCallback(async () => {
-    try {
-      const res = await fetch('/api/app/notifications/count')
-      if (res.ok) {
-        const data = await res.json()
-        const newCount = data.count || 0
 
-        // Se não é primeira renderização e tem novas notificações
-        if (!isFirstRender && newCount > lastCount) {
-          try {
-            const notifRes = await fetch('/api/app/notifications?limit=1')
-            const notifData = await notifRes.json()
-
-            if (notifData.notifications?.length > 0) {
-              const lastNotif = notifData.notifications[0]
-              let link: string | undefined
-
-              if (lastNotif.dados) {
-                try {
-                  const parsed = typeof lastNotif.dados === 'string'
-                    ? JSON.parse(lastNotif.dados)
-                    : lastNotif.dados
-                  link = parsed.link || (parsed.parceiroId ? `/app/avaliar/${parsed.parceiroId}` : undefined)
-                } catch {
-                  // ignore
-                }
-              }
-
-              setNewNotification({
-                title: lastNotif.titulo,
-                message: lastNotif.mensagem,
-                type: lastNotif.tipo,
-                link
-              })
-              setShowModal(true)
-            }
-          } catch {
-            // silencioso
-          }
-        }
-
-        setLastCount(newCount)
-        setNotifCount(newCount)
-        setIsFirstRender(false)
-      }
-    } catch {
-      // silencioso
-    }
-  }, [isFirstRender, lastCount])
-
-  useEffect(() => {
-    fetchNotifCount()
-    const interval = setInterval(fetchNotifCount, 30000)
-    return () => clearInterval(interval)
-  }, [fetchNotifCount])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = session?.user as any
@@ -126,9 +71,9 @@ export function AppHeader() {
               onClick={() => router.push('/app/notificacoes')}
             >
               <Bell className="h-[18px] w-[18px]" />
-              {notifCount > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-sm">
-                  {notifCount > 99 ? '99+' : notifCount}
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </Button>

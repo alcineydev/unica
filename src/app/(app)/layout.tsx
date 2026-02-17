@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { BottomNav, AppSidebar, PageTransition } from '@/components/app'
 import { UpdateChecker } from '@/components/app/update-checker'
 import { NotificationPermissionModal } from '@/components/app/notification-permission-modal'
+import { NotificationsProvider } from '@/providers/notifications-provider'
 import { Toaster } from 'sonner'
 
 export default async function AppLayout({
@@ -30,9 +31,11 @@ export default async function AppLayout({
 
         {/* Main content */}
         <main className="flex-1 min-w-0 pb-20 lg:pb-0 overflow-x-hidden">
-          <Suspense fallback={null}>
-            {children}
-          </Suspense>
+          <NotificationsProvider>
+            <Suspense fallback={null}>
+              {children}
+            </Suspense>
+          </NotificationsProvider>
         </main>
       </div>
 
