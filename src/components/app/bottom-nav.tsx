@@ -27,9 +27,10 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
+              prefetch={false}
               className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1 rounded-lg transition-colors ${isActive
-                  ? 'text-blue-600'
-                  : 'text-gray-400 hover:text-gray-600'
+                ? 'text-blue-600'
+                : 'text-gray-400 hover:text-gray-600'
                 }`}
             >
               <Icon className={`h-5 w-5 ${isActive ? 'stroke-[2.5px]' : ''}`} />
