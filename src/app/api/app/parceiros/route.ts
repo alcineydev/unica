@@ -79,74 +79,74 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Total count (para barra de progresso)
-    const totalCount = await prisma.parceiro.count({ where })
-
-    // Cursor-based pagination
-    const parceiros = await prisma.parceiro.findMany({
-      take: limit + 1, // +1 para detectar hasMore
-      ...(cursor && {
-        cursor: { id: cursor },
-        skip: 1, // pula o próprio cursor
-      }),
-      where,
-      select: {
-        id: true,
-        companyName: true,
-        tradeName: true,
-        logo: true,
-        banner: true,
-        category: true,
-        categoryId: true,
-        description: true,
-        isDestaque: true,
-        contact: true,
-        createdAt: true,
-        city: {
-          select: {
-            id: true,
-            name: true,
-            state: true
-          }
-        },
-        categoryRef: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            icon: true
-          }
-        },
-        avaliacoes: {
-          where: { publicada: true },
-          select: { nota: true }
-        },
-        benefitAccess: {
-          where: benefitIdsDoPlano.length > 0
-            ? { benefitId: { in: benefitIdsDoPlano } }
-            : {},
-          include: {
-            benefit: {
-              select: {
-                id: true,
-                name: true,
-                type: true,
-                value: true
+    // Paralelizar count + parceiros para não bloquear
+    const [totalCount, parceirosRaw] = await Promise.all([
+      prisma.parceiro.count({ where }),
+      prisma.parceiro.findMany({
+        take: limit + 1, // +1 para detectar hasMore
+        ...(cursor && {
+          cursor: { id: cursor },
+          skip: 1, // pula o próprio cursor
+        }),
+        where,
+        select: {
+          id: true,
+          companyName: true,
+          tradeName: true,
+          logo: true,
+          banner: true,
+          category: true,
+          categoryId: true,
+          description: true,
+          isDestaque: true,
+          contact: true,
+          createdAt: true,
+          city: {
+            select: {
+              id: true,
+              name: true,
+              state: true
+            }
+          },
+          categoryRef: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              icon: true
+            }
+          },
+          avaliacoes: {
+            where: { publicada: true },
+            select: { nota: true }
+          },
+          benefitAccess: {
+            where: benefitIdsDoPlano.length > 0
+              ? { benefitId: { in: benefitIdsDoPlano } }
+              : {},
+            include: {
+              benefit: {
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                  value: true
+                }
               }
             }
           }
-        }
-      },
-      orderBy: [
-        { isDestaque: 'desc' },
-        { tradeName: 'asc' },
-        { companyName: 'asc' }
-      ],
-    })
+        },
+        orderBy: [
+          { isDestaque: 'desc' },
+          { tradeName: 'asc' },
+          { companyName: 'asc' }
+        ],
+      })
+    ])
 
     // Detectar hasMore
-    const hasMore = parceiros.length > limit
-    const data = hasMore ? parceiros.slice(0, limit) : parceiros
+    const hasMore = parceirosRaw.length > limit
+    const data = hasMore ? parceirosRaw.slice(0, limit) : parceirosRaw
     const nextCursor = hasMore ? data[data.length - 1].id : null
 
     // Buscar categorias para filtros
