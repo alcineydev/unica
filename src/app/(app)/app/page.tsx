@@ -201,7 +201,7 @@ export default function AppHomePage() {
           <div className="mt-10 w-full max-w-md space-y-3">
             <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Planos disponíveis</h2>
             {data.planosDisponiveis.filter(p => Number(p.price) > 0).map((plan, i) => (
-              <Link key={plan.id} href="/app/planos" className="block">
+              <Link key={plan.id} href="/app/planos" prefetch={false} className="block">
                 <div className={`flex items-center justify-between p-4 rounded-xl bg-white border transition-all hover:shadow-md ${i === 0 ? 'border-blue-200 shadow-sm' : 'border-gray-200'
                   }`}>
                   <div className="flex items-center gap-3">
