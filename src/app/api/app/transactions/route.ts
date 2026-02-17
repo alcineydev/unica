@@ -12,20 +12,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const assinante = await prisma.assinante.findUnique({
-      where: { userId: session.user.id! },
-      select: { id: true },
-    })
-
-    if (!assinante) {
-      return NextResponse.json({ error: 'Assinante não encontrado' }, { status: 404 })
-    }
-
     const { searchParams } = new URL(request.url)
     const limit = Math.min(Number(searchParams.get('limit')) || 10, 50)
 
     const transactions = await prisma.transaction.findMany({
-      where: { assinanteId: assinante.id },
+      where: {
+        assinante: { userId: session.user.id! }
+      },
       orderBy: { createdAt: 'desc' },
       take: limit,
       select: {
@@ -63,11 +56,11 @@ export async function GET(request: Request) {
         createdAt: t.createdAt.toISOString(),
         parceiro: t.parceiro
           ? {
-              id: t.parceiro.id,
-              name: t.parceiro.tradeName || t.parceiro.companyName,
-              logo: t.parceiro.logo,
-              category: t.parceiro.category,
-            }
+            id: t.parceiro.id,
+            name: t.parceiro.tradeName || t.parceiro.companyName,
+            logo: t.parceiro.logo,
+            category: t.parceiro.category,
+          }
           : null,
       })),
     })
