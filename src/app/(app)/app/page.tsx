@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -114,12 +115,9 @@ export default function AppHomePage() {
   const [data, setData] = useState<HomeData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [showValues, setShowValues] = useState(true)
+  const pathname = usePathname()
 
-  useEffect(() => {
-    fetchHomeData()
-  }, [])
-
-  const fetchHomeData = async () => {
+  const fetchHomeData = useCallback(async () => {
     try {
       const response = await fetch('/api/app/home')
       const result = await response.json()
@@ -134,7 +132,11 @@ export default function AppHomePage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchHomeData()
+  }, [pathname, fetchHomeData])
 
   // Loading
   if (isLoading) {
@@ -199,13 +201,11 @@ export default function AppHomePage() {
             <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Planos disponíveis</h2>
             {data.planosDisponiveis.filter(p => Number(p.price) > 0).map((plan, i) => (
               <Link key={plan.id} href="/app/planos" className="block">
-                <div className={`flex items-center justify-between p-4 rounded-xl bg-white border transition-all hover:shadow-md ${
-                  i === 0 ? 'border-blue-200 shadow-sm' : 'border-gray-200'
-                }`}>
+                <div className={`flex items-center justify-between p-4 rounded-xl bg-white border transition-all hover:shadow-md ${i === 0 ? 'border-blue-200 shadow-sm' : 'border-gray-200'
+                  }`}>
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      i === 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
-                    }`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${i === 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
+                      }`}>
                       {i === 0 ? <Crown className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
                     </div>
                     <div>

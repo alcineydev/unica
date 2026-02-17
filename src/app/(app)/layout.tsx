@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { BottomNav, AppSidebar, PageTransition } from '@/components/app'
@@ -29,7 +30,9 @@ export default async function AppLayout({
 
         {/* Main content */}
         <main className="flex-1 min-w-0 pb-20 lg:pb-0 overflow-x-hidden">
-          {children}
+          <Suspense fallback={null}>
+            {children}
+          </Suspense>
         </main>
       </div>
 
