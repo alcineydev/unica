@@ -70,10 +70,6 @@ export function PageTransition() {
       const href = anchor.getAttribute('href')
       if (!href) return
 
-      // Pular interceptação se for BottomNav (navegação instantânea)
-      const isBottomNav = (e.target as HTMLElement).closest('[data-bottom-nav]')
-      if (isBottomNav) return
-
       if (
         href.startsWith('http') ||
         href.startsWith('#') ||

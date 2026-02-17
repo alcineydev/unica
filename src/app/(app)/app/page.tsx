@@ -135,6 +135,7 @@ export default function AppHomePage() {
   }, [])
 
   useEffect(() => {
+    setIsLoading(true)
     fetchHomeData()
   }, [pathname, fetchHomeData])
 
