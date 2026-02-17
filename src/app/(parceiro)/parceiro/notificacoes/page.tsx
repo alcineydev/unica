@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,14 +30,11 @@ interface Notificacao {
 }
 
 export default function NotificacoesPage() {
+  const pathname = usePathname()
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    fetchNotificacoes()
-  }, [])
-
-  const fetchNotificacoes = async () => {
+  const fetchNotificacoes = useCallback(async () => {
     try {
       const response = await fetch('/api/parceiro/notificacoes')
       const data = await response.json()
@@ -50,7 +48,12 @@ export default function NotificacoesPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    setIsLoading(true)
+    fetchNotificacoes()
+  }, [pathname, fetchNotificacoes])
 
   const marcarComoLida = async (id: string) => {
     try {

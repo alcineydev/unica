@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,6 +72,7 @@ interface Beneficio {
 }
 
 export default function PerfilEmpresaPage() {
+  const pathname = usePathname()
   const [parceiro, setParceiro] = useState<ParceiroData | null>(null)
   const [beneficios, setBeneficios] = useState<Beneficio[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -89,11 +91,7 @@ export default function PerfilEmpresaPage() {
     sunday: '',
   })
 
-  useEffect(() => {
-    fetchPerfil()
-  }, [])
-
-  const fetchPerfil = async () => {
+  const fetchPerfil = useCallback(async () => {
     try {
       const response = await fetch('/api/parceiro/perfil')
       const result = await response.json()
@@ -117,7 +115,12 @@ export default function PerfilEmpresaPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    setIsLoading(true)
+    fetchPerfil()
+  }, [pathname, fetchPerfil])
 
   const handleSave = async () => {
     setIsSaving(true)
