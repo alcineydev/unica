@@ -12,19 +12,10 @@ export async function GET() {
       return NextResponse.json({ count: 0 })
     }
 
-    // Buscar assinante
-    const assinante = await prisma.assinante.findFirst({
-      where: { userId: session.user.id }
-    })
-
-    if (!assinante) {
-      return NextResponse.json({ count: 0 })
-    }
-
-    // Contar notificações não lidas
+    // Contar notificações não lidas diretamente via relação
     const count = await prisma.assinanteNotificacao.count({
       where: {
-        assinanteId: assinante.id,
+        assinante: { userId: session.user.id! },
         lida: false
       }
     })
