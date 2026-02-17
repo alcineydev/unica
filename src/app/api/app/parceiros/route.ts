@@ -79,70 +79,67 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Paralelizar count + parceiros para não bloquear
-    const [totalCount, parceirosRaw] = await Promise.all([
-      prisma.parceiro.count({ where }),
-      prisma.parceiro.findMany({
-        take: limit + 1, // +1 para detectar hasMore
-        ...(cursor && {
-          cursor: { id: cursor },
-          skip: 1, // pula o próprio cursor
-        }),
-        where,
-        select: {
-          id: true,
-          companyName: true,
-          tradeName: true,
-          logo: true,
-          banner: true,
-          category: true,
-          categoryId: true,
-          description: true,
-          isDestaque: true,
-          contact: true,
-          createdAt: true,
-          city: {
-            select: {
-              id: true,
-              name: true,
-              state: true
-            }
-          },
-          categoryRef: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              icon: true
-            }
-          },
-          avaliacoes: {
-            where: { publicada: true },
-            select: { nota: true }
-          },
-          benefitAccess: {
-            where: benefitIdsDoPlano.length > 0
-              ? { benefitId: { in: benefitIdsDoPlano } }
-              : {},
-            include: {
-              benefit: {
-                select: {
-                  id: true,
-                  name: true,
-                  type: true,
-                  value: true
-                }
+    // Buscar parceiros (sem count — cursor pagination não precisa)
+    const parceirosRaw = await prisma.parceiro.findMany({
+      take: limit + 1, // +1 para detectar hasMore
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1, // pula o próprio cursor
+      }),
+      where,
+      select: {
+        id: true,
+        companyName: true,
+        tradeName: true,
+        logo: true,
+        banner: true,
+        category: true,
+        categoryId: true,
+        description: true,
+        isDestaque: true,
+        contact: true,
+        createdAt: true,
+        city: {
+          select: {
+            id: true,
+            name: true,
+            state: true
+          }
+        },
+        categoryRef: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            icon: true
+          }
+        },
+        avaliacoes: {
+          where: { publicada: true },
+          select: { nota: true }
+        },
+        benefitAccess: {
+          where: benefitIdsDoPlano.length > 0
+            ? { benefitId: { in: benefitIdsDoPlano } }
+            : {},
+          include: {
+            benefit: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+                value: true
               }
             }
           }
-        },
-        orderBy: [
-          { isDestaque: 'desc' },
-          { tradeName: 'asc' },
-          { companyName: 'asc' }
-        ],
-      })
-    ])
+        }
+      },
+      orderBy: [
+        { isDestaque: 'desc' },
+        { tradeName: 'asc' },
+        { companyName: 'asc' }
+      ],
+    })
 
     // Detectar hasMore
     const hasMore = parceirosRaw.length > limit
@@ -232,7 +229,6 @@ export async function GET(request: NextRequest) {
         count: c._count.parceiros
       })),
       nextCursor,
-      totalCount,
       hasMore,
     })
 
