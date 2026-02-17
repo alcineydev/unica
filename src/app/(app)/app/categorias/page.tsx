@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, useCallback } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Store } from 'lucide-react'
@@ -19,21 +19,28 @@ interface Category {
 
 export default function CategoriasPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // Usar a API de parceiros que já retorna categorias
-    fetch('/api/app/parceiros?limit=1')
-      .then(res => res.json())
-      .then(data => {
-        if (data.categories) {
-          setCategories(data.categories)
-        }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false))
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await fetch('/api/app/parceiros?limit=1')
+      const data = await res.json()
+      if (data.categories) {
+        setCategories(data.categories)
+      }
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    setLoading(true)
+    fetchCategories()
+  }, [pathname, fetchCategories])
 
   if (loading) {
     return (

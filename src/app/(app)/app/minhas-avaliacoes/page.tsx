@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { 
-  Star, 
+import {
+  Star,
   Loader2,
   MessageSquare
 } from 'lucide-react'
@@ -24,14 +25,11 @@ interface Avaliacao {
 }
 
 export default function MinhasAvaliacoesPage() {
+  const pathname = usePathname()
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    fetchAvaliacoes()
-  }, [])
-
-  const fetchAvaliacoes = async () => {
+  const fetchAvaliacoes = useCallback(async () => {
     try {
       const response = await fetch('/api/app/avaliacoes')
       const data = await response.json()
@@ -44,7 +42,12 @@ export default function MinhasAvaliacoesPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    setIsLoading(true)
+    fetchAvaliacoes()
+  }, [pathname, fetchAvaliacoes])
 
   const renderStars = (nota: number) => {
     return (
@@ -52,11 +55,10 @@ export default function MinhasAvaliacoesPage() {
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
-            className={`h-4 w-4 ${
-              star <= nota 
-                ? 'fill-yellow-400 text-yellow-400' 
+            className={`h-4 w-4 ${star <= nota
+                ? 'fill-yellow-400 text-yellow-400'
                 : 'fill-gray-200 text-gray-200'
-            }`}
+              }`}
           />
         ))}
       </div>
