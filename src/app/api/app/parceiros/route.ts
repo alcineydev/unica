@@ -14,13 +14,12 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
+    const limit = parseInt(searchParams.get('limit') || '12')
+    const cursor = searchParams.get('cursor') || null
     const search = searchParams.get('search') || ''
     const categoria = searchParams.get('categoria') || ''
     const destaque = searchParams.get('destaque') === 'true'
     const novidades = searchParams.get('novidades') === 'true'
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const skip = (page - 1) * limit
 
     // Buscar assinante com seu plano e benefícios
     const assinante = await prisma.assinante.findUnique({
@@ -54,7 +53,7 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    // Filtro por categoria
+    // Filtro por categoria (categoryId)
     if (categoria) {
       where.categoryId = categoria
     }
@@ -80,11 +79,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Buscar total para paginação
-    const total = await prisma.parceiro.count({ where })
-
-    // Buscar parceiros
-    const parceiros = await prisma.parceiro.findMany({
+    // Buscar parceiros (sem count — cursor pagination não precisa)
+    const parceirosRaw = await prisma.parceiro.findMany({
+      take: limit + 1, // +1 para detectar hasMore
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1, // pula o próprio cursor
+      }),
       where,
       select: {
         id: true,
@@ -138,9 +139,12 @@ export async function GET(request: NextRequest) {
         { tradeName: 'asc' },
         { companyName: 'asc' }
       ],
-      skip,
-      take: limit
     })
+
+    // Detectar hasMore
+    const hasMore = parceirosRaw.length > limit
+    const data = hasMore ? parceirosRaw.slice(0, limit) : parceirosRaw
+    const nextCursor = hasMore ? data[data.length - 1].id : null
 
     // Buscar categorias para filtros
     const categories = await prisma.category.findMany({
@@ -158,7 +162,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Formatar parceiros
-    const parceirosFormatados = parceiros.map(p => {
+    const parceirosFormatados = data.map(p => {
       const contact = p.contact as Record<string, string> || {}
       const avaliacoes = p.avaliacoes || []
       const mediaAvaliacoes = avaliacoes.length > 0
@@ -224,12 +228,8 @@ export async function GET(request: NextRequest) {
         icon: c.icon,
         count: c._count.parceiros
       })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
+      nextCursor,
+      hasMore,
     })
 
   } catch (error) {

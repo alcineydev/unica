@@ -16,13 +16,12 @@ export async function GET() {
       )
     }
 
-    // Buscar avatar do user
+    // ========== GRUPO 1: Dados do usuário (sequencial) ==========
     const userDb = await prisma.user.findUnique({
       where: { id: session.user.id! },
       select: { avatar: true }
     })
 
-    // Busca o assinante
     const assinante = await prisma.assinante.findUnique({
       where: { userId: session.user.id! },
       include: {
@@ -55,113 +54,113 @@ export async function GET() {
     // Verifica se o assinante tem plano ATIVO
     const temPlanoAtivo = assinante.planId && assinante.subscriptionStatus === 'ACTIVE'
 
-    // ========== CATEGORIAS ==========
-    const categories = await prisma.category.findMany({
-      where: { isActive: true },
-      orderBy: { displayOrder: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        icon: true,
-        banner: true
-      }
-    })
-
-    // ========== DESTAQUES (para carrossel) ==========
-    const destaques = await prisma.parceiro.findMany({
-      where: {
-        isDestaque: true,
-        isActive: true,
-        user: { isActive: true }
-      },
-      orderBy: { destaqueOrder: 'asc' },
-      select: {
-        id: true,
-        tradeName: true,
-        companyName: true,
-        bannerDestaque: true,
-        banner: true,
-        logo: true,
-        category: true,
-        benefitAccess: {
-          take: 1,
-          include: {
-            benefit: {
-              select: { type: true, value: true }
-            }
-          }
-        }
-      },
-      take: 10
-    })
-
-    // ========== PARCEIROS EM DESTAQUE (cards) ==========
-    const parceirosDestaque = await prisma.parceiro.findMany({
-      where: {
-        isDestaque: true,
-        isActive: true,
-        user: { isActive: true }
-      },
-      orderBy: { destaqueOrder: 'asc' },
-      select: {
-        id: true,
-        tradeName: true,
-        companyName: true,
-        logo: true,
-        category: true,
-        city: { select: { name: true } },
-        categoryRef: { select: { name: true } },
-        avaliacoes: {
-          where: { publicada: true },
-          select: { nota: true }
-        },
-        benefitAccess: {
-          take: 1,
-          include: {
-            benefit: {
-              select: { type: true, value: true }
-            }
-          }
-        }
-      },
-      take: 6
-    })
-
-    // ========== NOVIDADES (últimos 30 dias) ==========
+    // ========== GRUPO 2: Dados independentes (paralelo) ==========
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    const novidades = await prisma.parceiro.findMany({
-      where: {
-        isActive: true,
-        user: { isActive: true },
-        createdAt: { gte: thirtyDaysAgo }
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        tradeName: true,
-        companyName: true,
-        logo: true,
-        category: true,
-        city: { select: { name: true } },
-        categoryRef: { select: { name: true } },
-        avaliacoes: {
-          where: { publicada: true },
-          select: { nota: true }
+    const [categories, destaques, parceirosDestaque, novidades] = await Promise.all([
+      // Categorias
+      prisma.category.findMany({
+        where: { isActive: true },
+        orderBy: { displayOrder: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          icon: true,
+          banner: true
+        }
+      }),
+      // Destaques (carrossel)
+      prisma.parceiro.findMany({
+        where: {
+          isDestaque: true,
+          isActive: true,
+          user: { isActive: true }
         },
-        benefitAccess: {
-          take: 1,
-          include: {
-            benefit: {
-              select: { type: true, value: true }
+        orderBy: { destaqueOrder: 'asc' },
+        select: {
+          id: true,
+          tradeName: true,
+          companyName: true,
+          bannerDestaque: true,
+          banner: true,
+          logo: true,
+          category: true,
+          benefitAccess: {
+            take: 1,
+            include: {
+              benefit: {
+                select: { type: true, value: true }
+              }
             }
           }
-        }
-      },
-      take: 6
-    })
+        },
+        take: 10
+      }),
+      // Parceiros em destaque (cards)
+      prisma.parceiro.findMany({
+        where: {
+          isDestaque: true,
+          isActive: true,
+          user: { isActive: true }
+        },
+        orderBy: { destaqueOrder: 'asc' },
+        select: {
+          id: true,
+          tradeName: true,
+          companyName: true,
+          logo: true,
+          category: true,
+          city: { select: { name: true } },
+          categoryRef: { select: { name: true } },
+          avaliacoes: {
+            where: { publicada: true },
+            select: { nota: true }
+          },
+          benefitAccess: {
+            take: 1,
+            include: {
+              benefit: {
+                select: { type: true, value: true }
+              }
+            }
+          }
+        },
+        take: 6
+      }),
+      // Novidades (últimos 30 dias)
+      prisma.parceiro.findMany({
+        where: {
+          isActive: true,
+          user: { isActive: true },
+          createdAt: { gte: thirtyDaysAgo }
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          tradeName: true,
+          companyName: true,
+          logo: true,
+          category: true,
+          city: { select: { name: true } },
+          categoryRef: { select: { name: true } },
+          avaliacoes: {
+            where: { publicada: true },
+            select: { nota: true }
+          },
+          benefitAccess: {
+            take: 1,
+            include: {
+              benefit: {
+                select: { type: true, value: true }
+              }
+            }
+          }
+        },
+        take: 6
+      })
+    ])
 
     // Função para processar parceiros
     type ParceiroComAvaliacoes = {
@@ -211,7 +210,7 @@ export async function GET() {
       }
     }
 
-    // Buscar parceiros APENAS se tiver plano ativo (para lista geral)
+    // ========== GRUPO 3: Dados condicionais do plano (paralelo) ==========
     type ParceiroFormatado = {
       id: string
       companyName: string
@@ -224,45 +223,59 @@ export async function GET() {
       benefits: Array<{ id: string; name: string; type: string; value: number }>
     }
     let parceiros: ParceiroFormatado[] = []
+    let categorias: string[] = []
+
     if (temPlanoAtivo && assinante.plan) {
       const benefitIdsDoPlano = assinante.plan.planBenefits.map(pb => pb.benefitId)
 
       if (benefitIdsDoPlano.length > 0) {
-        const parceirosDb = await prisma.parceiro.findMany({
-          where: {
-            isActive: true,
-            user: { isActive: true },
-            benefitAccess: {
-              some: {
-                benefitId: { in: benefitIdsDoPlano }
-              }
+        const [parceirosDb, categoriasDb] = await Promise.all([
+          // Parceiros do plano
+          prisma.parceiro.findMany({
+            where: {
+              isActive: true,
+              user: { isActive: true },
+              benefitAccess: {
+                some: {
+                  benefitId: { in: benefitIdsDoPlano }
+                }
+              },
+              ...(assinante.cityId ? { cityId: assinante.cityId } : {}),
             },
-            ...(assinante.cityId ? { cityId: assinante.cityId } : {}),
-          },
-          select: {
-            id: true,
-            companyName: true,
-            tradeName: true,
-            logo: true,
-            category: true,
-            description: true,
-            city: { select: { name: true } },
-            avaliacoes: {
-              where: { publicada: true },
-              select: { nota: true }
-            },
-            benefitAccess: {
-              where: { benefitId: { in: benefitIdsDoPlano } },
-              include: {
-                benefit: {
-                  select: { id: true, name: true, type: true, value: true }
+            select: {
+              id: true,
+              companyName: true,
+              tradeName: true,
+              logo: true,
+              category: true,
+              description: true,
+              city: { select: { name: true } },
+              avaliacoes: {
+                where: { publicada: true },
+                select: { nota: true }
+              },
+              benefitAccess: {
+                where: { benefitId: { in: benefitIdsDoPlano } },
+                include: {
+                  benefit: {
+                    select: { id: true, name: true, type: true, value: true }
+                  }
                 }
               }
-            }
-          },
-          take: 12,
-          orderBy: { companyName: 'asc' }
-        })
+            },
+            take: 12,
+            orderBy: { companyName: 'asc' }
+          }),
+          // Categorias disponíveis
+          prisma.parceiro.findMany({
+            where: {
+              isActive: true,
+              user: { isActive: true }
+            },
+            select: { category: true },
+            distinct: ['category']
+          })
+        ])
 
         parceiros = parceirosDb.map(p => {
           const avaliacoes = p.avaliacoes || []
@@ -297,53 +310,38 @@ export async function GET() {
             })
           }
         })
+
+        categorias = categoriasDb.map(c => c.category).filter(Boolean).sort()
       }
     }
 
-    // Buscar categorias de texto disponíveis
-    let categorias: string[] = []
-    if (temPlanoAtivo) {
-      const categoriasDb = await prisma.parceiro.findMany({
-        where: {
-          isActive: true,
-          user: { isActive: true }
-        },
-        select: { category: true },
-        distinct: ['category']
-      })
-      categorias = categoriasDb.map(c => c.category).filter(Boolean).sort()
-    }
-
     // Busca planos disponíveis (para upgrade ou assinatura — ocultar Convite)
-    let planosDisponiveis = null
-    {
-      const planos = await prisma.plan.findMany({
-        where: {
-          isActive: true,
-          NOT: { slug: 'convite' },
-        },
-        orderBy: { price: 'asc' },
-        include: {
-          planBenefits: {
-            include: {
-              benefit: {
-                select: { id: true, name: true, type: true },
-              },
+    const planos = await prisma.plan.findMany({
+      where: {
+        isActive: true,
+        NOT: { slug: 'convite' },
+      },
+      orderBy: { price: 'asc' },
+      include: {
+        planBenefits: {
+          include: {
+            benefit: {
+              select: { id: true, name: true, type: true },
             },
           },
         },
-      })
+      },
+    })
 
-      planosDisponiveis = planos.map(plan => ({
-        id: plan.id,
-        name: plan.name,
-        slug: plan.slug,
-        description: plan.description,
-        price: Number(plan.price),
-        priceMonthly: plan.priceMonthly ? Number(plan.priceMonthly) : null,
-        planBenefits: plan.planBenefits,
-      }))
-    }
+    const planosDisponiveis = planos.map(plan => ({
+      id: plan.id,
+      name: plan.name,
+      slug: plan.slug,
+      description: plan.description,
+      price: Number(plan.price),
+      priceMonthly: plan.priceMonthly ? Number(plan.priceMonthly) : null,
+      planBenefits: plan.planBenefits,
+    }))
 
     return NextResponse.json({
       data: {

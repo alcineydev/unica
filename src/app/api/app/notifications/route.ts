@@ -13,20 +13,13 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50') || 50, 1), 100)
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '10') || 10, 1), 100)
 
-    // Buscar assinante
-    const assinante = await prisma.assinante.findFirst({
-      where: { userId: session.user.id }
-    })
-
-    if (!assinante) {
-      return NextResponse.json({ notifications: [] })
-    }
-
-    // Buscar notificações
+    // Buscar notificações diretamente via relação
     const notificacoes = await prisma.assinanteNotificacao.findMany({
-      where: { assinanteId: assinante.id },
+      where: {
+        assinante: { userId: session.user.id! }
+      },
       orderBy: { createdAt: 'desc' },
       take: limit
     })

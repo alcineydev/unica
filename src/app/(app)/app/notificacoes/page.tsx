@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Bell, CheckCheck, Star, ShoppingCart, Gift, Info, ChevronRight
@@ -39,14 +39,11 @@ function formatDate(dateString: string) {
 
 export default function NotificacoesPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    fetchNotificacoes()
-  }, [])
-
-  const fetchNotificacoes = async () => {
+  const fetchNotificacoes = useCallback(async () => {
     try {
       const response = await fetch('/api/app/notifications')
       const data = await response.json()
@@ -56,7 +53,12 @@ export default function NotificacoesPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    setIsLoading(true)
+    fetchNotificacoes()
+  }, [pathname, fetchNotificacoes])
 
   const marcarComoLida = async (id: string) => {
     try {
@@ -156,11 +158,10 @@ export default function NotificacoesPage() {
               <button
                 key={notif.id}
                 onClick={() => handleClick(notif)}
-                className={`w-full text-left flex items-start gap-3 p-3.5 rounded-xl transition-all ${
-                  !notif.read
+                className={`w-full text-left flex items-start gap-3 p-3.5 rounded-xl transition-all ${!notif.read
                     ? 'bg-blue-50/60 border border-blue-100 hover:bg-blue-50'
                     : 'bg-white border border-gray-100 hover:bg-gray-50 opacity-75'
-                }`}
+                  }`}
               >
                 <div className={`w-10 h-10 rounded-xl ${iconConfig.bg} flex items-center justify-center shrink-0 mt-0.5`}>
                   <Icon className={`h-4 w-4 ${iconConfig.color}`} />

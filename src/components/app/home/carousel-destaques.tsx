@@ -48,7 +48,7 @@ export function CarouselDestaques({ destaques }: CarouselDestaquesProps) {
         <h2 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
           <span className="text-blue-600">✨</span> Em Destaque
         </h2>
-        <Link href="/app/parceiros?destaque=true" className="text-xs font-medium text-blue-600">
+        <Link href="/app/parceiros?destaque=true" prefetch={false} className="text-xs font-medium text-blue-600">
           Ver todos →
         </Link>
       </div>
@@ -79,6 +79,7 @@ export function CarouselDestaques({ destaques }: CarouselDestaquesProps) {
               <Link
                 key={destaque.id}
                 href={`/app/parceiros/${destaque.id}`}
+                prefetch={false}
                 className="flex-shrink-0 snap-start active:scale-[0.98] transition-transform"
                 style={{ width: 'calc(100% - 40px)' }}
               >

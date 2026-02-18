@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,21 +44,14 @@ interface Cliente {
 type SortOption = 'recente' | 'antigo' | 'az' | 'za' | 'maior-valor' | 'menor-valor'
 
 export default function ClientesPage() {
+  const pathname = usePathname()
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('recente')
 
-  useEffect(() => {
-    fetchClientes()
-  }, [])
-
-  useEffect(() => {
-    filterAndSortClientes()
-  }, [clientes, searchQuery, sortBy])
-
-  const fetchClientes = async () => {
+  const fetchClientes = useCallback(async () => {
     try {
       const response = await fetch('/api/parceiro/clientes')
       const data = await response.json()
@@ -71,7 +65,12 @@ export default function ClientesPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    setIsLoading(true)
+    fetchClientes()
+  }, [pathname, fetchClientes])
 
   const filterAndSortClientes = () => {
     let result = [...clientes]

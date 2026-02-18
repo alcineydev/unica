@@ -9,6 +9,7 @@ import {
   Home, Search, CreditCard, Store, Star,
   Bell, User, LogOut, Crown
 } from 'lucide-react'
+import { useNotifications } from '@/providers/notifications-provider'
 
 const navItems = [
   { icon: Home, label: 'Início', href: '/app' },
@@ -23,22 +24,9 @@ const navItems = [
 export function AppSidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
-  const [notifCount, setNotifCount] = useState(0)
+  const { unreadCount } = useNotifications()
 
-  useEffect(() => {
-    const fetchCount = async () => {
-      try {
-        const res = await fetch('/api/app/notifications/count')
-        if (res.ok) {
-          const data = await res.json()
-          setNotifCount(data.count || 0)
-        }
-      } catch { /* silencioso */ }
-    }
-    fetchCount()
-    const interval = setInterval(fetchCount, 30000)
-    return () => clearInterval(interval)
-  }, [])
+
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = session?.user as any
@@ -77,17 +65,16 @@ export function AppSidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] transition-all group ${
-                isActive
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] transition-all group ${isActive
                   ? 'bg-blue-500/15 text-blue-400 font-semibold'
                   : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04]'
-              }`}
+                }`}
             >
               <Icon className={`h-[18px] w-[18px] transition-transform group-hover:scale-110 ${isActive ? 'stroke-[2.5px]' : ''}`} />
               <span>{label}</span>
-              {label === 'Notificações' && notifCount > 0 && (
+              {label === 'Notificações' && unreadCount > 0 && (
                 <span className="ml-auto min-w-[18px] h-[18px] bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
-                  {notifCount > 99 ? '99+' : notifCount}
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
               {label !== 'Notificações' && isActive && <div className="ml-auto w-1 h-4 bg-blue-400 rounded-full" />}

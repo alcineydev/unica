@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Crown, Zap, Check, ArrowRight, Loader2, Sparkles, Shield } from 'lucide-react'
 import { toast } from 'sonner'
@@ -25,27 +26,30 @@ function formatCurrency(value: number) {
 }
 
 export default function PlanosAssinantePage() {
+  const pathname = usePathname()
   const [plans, setPlans] = useState<Plan[]>([])
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/app/home')
-        const result = await res.json()
-        if (result.data) {
-          setPlans(result.data.planosDisponiveis || [])
-          setCurrentPlanId(result.data.currentPlanId || null)
-        }
-      } catch {
-        toast.error('Erro ao carregar planos')
-      } finally {
-        setLoading(false)
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch('/api/app/home')
+      const result = await res.json()
+      if (result.data) {
+        setPlans(result.data.planosDisponiveis || [])
+        setCurrentPlanId(result.data.currentPlanId || null)
       }
+    } catch {
+      toast.error('Erro ao carregar planos')
+    } finally {
+      setLoading(false)
     }
-    fetchData()
   }, [])
+
+  useEffect(() => {
+    setLoading(true)
+    fetchData()
+  }, [pathname, fetchData])
 
   if (loading) {
     return (
@@ -128,11 +132,10 @@ export default function PlanosAssinantePage() {
             return (
               <div
                 key={plan.id}
-                className={`relative rounded-2xl border overflow-hidden transition-all ${
-                  isBestValue
+                className={`relative rounded-2xl border overflow-hidden transition-all ${isBestValue
                     ? 'border-blue-200 shadow-md shadow-blue-100/40'
                     : 'border-gray-200 hover:border-blue-200 hover:shadow-sm'
-                }`}
+                  }`}
               >
                 {isBestValue && (
                   <div className="bg-blue-600 text-white text-[10px] font-bold text-center py-1 uppercase tracking-wider">
@@ -179,13 +182,12 @@ export default function PlanosAssinantePage() {
 
                   {/* CTA */}
                   <Link href={`/checkout/${plan.slug || plan.id}`}>
-                    <button className={`w-full py-3 rounded-xl font-semibold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
-                      isUpgrade || !currentPlanId
+                    <button className={`w-full py-3 rounded-xl font-semibold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isUpgrade || !currentPlanId
                         ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200/40'
                         : isDowngrade
                           ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                           : 'bg-blue-600 hover:bg-blue-700 text-white'
-                    }`}>
+                      }`}>
                       {isUpgrade ? (
                         <><Zap className="h-4 w-4" /> Fazer Upgrade</>
                       ) : isDowngrade ? (

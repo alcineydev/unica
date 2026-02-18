@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -122,6 +123,7 @@ function formatCEP(value: string) {
 // ─── Component ───────────────────────────────────────────
 
 export default function PerfilPage() {
+  const pathname = usePathname()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(true)
@@ -165,7 +167,7 @@ export default function PerfilPage() {
 
   useEffect(() => {
     fetchProfile()
-  }, [fetchProfile])
+  }, [pathname, fetchProfile])
 
   // ─── Update form ───────────────────────────────────────
 
@@ -604,8 +606,8 @@ export default function PerfilPage() {
                     value={
                       formData.birthDate
                         ? new Date(formData.birthDate)
-                            .toISOString()
-                            .split('T')[0]
+                          .toISOString()
+                          .split('T')[0]
                         : ''
                     }
                     onChange={(e) =>

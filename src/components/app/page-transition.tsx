@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 
-const MIN_DISPLAY_MS = 1000 // Mínimo 1s para ver a marca
+const MIN_DISPLAY_MS = 300 // Mínimo 300ms (era 1s)
 
 export function PageTransition() {
   const pathname = usePathname()
@@ -102,9 +102,8 @@ export function PageTransition() {
 
   return (
     <div
-      className={`fixed inset-0 z-[9990] flex items-center justify-center bg-[#f8fafc] transition-opacity duration-200 ${
-        isFadingOut ? 'opacity-0' : 'opacity-100'
-      }`}
+      className={`fixed inset-0 z-[9990] flex items-center justify-center bg-[#f8fafc] transition-opacity duration-200 ${isFadingOut ? 'opacity-0' : 'opacity-100'
+        }`}
     >
       <div className="flex flex-col items-center gap-5">
         {/* Logo com spinner */}

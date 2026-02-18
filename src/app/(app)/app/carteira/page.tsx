@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { QRCodeSVG } from 'qrcode.react'
 import { Button } from '@/components/ui/button'
@@ -102,17 +103,14 @@ function formatDate(date: string) {
 // ==========================================
 
 export default function CarteiraPage() {
+  const pathname = usePathname()
   const [data, setData] = useState<CarteiraData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [showValues, setShowValues] = useState(true)
   const [activeTab, setActiveTab] = useState<'qrcode' | 'cashback' | 'extrato'>('qrcode')
 
-  useEffect(() => {
-    fetchCarteira()
-  }, [])
-
-  const fetchCarteira = async () => {
+  const fetchCarteira = useCallback(async () => {
     try {
       const response = await fetch('/api/app/carteira')
       const result = await response.json()
@@ -125,7 +123,12 @@ export default function CarteiraPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    setIsLoading(true)
+    fetchCarteira()
+  }, [pathname, fetchCarteira])
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -344,9 +347,9 @@ export default function CarteiraPage() {
                 <p className="text-xl font-bold text-white">
                   {showValues
                     ? formatCurrency(
-                        (assinante.cashback || 0) +
-                          (assinante.points || 0) * 0.01
-                      )
+                      (assinante.cashback || 0) +
+                      (assinante.points || 0) * 0.01
+                    )
                     : 'R$ •••'}
                 </p>
                 <p className="text-[10px] text-white/25 mt-1">
@@ -420,11 +423,10 @@ export default function CarteiraPage() {
             <button
               key={key}
               onClick={() => setActiveTab(key)}
-              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
-                activeTab === key
+              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${activeTab === key
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-400 hover:text-gray-600'
-              }`}
+                }`}
             >
               {label}
             </button>
@@ -654,11 +656,11 @@ export default function CarteiraPage() {
                 <p className="text-lg font-bold text-gray-900">
                   {showValues
                     ? formatCurrency(
-                        (transactions || []).reduce(
-                          (sum, tx) => sum + (tx.amount || 0),
-                          0
-                        )
+                      (transactions || []).reduce(
+                        (sum, tx) => sum + (tx.amount || 0),
+                        0
                       )
+                    )
                     : 'R$ •••••'}
                 </p>
               </div>
@@ -669,11 +671,11 @@ export default function CarteiraPage() {
                 <p className="text-lg font-bold text-green-600">
                   {showValues
                     ? formatCurrency(
-                        (transactions || []).reduce(
-                          (sum, tx) => sum + (tx.cashbackGenerated || 0),
-                          0
-                        )
+                      (transactions || []).reduce(
+                        (sum, tx) => sum + (tx.cashbackGenerated || 0),
+                        0
                       )
+                    )
                     : 'R$ •••••'}
                 </p>
               </div>
@@ -690,11 +692,10 @@ export default function CarteiraPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                            tx.type === 'PURCHASE'
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center ${tx.type === 'PURCHASE'
                               ? 'bg-blue-50'
                               : 'bg-green-50'
-                          }`}
+                            }`}
                         >
                           {tx.type === 'PURCHASE' ? (
                             <ArrowDownRight className="h-4 w-4 text-blue-500" />

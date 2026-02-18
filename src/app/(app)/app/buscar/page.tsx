@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Search, TrendingUp, ChevronRight, Loader2, Sparkles } from 'lucide-react'
@@ -23,23 +23,26 @@ const POPULAR = [
 
 export default function BuscarPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch('/api/app/parceiros?limit=1')
-        const data = await res.json()
-        if (data.categories) setCategories(data.categories)
-      } catch (e) {
-        console.error('Erro ao buscar categorias:', e)
-      } finally {
-        setLoading(false)
-      }
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await fetch('/api/app/parceiros?limit=1')
+      const data = await res.json()
+      if (data.categories) setCategories(data.categories)
+    } catch (e) {
+      console.error('Erro ao buscar categorias:', e)
+    } finally {
+      setLoading(false)
     }
-    fetchCategories()
   }, [])
+
+  useEffect(() => {
+    setLoading(true)
+    fetchCategories()
+  }, [pathname, fetchCategories])
 
   const handleSearch = useCallback((v: string) => {
     if (v.trim()) router.push(`/app/parceiros?search=${encodeURIComponent(v.trim())}`)
