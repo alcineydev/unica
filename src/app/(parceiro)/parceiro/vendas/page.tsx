@@ -92,8 +92,7 @@ export default function ParceiroVendaPage() {
   const [isSearching, setIsSearching] = useState(false)
   const [assinante, setAssinante] = useState<AssinanteData | null>(null)
   const [amount, setAmount] = useState('')
-  const [usePoints, setUsePoints] = useState(false)
-  const [pointsToUse, setPointsToUse] = useState('')
+
   const [isCalculating, setIsCalculating] = useState(false)
   const [saleData, setSaleData] = useState<SaleData | null>(null)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
@@ -106,7 +105,7 @@ export default function ParceiroVendaPage() {
   // Buscar assinante por CPF (digitado manualmente)
   async function searchAssinanteByCPF(cpfValue: string) {
     const cleanCpf = cpfValue.replace(/\D/g, '')
-    
+
     if (cleanCpf.length !== 11) {
       toast.error('CPF deve ter 11 dígitos')
       return
@@ -156,13 +155,13 @@ export default function ParceiroVendaPage() {
           name: ass.plano?.nome || 'Sem plano',
           planBenefits: Array.isArray(ass.beneficiosDisponiveis)
             ? ass.beneficiosDisponiveis.map((b: Record<string, unknown>) => ({
-                benefit: {
-                  id: (b.id as string) || '',
-                  name: (b.nome as string) || '',
-                  type: (b.tipo as string) || '',
-                  value: (b.valor as Record<string, unknown>) || {}
-                }
-              }))
+              benefit: {
+                id: (b.id as string) || '',
+                name: (b.nome as string) || '',
+                type: (b.tipo as string) || '',
+                value: (b.valor as Record<string, unknown>) || {}
+              }
+            }))
             : []
         }
       }
@@ -230,8 +229,6 @@ export default function ParceiroVendaPage() {
         body: JSON.stringify({
           assinanteId: assinante.id,
           amount: amountValue,
-          usePoints,
-          pointsToUse: usePoints ? parseFloat(pointsToUse) || 0 : 0,
           useCashback,
         }),
       })
@@ -293,8 +290,6 @@ export default function ParceiroVendaPage() {
     setCpf('')
     setAssinante(null)
     setAmount('')
-    setUsePoints(false)
-    setPointsToUse('')
     setUseCashback(false)
     setCashbackAvailable(0)
     setSaleData(null)
@@ -315,28 +310,28 @@ export default function ParceiroVendaPage() {
     }).format(value)
   }
 
-  // Obter desconto do plano
+  // Obter desconto disponível neste parceiro
   function getDiscount(): number {
     if (!assinante?.plan?.planBenefits) return 0
     const discountBenefit = assinante.plan.planBenefits.find(
       pb => pb.benefit.type === 'DESCONTO'
     )
     if (discountBenefit) {
-      const value = discountBenefit.benefit.value as { percentage?: number }
-      return value.percentage || 0
+      const value = discountBenefit.benefit.value as { percentage?: number; value?: number }
+      return value.percentage || value.value || 0
     }
     return 0
   }
 
-  // Obter cashback do plano
+  // Obter cashback disponível neste parceiro
   function getCashback(): number {
     if (!assinante?.plan?.planBenefits) return 0
     const cashbackBenefit = assinante.plan.planBenefits.find(
       pb => pb.benefit.type === 'CASHBACK'
     )
     if (cashbackBenefit) {
-      const value = cashbackBenefit.benefit.value as { percentage?: number }
-      return value.percentage || 0
+      const value = cashbackBenefit.benefit.value as { percentage?: number; value?: number }
+      return value.percentage || value.value || 0
     }
     return 0
   }
@@ -409,8 +404,8 @@ export default function ParceiroVendaPage() {
                       maxLength={11}
                     />
                   </div>
-                  <Button 
-                    onClick={() => searchAssinanteByCPF(cpf)} 
+                  <Button
+                    onClick={() => searchAssinanteByCPF(cpf)}
                     disabled={isSearching || cpf.length !== 11}
                   >
                     {isSearching ? (
@@ -514,49 +509,7 @@ export default function ParceiroVendaPage() {
               />
             </div>
 
-            {assinante && Number(assinante.points || 0) > 0 && (
-              <div className="rounded-lg border p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Coins className="h-4 w-4 text-yellow-500" />
-                    <span className="font-medium">Usar Pontos</span>
-                  </div>
-                  <Button
-                    variant={usePoints ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      setUsePoints(!usePoints)
-                      if (!usePoints) {
-                        setPointsToUse(String(assinante.points || 0))
-                      } else {
-                        setPointsToUse('')
-                      }
-                    }}
-                  >
-                    {usePoints ? 'Sim' : 'Não'}
-                  </Button>
-                </div>
 
-                {usePoints && (
-                  <div className="space-y-2">
-                    <Label>Pontos a utilizar (máx: {Number(assinante.points || 0).toFixed(0)})</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max={Number(assinante.points || 0)}
-                      value={pointsToUse}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value) || 0
-                        setPointsToUse(Math.min(val, Number(assinante.points || 0)).toString())
-                      }}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      1 ponto = R$ 1,00
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
 
             {assinante && cashbackAvailable > 0 && (
               <div className="rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-4 space-y-3">
@@ -642,12 +595,7 @@ export default function ParceiroVendaPage() {
                         <span>- {formatCurrency(saleData.discountAmount)}</span>
                       </div>
                     )}
-                    {saleData.pointsUsed > 0 && (
-                      <div className="flex justify-between text-yellow-600">
-                        <span>Pontos Usados:</span>
-                        <span>- {formatCurrency(saleData.pointsUsed)}</span>
-                      </div>
-                    )}
+
                     {saleData.cashbackToUse > 0 && (
                       <div className="flex justify-between text-emerald-600">
                         <span>Cashback Usado:</span>
