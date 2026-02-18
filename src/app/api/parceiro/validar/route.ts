@@ -7,7 +7,7 @@ import { logger } from '@/lib/logger'
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
-    
+
     if (!session?.user || !['PARCEIRO', 'DEVELOPER', 'ADMIN'].includes(session.user.role as string)) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       try {
         const qrData = JSON.parse(valorBusca)
         const idFromQR = qrData.id || qrData.assinanteId || qrData.cpf
-        
+
         if (idFromQR) {
           assinante = await prisma.assinante.findFirst({
             where: {
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!assinante) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Assinante não encontrado',
         detail: 'Verifique se o QR Code é válido ou tente buscar pelo CPF'
       }, { status: 404 })
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
     // Filtrar benefícios que o assinante TEM (pelo plano) E que o parceiro OFERECE
     const beneficiosDoPlano = assinante.plan?.planBenefits.map(pb => pb.benefit) || []
     const beneficiosDoParceiro = parceiro?.benefitAccess?.map(ba => ba.benefit) || []
-    
+
     // Se for admin/developer, mostrar todos os benefícios do plano
     const beneficiosDisponiveis = session.user.role === 'PARCEIRO'
       ? beneficiosDoPlano.filter(bp => beneficiosDoParceiro.some(bpar => bpar.id === bp.id))
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
-    
+
     if (!session?.user || !['PARCEIRO', 'DEVELOPER', 'ADMIN'].includes(session.user.role as string)) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -181,33 +181,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Benefício não encontrado' }, { status: 404 })
     }
 
-    // Calcular pontos/cashback baseado no benefício
-    let pontosGanhos = 0
-    let cashbackGanho = 0
+    // Calcular desconto/cashback baseado no tipo do benefício
+    const valorCompra = valor || 0
+    let rawValue = beneficio.value
+    if (typeof rawValue === 'string') {
+      try { rawValue = JSON.parse(rawValue) } catch { rawValue = {} }
+    }
+    const valueObj = (rawValue as Record<string, number>) || {}
+    const percentual = valueObj.percentage || valueObj.value || 0
 
-    if (beneficio.type === 'CASHBACK' && beneficio.value) {
-      const valorCompra = valor || 0
-      let rawValue = beneficio.value
-      if (typeof rawValue === 'string') {
-        try { rawValue = JSON.parse(rawValue) } catch { rawValue = {} }
-      }
-      const valueObj = (rawValue as Record<string, number>) || {}
-      const percentual = valueObj.percentage || valueObj.value || 0
+    let discountApplied = 0
+    let cashbackGanho = 0
+    const pontosGanhos = 1 // 1 ponto por transação (gamificação)
+
+    if (beneficio.type === 'DESCONTO' && valorCompra > 0) {
+      // DESCONTO: economia imediata
+      discountApplied = (valorCompra * percentual) / 100
+    } else if (beneficio.type === 'CASHBACK' && valorCompra > 0) {
+      // CASHBACK: crédito para uso futuro
       cashbackGanho = (valorCompra * percentual) / 100
     }
 
     const parceiroId = parceiro?.id
 
-    // Atualizar pontos/cashback do assinante
-    if (pontosGanhos > 0 || cashbackGanho > 0) {
-      await prisma.assinante.update({
-        where: { id: assinanteId },
-        data: {
-          points: { increment: pontosGanhos },
-          cashback: { increment: cashbackGanho },
-        },
-      })
-    }
+    // Atualizar pontos do assinante (gamificação) + cashback se houver
+    await prisma.assinante.update({
+      where: { id: assinanteId },
+      data: {
+        points: { increment: pontosGanhos },
+        ...(cashbackGanho > 0 && { cashback: { increment: cashbackGanho } }),
+      },
+    })
 
     // Atualizar CashbackBalance por parceiro
     if (cashbackGanho > 0 && parceiroId) {
@@ -232,28 +236,55 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Log da transação
+    // Criar Transaction (ESSENCIAL para histórico de vendas)
+    if (parceiroId && valorCompra > 0) {
+      await prisma.transaction.create({
+        data: {
+          type: 'PURCHASE',
+          assinanteId: assinante.id,
+          parceiroId,
+          amount: valorCompra,
+          pointsUsed: 0,
+          cashbackGenerated: cashbackGanho,
+          cashbackUsed: 0,
+          discountApplied,
+          description: `${beneficio.name} - ${beneficio.type === 'DESCONTO' ? `${percentual}% desconto` : `${percentual}% cashback`}`,
+          status: 'COMPLETED',
+          metadata: {
+            beneficioId,
+            beneficioNome: beneficio.name,
+            beneficioTipo: beneficio.type,
+            percentual,
+          },
+        },
+      })
+    }
+
     logger.log('[VALIDAR] Benefício validado:', {
       assinanteId,
       assinanteNome: assinante.name || 'Assinante',
       beneficioId,
       beneficioNome: beneficio.name,
-      parceiroId: parceiro?.id,
+      parceiroId,
       parceiroNome: parceiro?.tradeName,
       pontosGanhos,
       cashbackGanho,
+      discountApplied,
+      valorCompra,
       data: new Date().toISOString()
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Benefício validado com sucesso!',
+      message: `Benefício validado com sucesso! +1 ponto${cashbackGanho > 0 ? ` + R$${cashbackGanho.toFixed(2)} cashback` : ''}${discountApplied > 0 ? ` + R$${discountApplied.toFixed(2)} desconto` : ''}`,
       registro: {
         assinante: assinante.name || 'Assinante',
         beneficio: beneficio.name,
         parceiro: parceiro?.tradeName || 'Admin',
         pontosGanhos,
         cashbackGanho,
+        discountApplied,
+        valorCompra,
         data: new Date().toISOString()
       }
     })

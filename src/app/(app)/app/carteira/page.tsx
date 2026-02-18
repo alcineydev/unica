@@ -334,7 +334,7 @@ export default function CarteiraPage() {
                 <p className="text-[10px] text-white/25 mt-1">acumulados</p>
               </div>
 
-              {/* Economia estimada */}
+              {/* Economia total */}
               <div className="bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-2.5">
                   <div className="w-7 h-7 bg-green-400/15 rounded-lg flex items-center justify-center">
@@ -346,14 +346,11 @@ export default function CarteiraPage() {
                 </div>
                 <p className="text-xl font-bold text-white">
                   {showValues
-                    ? formatCurrency(
-                      (assinante.cashback || 0) +
-                      (assinante.points || 0) * 0.01
-                    )
+                    ? formatCurrency(data.totalCashback || 0)
                     : 'R$ •••'}
                 </p>
                 <p className="text-[10px] text-white/25 mt-1">
-                  total estimada
+                  cashback acumulado
                 </p>
               </div>
             </div>
@@ -424,8 +421,8 @@ export default function CarteiraPage() {
               key={key}
               onClick={() => setActiveTab(key)}
               className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${activeTab === key
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-600'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-400 hover:text-gray-600'
                 }`}
             >
               {label}
@@ -693,8 +690,8 @@ export default function CarteiraPage() {
                       <div className="flex items-center gap-3">
                         <div
                           className={`w-10 h-10 rounded-xl flex items-center justify-center ${tx.type === 'PURCHASE'
-                              ? 'bg-blue-50'
-                              : 'bg-green-50'
+                            ? 'bg-blue-50'
+                            : 'bg-green-50'
                             }`}
                         >
                           {tx.type === 'PURCHASE' ? (

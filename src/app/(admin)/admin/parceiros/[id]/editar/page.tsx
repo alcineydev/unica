@@ -486,6 +486,7 @@ export default function EditarParceiroPage() {
         receitaEsteMes={partner.stats.receitaEsteMes}
         mediaAvaliacao={partner.stats.mediaAvaliacao}
         totalAvaliacoes={partner.stats.totalAvaliacoes}
+        ultimoAcesso={partner.user?.lastLoginAt || null}
       />
 
       {/* Conteúdo Principal com Tabs */}
