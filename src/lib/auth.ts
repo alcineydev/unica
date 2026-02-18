@@ -86,6 +86,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           logger.debug('[AUTH] LOGIN BEM-SUCEDIDO:', email, 'Role:', user.role)
           logger.debug('========== [AUTH] FIM AUTHORIZE ==========')
 
+          // Atualizar último acesso (fire-and-forget)
+          prisma.user.update({
+            where: { id: user.id },
+            data: { lastLoginAt: new Date() }
+          }).catch(() => { })
+
           return {
             id: user.id,
             email: user.email,
