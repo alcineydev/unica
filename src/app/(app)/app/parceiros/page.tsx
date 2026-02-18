@@ -29,7 +29,6 @@ interface ApiResponse {
   }>
   categories: Category[]
   nextCursor: string | null
-  totalCount: number
   hasMore: boolean
 }
 
@@ -37,7 +36,6 @@ export default function ParceirosPage() {
   // Data
   const [parceiros, setParceiros] = useState<ParceiroCardData[]>([])
   const [categories, setCategories] = useState<Category[]>([])
-  const [totalCount, setTotalCount] = useState(0)
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
 
@@ -108,7 +106,6 @@ export default function ParceirosPage() {
       }
 
       setNextCursor(data.nextCursor || null)
-      setTotalCount(data.totalCount || 0)
       setHasMore(data.hasMore || false)
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
@@ -176,7 +173,6 @@ export default function ParceirosPage() {
   }, [])
 
   const loadedCount = parceiros.length
-  const progressPercent = totalCount > 0 ? Math.round((loadedCount / totalCount) * 100) : 0
   const hasFilters = search || selectedCategory
 
   return (
@@ -189,7 +185,7 @@ export default function ParceirosPage() {
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-extrabold text-gray-900">Parceiros</h1>
             <span className="text-xs text-gray-400 font-medium">
-              {totalCount} {totalCount === 1 ? 'parceiro' : 'parceiros'}
+              {parceiros.length}{hasMore ? '+' : ''} {parceiros.length === 1 ? 'parceiro' : 'parceiros'}
             </span>
           </div>
 
@@ -232,7 +228,7 @@ export default function ParceirosPage() {
       {!isLoading && (
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
           <p className="text-xs text-gray-500">
-            <span className="font-bold text-gray-900">{totalCount}</span> parceiros encontrados
+            <span className="font-bold text-gray-900">{parceiros.length}{hasMore ? '+' : ''}</span> parceiros encontrados
           </p>
           {hasFilters && (
             <button
@@ -305,9 +301,6 @@ export default function ParceirosPage() {
                 className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-blue-600 hover:bg-blue-50 hover:border-blue-200 active:scale-[0.98] transition-all"
               >
                 Carregar mais parceiros
-                <span className="text-xs text-gray-400 font-normal">
-                  · {totalCount - loadedCount} restantes
-                </span>
               </button>
 
               {/* Progress bar */}
@@ -315,11 +308,11 @@ export default function ParceirosPage() {
                 <div className="w-full h-[3px] bg-gray-100 rounded-full overflow-hidden mb-1">
                   <div
                     className="h-full bg-blue-600 rounded-full transition-all duration-300"
-                    style={{ width: `${progressPercent}%` }}
+                    style={{ width: hasMore ? '80%' : '100%' }}
                   />
                 </div>
                 <span className="text-[10px] text-gray-400">
-                  {loadedCount} de {totalCount} parceiros carregados
+                  {loadedCount} parceiros carregados
                 </span>
               </div>
             </div>
@@ -331,7 +324,7 @@ export default function ParceirosPage() {
               <div className="flex items-center justify-center gap-1 mb-1">
                 <span className="text-[11px] text-green-600 font-semibold">✓</span>
                 <span className="text-[11px] text-green-600 font-semibold">
-                  Todos os {totalCount} parceiros carregados
+                  Todos os {parceiros.length} parceiros carregados
                 </span>
               </div>
               <div className="w-48 h-[3px] bg-gray-100 rounded-full overflow-hidden mx-auto">
