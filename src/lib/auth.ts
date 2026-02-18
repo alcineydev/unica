@@ -92,7 +92,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             data: { lastLoginAt: new Date() }
           }).catch(() => { })
 
-
           return {
             id: user.id,
             email: user.email,

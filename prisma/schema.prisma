@@ -34,9 +34,9 @@ model User {
   role      Role       @default(ASSINANTE)
   avatar    String?
   phone     String?
-  isActive  Boolean    @default(true)
-  lastLoginAt DateTime?
-  createdAt DateTime   @default(now())
+  isActive      Boolean    @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   
   // Troca de email
