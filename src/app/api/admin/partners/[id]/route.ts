@@ -66,7 +66,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             id: true,
             email: true,
             isActive: true,
-            lastLoginAt: true,
             createdAt: true
           }
         },
