@@ -1,133 +1,119 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 import {
-  LayoutDashboard,
-  ShoppingCart,
+  LayoutGrid,
+  ShoppingBag,
   Users,
+  CreditCard,
   Star,
   BarChart3,
   Building2,
-  Wallet,
   LogOut,
-  Menu,
-  X,
-  Sparkles
 } from 'lucide-react'
-import { signOut } from 'next-auth/react'
-import { cn } from '@/lib/utils'
 
-interface NavItem {
-  label: string
-  href: string
-  icon: React.ElementType
-}
-
-const navigation: NavItem[] = [
-  { label: 'Dashboard', href: '/parceiro', icon: LayoutDashboard },
-  { label: 'Vendas', href: '/parceiro/vendas', icon: ShoppingCart },
-  { label: 'Clientes', href: '/parceiro/clientes', icon: Users },
-  { label: 'Meu Saldo', href: '/parceiro/saldo', icon: Wallet },
-  { label: 'Avaliações', href: '/parceiro/avaliacoes', icon: Star },
-  { label: 'Relatórios', href: '/parceiro/relatorios', icon: BarChart3 },
-  { label: 'Perfil da Empresa', href: '/parceiro/perfil', icon: Building2 },
+const navItems = [
+  { href: '/parceiro', label: 'Dashboard', icon: LayoutGrid },
+  { href: '/parceiro/vendas', label: 'Vendas', icon: ShoppingBag },
+  { href: '/parceiro/clientes', label: 'Clientes', icon: Users },
+  { href: '/parceiro/saldo', label: 'Meu Saldo', icon: CreditCard },
+  { href: '/parceiro/avaliacoes', label: 'Avaliações', icon: Star },
+  { href: '/parceiro/relatorios', label: 'Relatórios', icon: BarChart3 },
+  { href: '/parceiro/perfil', label: 'Perfil da Empresa', icon: Building2 },
 ]
 
 export function ParceiroSidebar() {
   const pathname = usePathname()
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const { data: session } = useSession()
 
   const isActive = (href: string) => {
     if (href === '/parceiro') return pathname === '/parceiro'
     return pathname.startsWith(href)
   }
 
-  const SidebarContent = () => (
-    <>
-      {/* Logo */}
-      <div className="p-6 border-b border-white/10">
-        <Link href="/parceiro" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <span className="text-white text-xl font-bold">UNICA</span>
-            <span className="text-slate-400 text-xs block">Parceiro</span>
-          </div>
-        </Link>
+  const userName = session?.user?.name || 'Parceiro'
+  const initials = userName
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase()
+
+  return (
+    <aside
+      className="hidden lg:flex lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:w-72 lg:flex-col"
+      style={{ backgroundColor: '#0b1120' }}
+    >
+      {/* Brand */}
+      <div className="flex items-center gap-3.5 px-6 pt-7 pb-6">
+        <div className="w-11 h-11 rounded-[14px] bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-600/30 flex-shrink-0">
+          <span className="text-white font-extrabold text-xl">U</span>
+        </div>
+        <div>
+          <div className="text-white font-extrabold text-xl tracking-tight">UNICA</div>
+          <div className="text-white/40 text-xs font-medium mt-0.5">Clube de Benefícios</div>
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {navigation.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setMobileOpen(false)}
-            className={cn(
-              "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
-              isActive(item.href)
-                ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
-                : "text-slate-300 hover:bg-white/5 hover:text-white"
-            )}
-          >
-            <item.icon className="w-5 h-5" />
-            {item.label}
-          </Link>
-        ))}
+      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+        {navItems.map((item) => {
+          const active = isActive(item.href)
+          const Icon = item.icon
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              prefetch={false}
+              className={[
+                'relative flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
+                active
+                  ? 'bg-emerald-500/15 text-white font-semibold'
+                  : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04]',
+              ].join(' ')}
+            >
+              <Icon
+                className={`w-[22px] h-[22px] flex-shrink-0 ${active ? 'text-emerald-500' : ''}`}
+                strokeWidth={1.8}
+              />
+              {item.label}
+
+              {/* Barra verde lateral no item ativo */}
+              {active && (
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-7 bg-emerald-500 rounded-l" />
+              )}
+            </Link>
+          )
+        })}
       </nav>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-white/10">
+      {/* User Profile */}
+      <div className="px-5 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-500 flex items-center justify-center border-2 border-white/10 flex-shrink-0">
+            <span className="text-white font-bold text-sm">{initials}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-white/85 text-sm font-semibold truncate">{userName}</div>
+            <div className="text-emerald-500 text-xs font-semibold mt-0.5 flex items-center gap-1">
+              <span className="text-[10px]">🏪</span> Parceiro
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Logout */}
+      <div className="px-5 pb-6">
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all"
+          className="flex items-center gap-3 text-white/40 hover:text-red-400 transition-colors text-sm w-full"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-[18px] h-[18px]" strokeWidth={1.8} />
           Sair
         </button>
       </div>
-    </>
-  )
-
-  return (
-    <>
-      {/* Mobile Toggle */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 rounded-xl text-white shadow-lg"
-      >
-        <Menu className="w-6 h-6" />
-      </button>
-
-      {/* Mobile Overlay */}
-      {mobileOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Sidebar Mobile */}
-      <aside className={cn(
-        "lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 flex flex-col transform transition-transform duration-300",
-        mobileOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white"
-        >
-          <X className="w-6 h-6" />
-        </button>
-        <SidebarContent />
-      </aside>
-
-      {/* Sidebar Desktop */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 flex-col shadow-xl">
-        <SidebarContent />
-      </aside>
-    </>
+    </aside>
   )
 }
